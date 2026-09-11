@@ -1,0 +1,26 @@
+/* styles/theme.css */
+
+:root {
+  /* Preply brand colours */
+  --preply-primary: #FF69B4; /* hot pink – official Preply pink */
+  --preply-bg: #ffffff;    /* white background */
+}
+
+/* Apply brand colours globally */
+body {
+  background-color: var(--preply-bg);
+  color: #111827; /* default text colour */
+}
+
+a, button, .btn {
+  color: var(--preply-primary);
+}
+
+/* Example usage for headings, borders, etc. */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--preply-primary);
+}
+
+.border-primary {
+  border-color: var(--preply-primary) !important;
+}

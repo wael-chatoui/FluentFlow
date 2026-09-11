@@ -1,0 +1,174 @@
+Prompt for the project automation agent
+
+# -------------------------------------------------
+# Projet : Preply Lesson WebApp (Next.js + Supabase)
+# -------------------------------------------------
+# Objectif : mettre en place automatiquement toutes les étapes nécessaires
+# à la production d’un site web complet avec authentification (email + Google),
+# rôle « student / teacher », historique des leçons, stockage PDF sur Supabase
+# et déploiement sur Vercel.  
+
+# ----------------------------------------------------------------
+# 1️⃣ Supabase – création & configuration
+# ----------------------------------------------------------------
+- Créer un nouveau projet Supabase (ou réutiliser un existant).  
+- Activer l’authentification **Email + Password**.  
+- Activer le provider **Google** (OAuth2) ; configurer les URLs de redirection
+  `https://<your‑vercel‑domain>/auth/callback` et `http://localhost:3000/auth/callback`.  
+- Créer un bucket de stockage public nommé **lesson-pdfs**.  
+- Ajouter une colonne `role` (type texte) dans la métadonnée d’utilisateur (`auth.users`).
+  *Valeurs autorisées :* `student` ou `teacher`.  
+- Créer la table SQL `lessons` :
+
+```sql
+create table lessons (
+  id uuid default uuid_generate_v4() primary key,
+  student_id uuid references auth.users(id),
+  instruction text,
+  pdf_path text,
+  created_at timestamp default now()
+);
+```
+
+- Récupérer la **Service Role Key** (Settings → API) et la garder secrète.
+
+# ----------------------------------------------------------------
+# 2️⃣ Variables d’environnement (locales & Vercel)
+# ----------------------------------------------------------------
+Créer le fichier **`.env.local`** à la racine du projet (`/Users/wael/Documents/Preply/webapp/`) :
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://<YOUR_SUPABASE_PROJECT>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<YOUR_ANON_KEY>
+SUPABASE_SERVICE_ROLE_KEY=<YOUR_SUPABASE_SERVICE_ROLE_KEY>
+```
+
+Copier le même jeu de variables (sans le service‑role) dans le tableau
+**Environment Variables** de Vercel ; ajouter la clé de service‑role uniquement
+dans les variables **Server‑Side** de Vercel.
+
+# ----------------------------------------------------------------
+# 3️⃣ Dépendances & mise à jour de Next.js
+# ----------------------------------------------------------------
+Dans le répertoire `webapp` :
+```bash
+cd /Users/wael/Documents/Preply/webapp
+npm install next@latest               # corrige la vulnérabilité
+npm audit fix --force                 # supprime les alertes restantes
+npm install @supabase/auth-ui-react @supabase/auth-ui-shared
+```
+
+# ----------------------------------------------------------------
+# 4️⃣ Thème Preply (CSS)
+# ----------------------------------------------------------------
+Créer / mettre à jour le fichier **`styles/theme.css`** avec les variables
+de couleur :
+
+```css
+:root {
+  --preply-primary: #FF69B4; /* pink officiel Preply */
+  --preply-bg: #ffffff;      /* blanc */
+}
+body { background-color: var(--preply-bg); color: #111827; }
+a, button, .btn { color: var(--preply-primary); }
+h1, h2, h3, h4, h5, h6 { color: var(--preply-primary); }
+.border-primary { border-color: var(--preply-primary) !important; }
+```
+
+Importer ce fichier dans `_app.js` :
+```js
+import '../styles/globals.css';
+import '../styles/theme.css';
+```
+
+# ----------------------------------------------------------------
+# 5️⃣ Auth UI (Supabase UI components)
+# ----------------------------------------------------------------
+- Créer **`components/AuthProvider.jsx`** qui initialise le client Supabase,
+  écoute les changements de session et expose `user`, `session`,
+  `signIn`, `signOut`.  
+- Créer la page **`pages/login.js`** :
+  - Utiliser le composant `<Auth>` de `@supabase/auth-ui-react`.
+  - Configurer `providers={['google']}` et `view='sign_in'`.
+  - Après connexion, rediriger selon `user.role` vers `/student` ou `/teacher`.
+
+# ----------------------------------------------------------------
+# 6️⃣ Middleware (Next 13)
+# ----------------------------------------------------------------
+Créer **`middleware.js`** :
+```js
+import { supabase } from './utils/supabaseClient';
+import { NextResponse } from 'next/server';
+export async function middleware(req) {
+  const token = req.cookies['sb:token'] ?? '';
+  const { data: { user } } = await supabase.auth.getUser(token);
+  if (!user) return NextResponse.redirect(new URL('/login', req.url));
+  return NextResponse.next();
+}
+export const config = { matcher: ['/student/:path*', '/teacher/:path*'] };
+```
+
+# ----------------------------------------------------------------
+# 7️⃣ Dashboards
+# ----------------------------------------------------------------
+- **Student dashboard** : `pages/student/index.js`
+  - Réutiliser le formulaire déjà présent (`pages/index.js`).
+  - Ajouter un appel à `/api/lessons?studentId=<id>` pour récupérer l’historique
+    et afficher une liste de liens PDF.
+- **Teacher dashboard** : `pages/teacher/index.js`
+  - Afficher la liste des utilisateurs `role = 'student'` (requête Supabase).
+  - Boutons **Créer** / **Modifier** qui appellent des API d’administration
+    (`/api/admin/createStudent`, `/api/admin/updateStudent`).
+
+# ----------------------------------------------------------------
+# 8️⃣ API d’administration (CRUD étudiants)
+# ----------------------------------------------------------------
+Créer les endpoints sous `pages/api/admin/` :
+- `createStudent.js` : insère un nouvel enregistrement dans `auth.users`
+  (email, password, role = student) en utilisant le Service Role key.
+- `updateStudent.js` : met à jour le `email` ou le `role`.
+- `listStudents.js` : retourne tous les étudiants.
+
+# ----------------------------------------------------------------
+# 9️⃣ API d’historique des leçons
+# ----------------------------------------------------------------
+Créer `pages/api/lessons.js` :
+```js
+export default async function handler(req, res) {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  const { data: { user } } = await supabase.auth.getUser(token);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const { data, error } = await supabase
+    .from('lessons')
+    .select('id, instruction, pdf_path, created_at')
+    .eq('student_id', user.id)
+    .order('created_at', { ascending: false });
+  if (error) return res.status(500).json({ error });
+  const publicUrls = data.map(l => ({
+    ...l,
+    pdfUrl: supabase.storage.from('lesson-pdfs').getPublicUrl(l.pdf_path).publicUrl
+  }));
+  res.status(200).json(publicUrls);
+}
+```
+
+# ----------------------------------------------------------------
+# 10️⃣ Déploiement Vercel
+# ----------------------------------------------------------------
+1. Commiter le repo (inclure `package.json`, `pages/`, `styles/`, etc.).
+2. Créer un projet Vercel lié au dépôt GitHub.
+3. Ajouter les variables d’environnement (voir § 2).
+4. Déployer (`npm run build && npm start` sera lancé automatiquement).
+
+# ----------------------------------------------------------------
+# 11️⃣ Vérifications post‑déploiement
+# ----------------------------------------------------------------
+- Login (email + password) → redirection correcte.
+- Login Google → idem.
+- Tableau enseignant → liste des étudiants, création/modification fonctionnelle.
+- Tableau étudiant → formulaire + historique des PDFs.
+- Génération de leçon → `/api/generate` → PDF stocké dans Supabase → lien public affiché.
+
+# -------------------------------------------------
+# FIN DU PROMPT
+# -------------------------------------------------
