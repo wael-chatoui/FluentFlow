@@ -1,8 +1,8 @@
 // File: /Users/wael/Documents/Preply/webapp/pages/api/generate.js
 import { promises as fs } from 'fs'
 import path from 'path'
-import { generate_lesson, create_pdf } from '../../utils/lesson_manager'
-import { supabase } from '../../utils/supabaseClient'
+import { generate_lesson, create_pdf } from '@/utils/lesson_manager'
+import { supabase } from '@/utils/supabaseClient'
 
 export default async function handler(req, res) {
   // Protect route – require valid Supabase JWT
