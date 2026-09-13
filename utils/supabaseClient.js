@@ -1,8 +1,5 @@
-// File: /Users/wael/Documents/Preply/webapp/utils/supabaseClient.js
+// Backward-compatible re-export — new code should import from utils/supabase/client.js
+// This file is kept so existing code referencing `supabase` still works.
+import { createClient } from './supabase/client'
 
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient()

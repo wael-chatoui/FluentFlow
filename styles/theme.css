@@ -1,26 +1,43 @@
-/* styles/theme.css */
+/* ============================================
+   Preply Theme — Brand Overrides
+   ============================================ */
 
 :root {
-  /* Preply brand colours */
-  --preply-primary: #FF69B4; /* hot pink – official Preply pink */
-  --preply-bg: #ffffff;    /* white background */
+  --preply-primary: #FF69B4;
+  --preply-bg: #ffffff;
 }
 
-/* Apply brand colours globally */
-body {
-  background-color: var(--preply-bg);
-  color: #111827; /* default text colour */
-}
-
-a, button, .btn {
-  color: var(--preply-primary);
-}
-
-/* Example usage for headings, borders, etc. */
+/* Headings */
 h1, h2, h3, h4, h5, h6 {
-  color: var(--preply-primary);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
 }
 
+h1 { font-size: 2rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.25rem; }
+
+/* Accent border helper */
 .border-primary {
   border-color: var(--preply-primary) !important;
+}
+
+/* Gradient text helper */
+.text-gradient {
+  background: linear-gradient(135deg, var(--preply-pink), #a855f7);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Preply pink gradient background */
+.bg-gradient-preply {
+  background: linear-gradient(135deg, #fdf2f8, #fce7f3, #f5e6ff);
+}
+
+/* Focus ring utility */
+.focus-ring:focus-visible {
+  outline: 2px solid var(--preply-pink);
+  outline-offset: 2px;
 }
