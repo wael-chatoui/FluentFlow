@@ -153,7 +153,7 @@ export default async function handler(req, res) {
 ```
 
 # ----------------------------------------------------------------
-# 10️⃣ Déploiement Vercel
+# 1️⃣0️⃣ Déploiement Vercel
 # ----------------------------------------------------------------
 1. Commiter le repo (inclure `package.json`, `pages/`, `styles/`, etc.).
 2. Créer un projet Vercel lié au dépôt GitHub.
@@ -161,7 +161,7 @@ export default async function handler(req, res) {
 4. Déployer (`npm run build && npm start` sera lancé automatiquement).
 
 # ----------------------------------------------------------------
-# 11️⃣ Vérifications post‑déploiement
+# 1️⃣1️⃣ Vérifications post‑déploiement
 # ----------------------------------------------------------------
 - Login (email + password) → redirection correcte.
 - Login Google → idem.
