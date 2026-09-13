@@ -77,7 +77,11 @@ export default function LoginPage() {
               },
             }}
             providers={['google']}
-            redirectTo={`${typeof window !== 'undefined' ? window.location.origin : ''}/auth/callback`}
+            redirectTo={
+              typeof window !== 'undefined'
+                ? `${window.location.origin}/auth/callback`
+                : `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`
+            }
             view="sign_in"
             localization={{
               variables: {
