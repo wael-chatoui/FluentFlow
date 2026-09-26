@@ -1,8 +1,9 @@
 // Input validation for API routes. Each helper returns the cleaned value,
 // `undefined` when the field was not sent, or throws a BadRequest with `message`.
 import { UUID_RE } from '@/utils/auth/server'
-import { LEVELS, safeDriveUrl } from '@/utils/lesson/schema'
+import { EXERCISE_TYPES, LEVELS, safeDriveUrl } from '@/utils/lesson/schema'
 import { fail } from '@/utils/api/errors'
+import { DEFAULT_GENERATION_OPTIONS, GENERATION_LIMITS } from '@/utils/ai/prompt'
 
 export const LIMITS = {
   source: 150_000, // transcript / Canva notes
@@ -93,4 +94,41 @@ export function parseAnswers(body, { max, idLength }) {
   return answers
     .filter((a) => a && typeof a === 'object' && typeof a.exerciseId === 'string')
     .map((a) => ({ exerciseId: a.exerciseId.slice(0, idLength), value: cleanAnswerValue(a.value) }))
+}
+
+/**
+ * Teacher's exercise generation options (French messages).
+ * `{ count: int 4–20 (default 10), types: non-empty subset of EXERCISE_TYPES (default all),
+ *    instructions: string ≤ 1000 (default '') }` — missing fields get their default.
+ * @returns {{ count: number, types: string[], instructions: string } | undefined}
+ *   undefined when `value` is undefined or null (not sent)
+ */
+export function parseGenerationOptions(value) {
+  if (value === undefined || value === null) return undefined
+  if (typeof value !== 'object' || Array.isArray(value)) fail('Options de génération invalides.')
+  const { minCount, maxCount, maxInstructions } = GENERATION_LIMITS
+
+  let count = DEFAULT_GENERATION_OPTIONS.count
+  if (value.count !== undefined && value.count !== null) {
+    if (!Number.isInteger(value.count) || value.count < minCount || value.count > maxCount) {
+      fail(`Le nombre d'exercices doit être un entier entre ${minCount} et ${maxCount}.`)
+    }
+    count = value.count
+  }
+
+  let types = [...DEFAULT_GENERATION_OPTIONS.types]
+  if (value.types !== undefined && value.types !== null) {
+    if (!Array.isArray(value.types) || value.types.length > 10) fail("Types d'exercices invalides.")
+    if (value.types.some((t) => !EXERCISE_TYPES.includes(t))) {
+      fail(`Type d'exercice inconnu (types possibles : ${EXERCISE_TYPES.join(', ')}).`)
+    }
+    // Deduplicated, in the canonical order
+    types = EXERCISE_TYPES.filter((t) => value.types.includes(t))
+    if (!types.length) fail("Choisis au moins un type d'exercice.")
+  }
+
+  const instructions =
+    optionalText(value.instructions, maxInstructions, `Les consignes doivent faire au plus ${maxInstructions} caractères.`) || ''
+
+  return { count, types, instructions }
 }

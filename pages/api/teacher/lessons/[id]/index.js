@@ -1,4 +1,5 @@
-// GET    /api/teacher/lessons/[id] → { lesson, sessions }
+// GET    /api/teacher/lessons/[id] → { lesson, sessions } (lesson includes source_kind,
+//        source_name, source_text, generation_options)
 // PATCH  /api/teacher/lessons/[id] any of { title, lessonDate, driveUrl, removeExerciseIds } → { lesson }
 // DELETE /api/teacher/lessons/[id] → { success: true }
 import { allowMethods, requireTeacher } from '@/utils/auth/server'
@@ -6,8 +7,8 @@ import { createAdminClient } from '@/utils/supabase/admin'
 import { fail, handleError } from '@/utils/api/errors'
 import { LIMITS, bodyOf, isIsoDate, isUuid, optionalDriveUrl, optionalText } from '@/utils/api/validate'
 
-const LESSON_FIELDS =
-  'id, student_id, title, lesson_date, status, error, content, exercises, drive_url, transcript, canva, ai_model, created_at, updated_at'
+// '*' so the route keeps working before migration 0005 (lesson import columns)
+const LESSON_FIELDS = '*'
 const NOT_FOUND = 'Cours introuvable.'
 const MAX_REMOVE = 100
 
@@ -47,6 +48,11 @@ const serialize = (l) => ({
   ai_model: l.ai_model,
   created_at: l.created_at,
   updated_at: l.updated_at,
+  // Defaults when migration 0005 is not applied yet
+  source_kind: l.source_kind || 'transcript',
+  source_name: l.source_name ?? null,
+  source_text: l.source_text ?? null,
+  generation_options: l.generation_options ?? null,
 })
 
 function parsePatch(body) {

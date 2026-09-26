@@ -7,7 +7,7 @@ import styles from '@/components/teacher/students/StudentHero.module.css'
 
 /**
  * Colorful header card of the teacher student page (accent color per student):
- * avatar, name, email, level + sign-up pills, "Nouvelle leçon" and Drive folder.
+ * avatar, name, email, level + sign-up pills, "Nouvelle leçon", "Importer" and Drive folder.
  * @param {{ student: object, newLessonHref: string }} props
  */
 export default function StudentHero({ student, newLessonHref }) {
@@ -48,6 +48,12 @@ export default function StudentHero({ student, newLessonHref }) {
       <div className={styles.actions}>
         <Link href={newLessonHref} className={`${ui.btn} ${ui.green} ${styles.primary}`}>
           <span aria-hidden="true">✨</span> Nouvelle leçon
+        </Link>
+        <Link
+          href={`/teacher/lessons/import?student=${encodeURIComponent(student.id)}`}
+          className={`${ui.btn} ${ui.ghost} ${styles.secondary}`}
+        >
+          <span aria-hidden="true">📥</span> Importer des leçons
         </Link>
         {driveUrl && (
           <a
