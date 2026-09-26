@@ -1,6 +1,12 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 
+// Role comes from app_metadata (server-controlled), never user_metadata
+function getRoleFromUser(user) {
+  if (!user) return null
+  return user.app_metadata?.role === 'teacher' ? 'teacher' : 'student'
+}
+
 const AuthContext = createContext({
   user: null,
   session: null,
@@ -25,7 +31,7 @@ export default function AuthProvider({ children }) {
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s)
       setUser(s?.user ?? null)
-      setRole(s?.user?.user_metadata?.role ?? null)
+      setRole(getRoleFromUser(s?.user))
       setLoading(false)
     })
 
@@ -35,7 +41,7 @@ export default function AuthProvider({ children }) {
     } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s)
       setUser(s?.user ?? null)
-      setRole(s?.user?.user_metadata?.role ?? null)
+      setRole(getRoleFromUser(s?.user))
       setLoading(false)
     })
 

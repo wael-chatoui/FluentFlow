@@ -315,3 +315,57 @@
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* ---- AppShell ---- */
+a.dashboard-brand {
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+
+.app-shell-role {
+  margin-left: 0.25rem;
+}
+
+.app-shell-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  min-height: 44px;
+}
+
+.app-shell-back:hover {
+  color: var(--preply-pink-dark);
+}
+
+.app-shell-titlebar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.app-shell-titlebar .dashboard-title {
+  margin-bottom: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.app-shell-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+@media (max-width: 640px) {
+  .dashboard-brand h2 {
+    font-size: 1rem;
+  }
+}
