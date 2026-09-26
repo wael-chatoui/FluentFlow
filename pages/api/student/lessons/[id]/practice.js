@@ -4,7 +4,7 @@ import { allowMethods, requireUser } from '@/utils/auth/server'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { scoreSession } from '@/utils/lesson/grading'
 import { fail, handleError } from '@/utils/api/errors'
-import { bodyOf, isUuid } from '@/utils/api/validate'
+import { STUDENT_VISIBLE, bodyOf, isUuid } from '@/utils/api/validate'
 import { progressByLesson, progressOf } from '@/utils/api/progress'
 
 const MAX_ANSWERS = 100
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
       .select('id, exercises')
       .eq('id', id)
       .eq('student_id', studentId)
-      .eq('status', 'published')
+      .in('status', STUDENT_VISIBLE).not('content', 'is', null)
       .maybeSingle()
     if (error) throw error
     if (!lesson) return res.status(404).json({ error: 'Lesson not found.' })
@@ -74,6 +74,7 @@ export default async function handler(req, res) {
       score: result.score,
       total: result.total,
       bestScore: best.best_score ?? result.score,
+      bestTotal: best.best_total ?? result.total,
     })
   } catch (err) {
     return handleError(res, err, 'student/lessons/[id]/practice')

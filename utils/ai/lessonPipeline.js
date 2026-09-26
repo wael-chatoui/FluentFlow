@@ -69,7 +69,12 @@ export async function runLessonGeneration(admin, lesson, { title } = {}) {
     update = { status: 'published', error: null, content, exercises, ai_model: model, title: title || content.title }
   } catch (err) {
     console.error(`[ai] generation failed for lesson ${lesson.id}:`, err)
-    update = { status: 'failed', error: err instanceof AiError ? err.message : GENERIC_ERROR }
+    const message = err instanceof AiError ? err.message : GENERIC_ERROR
+    // A failed regeneration keeps the previous version published for the student
+    const status = lesson.content ? 'published' : 'failed'
+    const { error } = await admin.from('lessons').update({ status, error: message }).eq('id', lesson.id)
+    if (error) throw error
+    return { id: lesson.id, status: 'failed', error: message }
   }
 
   const { error } = await admin.from('lessons').update(update).eq('id', lesson.id)

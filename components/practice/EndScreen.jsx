@@ -33,6 +33,7 @@ function correctAnswer(exercise) {
 const EndScreen = forwardRef(function EndScreen({ score, total, mistakes, save, onRetrySave }, headingRef) {
   const pct = total > 0 ? Math.round((score / total) * 100) : 0
   const best = save.result && Number.isFinite(save.result.bestScore) ? save.result.bestScore : null
+  const bestTotal = Number.isFinite(save.result?.bestTotal) ? save.result.bestTotal : total
 
   return (
     <div className={styles.end}>
@@ -80,7 +81,7 @@ const EndScreen = forwardRef(function EndScreen({ score, total, mistakes, save, 
         )}
         {save.status === 'saved' && (
           <span className={styles.saved}>
-            ✓ Score saved{best !== null && total > 0 ? ` · Your best: ${best}/${total}` : ''}
+            ✓ Score saved{best !== null && total > 0 ? ` · Your best: ${best}/${bestTotal}` : ''}
           </span>
         )}
         {save.status === 'error' && (

@@ -1,6 +1,7 @@
 // GET /api/student/lessons → { driveFolderUrl, lessons: [...] } (own published lessons, newest first)
 import { allowMethods, requireUser, serverError } from '@/utils/auth/server'
 import { createAdminClient } from '@/utils/supabase/admin'
+import { STUDENT_VISIBLE } from '@/utils/api/validate'
 import { exerciseCount, progressByLesson, progressOf } from '@/utils/api/progress'
 
 export default async function handler(req, res) {
@@ -18,7 +19,7 @@ export default async function handler(req, res) {
         .from('lessons')
         .select('id, title, lesson_date, exercises, drive_url')
         .eq('student_id', studentId)
-        .eq('status', 'published')
+        .in('status', STUDENT_VISIBLE).not('content', 'is', null)
         .order('lesson_date', { ascending: false })
         .order('created_at', { ascending: false }),
       admin.from('practice_sessions').select('lesson_id, score, total').eq('student_id', studentId),

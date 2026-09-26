@@ -137,7 +137,10 @@ create policy student_notes_read on public.student_notes
 drop policy if exists lessons_read on public.lessons;
 create policy lessons_read on public.lessons
   for select to authenticated
-  using (public.is_teacher() or (student_id = auth.uid() and status = 'published'));
+  using (
+    public.is_teacher()
+    or (student_id = auth.uid() and status in ('published', 'generating') and content is not null)
+  );
 
 drop policy if exists practice_read on public.practice_sessions;
 create policy practice_read on public.practice_sessions

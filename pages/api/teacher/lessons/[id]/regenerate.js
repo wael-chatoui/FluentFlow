@@ -47,7 +47,7 @@ export default async function handler(req, res) {
       .update({ status: 'generating', error: null, ...sources })
       .eq('id', id)
       .or(`status.neq.generating,updated_at.lt."${staleBefore}"`)
-      .select('id, student_id, lesson_date, transcript, canva')
+      .select('id, student_id, lesson_date, transcript, canva, content')
     if (claimError) throw claimError
     if (!claimed?.length) return res.status(409).json({ error: BUSY })
 

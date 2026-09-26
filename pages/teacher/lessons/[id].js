@@ -169,14 +169,18 @@ export default function TeacherLessonPage() {
     if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
 
     try {
-      await api(`/api/teacher/lessons/${id}/regenerate`, { method: 'POST', body: {}, signal: controller.signal })
+      const res = await api(`/api/teacher/lessons/${id}/regenerate`, { method: 'POST', body: {}, signal: controller.signal })
       if (!mounted.current) return
       setHiddenIds(new Set())
       const fresh = await refreshSilently(controller.signal)
       if (!fresh) return
-      if (fresh.status === 'published') {
+      if (res?.lesson?.status === 'published') {
         setTab('recap')
         setNotice('Leçon régénérée et publiée ✓')
+      } else if (fresh.status === 'published') {
+        setActionError(
+          `${res?.lesson?.error || 'La régénération a échoué.'} L'ancienne version reste en ligne pour l'élève.`
+        )
       }
     } catch (err) {
       if (isAbortError(err) || !mounted.current) return
@@ -438,7 +442,7 @@ export default function TeacherLessonPage() {
                     exercises={exercises}
                     onRemove={handleRemoveExercise}
                     removingIds={removingIds}
-                    disabled={regenerating || deleting}
+                    disabled={regenerating || deleting || removingIds.size > 0}
                   />
                 </>
               )}

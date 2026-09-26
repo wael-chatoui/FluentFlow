@@ -73,8 +73,8 @@ function FillBlankBody({ exercise }) {
           {answers.length > 1 ? 'Réponses acceptées :' : 'Réponse attendue :'}
         </span>
         <ul className={styles.chips}>
-          {answers.map((a) => (
-            <li key={a} className={styles.chip}>{a}</li>
+          {answers.map((a, i) => (
+            <li key={i} className={styles.chip}>{a}</li>
           ))}
         </ul>
       </div>

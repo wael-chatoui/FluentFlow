@@ -24,6 +24,14 @@ import styles from '@/components/teacher/NewLesson.module.css'
 const MIN_CHARS = 20
 const SAVE_DELAY = 600
 
+// A draft keeps its date only if it was saved today; an older draft defaults to today
+function draftDate(draft) {
+  if (!draft?.lessonDate || !draft.savedAt) return todayLocal()
+  const saved = new Date(draft.savedAt)
+  const today = new Date()
+  return saved.toDateString() === today.toDateString() ? draft.lessonDate : todayLocal()
+}
+
 function formatTime(ts) {
   return new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
 }
@@ -86,7 +94,7 @@ export default function NewLessonPage() {
     const draft = readDraft(studentId)
     const initial = {
       studentId,
-      lessonDate: draft?.lessonDate || todayLocal(),
+      lessonDate: draftDate(draft),
       title: draft?.title || '',
       transcript: draft?.transcript || '',
       canva: draft?.canva || '',
@@ -154,11 +162,13 @@ export default function NewLessonPage() {
   }, [mounted])
 
   useEffect(() => {
-    if (!form || phase !== 'form') return undefined
     clearTimeout(saveTimer.current)
+    saveTimer.current = null
+    // Paused while a draft conflict is pending, so the other student's draft is not overwritten
+    if (!form || phase !== 'form' || conflictDraft) return undefined
     saveTimer.current = setTimeout(flushDraft, SAVE_DELAY)
     return undefined
-  }, [form, phase, flushDraft])
+  }, [form, phase, flushDraft, conflictDraft])
 
   // Flush a pending save when leaving (unmount, tab hidden/closed) and abort requests
   useEffect(() => {
@@ -194,7 +204,7 @@ export default function NewLessonPage() {
       if (newDraft) {
         setForm({
           studentId: newId,
-          lessonDate: newDraft.lessonDate || current.lessonDate,
+          lessonDate: draftDate(newDraft),
           title: newDraft.title,
           transcript: newDraft.transcript,
           canva: newDraft.canva,
@@ -209,7 +219,8 @@ export default function NewLessonPage() {
     // The text already typed moves with the selection; the old key is re-saved under the new one.
     clearTimeout(saveTimer.current)
     saveTimer.current = null
-    removeDraft(current.studentId)
+    // On conflict the typed text stays saved under its old key until the teacher chooses
+    if (!newDraft) removeDraft(current.studentId)
     setForm({ ...current, studentId: newId })
     if (newDraft) setConflictDraft(newDraft)
   }
@@ -218,7 +229,7 @@ export default function NewLessonPage() {
     if (!conflictDraft) return
     setForm((f) => ({
       ...f,
-      lessonDate: conflictDraft.lessonDate || f.lessonDate,
+      lessonDate: draftDate(conflictDraft),
       title: conflictDraft.title,
       transcript: conflictDraft.transcript,
       canva: conflictDraft.canva,

@@ -1,7 +1,7 @@
 // GET /api/student/lessons/[id] → { lesson, progress } (own + published only, else 404)
 import { allowMethods, requireUser, serverError } from '@/utils/auth/server'
 import { createAdminClient } from '@/utils/supabase/admin'
-import { isUuid } from '@/utils/api/validate'
+import { STUDENT_VISIBLE, isUuid } from '@/utils/api/validate'
 import { progressByLesson, progressOf } from '@/utils/api/progress'
 
 export default async function handler(req, res) {
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
         .select('id, title, lesson_date, content, exercises, drive_url')
         .eq('id', id)
         .eq('student_id', studentId)
-        .eq('status', 'published')
+        .in('status', STUDENT_VISIBLE).not('content', 'is', null)
         .maybeSingle(),
       admin.from('practice_sessions').select('lesson_id, score, total').eq('lesson_id', id).eq('student_id', studentId),
     ])

@@ -54,3 +54,7 @@ export function optionalDriveUrl(value, message) {
 export function hasEnoughText(value, min = 20) {
   return typeof value === 'string' && value.replace(/\s/g, '').length >= min
 }
+
+// Lesson statuses a student may see. 'generating' only counts when the row
+// already has content (a regeneration in progress keeps the previous version).
+export const STUDENT_VISIBLE = ['published', 'generating']

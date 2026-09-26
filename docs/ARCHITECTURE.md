@@ -44,14 +44,14 @@ Student (requireUser; teachers get 403)
 - `POST /api/onboarding/complete` `{ fullName, level, goals, interests }` → `{ profile }`
 - `POST /api/student/deleteProfile` → `{ success: true }`
 - `GET  /api/student/lessons` → `{ driveFolderUrl, lessons: [{ id, title, lesson_date, exercise_count, best_score, best_total, attempts, drive_url }] }` (published only, newest first; best_score/best_total null if never practised)
-- `GET  /api/student/lessons/[id]` → `{ lesson: { id, title, lesson_date, content, exercises, drive_url }, progress: { best_score, best_total, attempts } }` (404 unless own + published)
-- `POST /api/student/lessons/[id]/practice` `{ answers: [{ exerciseId, value }] }` → `{ score, total, bestScore }` (server re-grades; first answer per exercise counts)
+- `GET  /api/student/lessons/[id]` → `{ lesson: { id, title, lesson_date, content, exercises, drive_url }, progress: { best_score, best_total, attempts } }` (404 unless own + visible: `published`, or `generating` with previous content during a regeneration)
+- `POST /api/student/lessons/[id]/practice` `{ answers: [{ exerciseId, value }] }` → `{ score, total, bestScore, bestTotal }` (server re-grades; first answer per exercise counts)
 
 Teacher (requireTeacher)
 - `GET    /api/teacher/students` → `{ students: [{ id, email, full_name, level, onboarded_at, created_at, lesson_count, last_lesson_date }] }`
 - `GET    /api/teacher/students/[id]` → `{ student: { id, email, full_name, level, goals, interests, drive_folder_url, onboarded_at, created_at }, notes, lessons: [{ id, title, lesson_date, status, error, exercise_count, created_at, updated_at, best_score, best_total, attempts }] }`
 - `PATCH  /api/teacher/students/[id]` any of `{ fullName, level, goals, interests, driveFolderUrl, notes }` → same shape as GET (`driveFolderUrl` must be a Google Drive https URL or '' → else 400)
-- `POST   /api/teacher/lessons` `{ studentId, lessonDate: 'YYYY-MM-DD', title?, transcript, canva }` → `201 { lesson: { id, status, error } }`. Runs the AI synchronously (can take 30–120 s). `status` is `'published'` or `'failed'`; the row is kept either way so it can be regenerated.
+- `POST   /api/teacher/lessons` `{ studentId, lessonDate: 'YYYY-MM-DD', title?, transcript, canva }` → `201 { lesson: { id, status, error } }`. Runs the AI synchronously (can take 30–120 s). `status` is `'published'` or `'failed'`; the row is kept either way so it can be regenerated. A failed *regeneration* returns `'failed'` but keeps the previous version published for the student (the error is stored in `lessons.error`).
 - `GET    /api/teacher/lessons/[id]` → `{ lesson: { id, student_id, student_name, title, lesson_date, status, error, content, exercises, drive_url, transcript, canva, ai_model, created_at, updated_at }, sessions: [{ score, total, completed_at }] }`
 - `PATCH  /api/teacher/lessons/[id]` any of `{ title, lessonDate, driveUrl, removeExerciseIds: string[] }` → `{ lesson }` (same shape as GET's lesson)
 - `DELETE /api/teacher/lessons/[id]` → `{ success: true }`
