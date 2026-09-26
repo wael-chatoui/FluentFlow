@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createServerClient, parseCookieHeader, serializeCookieHeader } from '@supabase/ssr'
 
-export async function proxy(req) {
+export async function middleware(req) {
   const res = NextResponse.next()
 
   const supabase = createServerClient(

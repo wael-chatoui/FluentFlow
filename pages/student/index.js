@@ -35,9 +35,13 @@ export default function StudentDashboard() {
 
   useEffect(() => {
     if (!loading && user) {
-      fetchLessons()
+      if (!user.user_metadata?.onboarding_completed) {
+        router.replace('/onboarding')
+      } else {
+        fetchLessons()
+      }
     }
-  }, [loading, user, fetchLessons])
+  }, [loading, user, fetchLessons, router])
 
   const handleGenerate = async (e) => {
     e.preventDefault()
@@ -77,7 +81,7 @@ export default function StudentDashboard() {
     )
   }
 
-  if (!user) return null
+  if (!user || !user.user_metadata?.onboarding_completed) return null
 
   const initials = (user.user_metadata?.full_name || user.email || '?')
     .split(' ')

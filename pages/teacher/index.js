@@ -17,13 +17,6 @@ export default function TeacherDashboard() {
   const [genResult, setGenResult] = useState(null)
   const [genError, setGenError] = useState(null)
 
-  // Create student modal
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [newEmail, setNewEmail] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [newName, setNewName] = useState('')
-  const [creating, setCreating] = useState(false)
-  const [createError, setCreateError] = useState(null)
 
   const fetchStudents = useCallback(async () => {
     setLoadingStudents(true)
@@ -69,35 +62,6 @@ export default function TeacherDashboard() {
     setGenerating(false)
   }
 
-  const handleCreateStudent = async (e) => {
-    e.preventDefault()
-    setCreating(true)
-    setCreateError(null)
-    try {
-      const res = await fetch('/api/admin/createStudent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: newEmail,
-          password: newPassword,
-          fullName: newName,
-        }),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        setShowCreateModal(false)
-        setNewEmail('')
-        setNewPassword('')
-        setNewName('')
-        fetchStudents()
-      } else {
-        setCreateError(data.error || 'Erreur lors de la création')
-      }
-    } catch (err) {
-      setCreateError(err.message)
-    }
-    setCreating(false)
-  }
 
   const handleSignOut = async () => {
     await signOut()
@@ -251,13 +215,7 @@ export default function TeacherDashboard() {
           {/* Students List */}
           <div className="dashboard-section animate-fade-in delay-3">
             <div className="dashboard-section-header">
-              <h3 className="dashboard-section-title">👥 Étudiants</h3>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="btn btn-primary btn-sm"
-              >
-                + Ajouter
-              </button>
+              <h3 className="dashboard-section-title">👥 Tous les Étudiants</h3>
             </div>
 
             {loadingStudents ? (
@@ -270,7 +228,7 @@ export default function TeacherDashboard() {
                   <div className="empty-state-icon">👤</div>
                   <div className="empty-state-title">Aucun étudiant</div>
                   <div className="empty-state-text">
-                    Ajoute ton premier étudiant avec le bouton ci-dessus
+                    Les étudiants inscrits apparaîtront ici.
                   </div>
                 </div>
               </div>
@@ -318,79 +276,7 @@ export default function TeacherDashboard() {
         </div>
       </main>
 
-      {/* Create Student Modal */}
-      {showCreateModal && (
-        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3 className="modal-title">➕ Ajouter un étudiant</h3>
-            <form onSubmit={handleCreateStudent} className="dashboard-form">
-              <div className="form-group">
-                <label htmlFor="new-name" className="label">Nom complet</label>
-                <input
-                  id="new-name"
-                  type="text"
-                  className="input"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Rebecca M."
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="new-email" className="label">Email</label>
-                <input
-                  id="new-email"
-                  type="email"
-                  className="input"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="rebecca@example.com"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="new-password" className="label">Mot de passe</label>
-                <input
-                  id="new-password"
-                  type="password"
-                  className="input"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Minimum 6 caractères"
-                  minLength={6}
-                  required
-                />
-              </div>
-              {createError && (
-                <div className="alert alert-error">⚠️ {createError}</div>
-              )}
-              <div className="form-actions">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="btn btn-secondary"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="btn btn-primary"
-                  style={{ flex: 1 }}
-                >
-                  {creating ? (
-                    <>
-                      <span className="spinner" /> Création…
-                    </>
-                  ) : (
-                    'Créer le compte'
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+
     </div>
   )
 }

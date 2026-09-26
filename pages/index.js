@@ -19,7 +19,12 @@ export default function Home() {
       } else if (role === 'teacher') {
         router.replace('/teacher')
       } else {
-        router.replace('/student')
+        // Student role
+        if (!user.user_metadata?.onboarding_completed) {
+          router.replace('/onboarding')
+        } else {
+          router.replace('/student')
+        }
       }
     }
   }, [user, role, loading, router])

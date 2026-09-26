@@ -21,12 +21,12 @@ export default async function handler(req, res) {
   try {
     const admin = createAdminClient()
     const { data: { users }, error } = await admin.auth.admin.listUsers({
-      perPage: 100,
+      perPage: 1000,
     })
 
     if (error) throw error
 
-    // Filter only students
+    // 3. Filter only students (ALL students, as requested by user)
     const students = (users || [])
       .filter((u) => u.user_metadata?.role === 'student')
       .map((u) => ({
