@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef } from 'react'
-import ui from '@/components/student/ui.module.css'
+import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/profile/Profile.module.css'
 
 /**

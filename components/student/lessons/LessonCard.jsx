@@ -1,8 +1,8 @@
 import Link from 'next/link'
 import { formatLessonDate, plural } from '@/components/lesson/format'
-import { accentStyle } from '@/components/student/accents'
+import { accentStyle } from '@/components/ui/accents'
 import { bestPct, exerciseCount, lessonEmoji, vocabCount } from '@/components/student/lessons/progress'
-import ui from '@/components/student/ui.module.css'
+import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/lessons/LessonCard.module.css'
 
 const DATE_OPTS = { month: 'short', day: 'numeric', year: 'numeric' }

@@ -8,7 +8,7 @@ import useFrenchSpeech from '@/components/student/vocabulary/useFrenchSpeech'
 import { cx } from '@/components/practice/utils'
 import { stripAccents } from '@/utils/lesson/grading'
 import { api } from '@/utils/apiClient'
-import ui from '@/components/student/ui.module.css'
+import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/vocabulary/Vocabulary.module.css'
 
 const FILTERS = [

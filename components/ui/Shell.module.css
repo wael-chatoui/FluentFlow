@@ -91,7 +91,16 @@
   color: #fff;
   font-weight: 900;
   text-decoration: none;
+  border: none;
   border-bottom: 3px solid var(--st-purple-dark);
+  font: inherit;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.avatar:focus-visible {
+  outline: 3px solid var(--st-blue);
+  outline-offset: 2px;
 }
 
 /* ---- Content ---- */
@@ -115,7 +124,7 @@
   bottom: 0;
   z-index: 40;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(var(--tab-count, 5), 1fr);
   height: calc(var(--st-tabbar-h) + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
   background: #fff;

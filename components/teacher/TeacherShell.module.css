@@ -1,0 +1,80 @@
+.badge {
+  margin-left: 0.25rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: var(--st-blue-bg);
+  color: var(--st-blue-dark);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Account popover, anchored under the avatar (top-right of the top bar) */
+.menu {
+  position: fixed;
+  top: 70px;
+  right: max(1rem, calc((100vw - 1080px) / 2 + 1rem));
+  z-index: 50;
+  min-width: 240px;
+  max-width: calc(100vw - 2rem);
+  padding: 0.5rem;
+  background: var(--st-surface);
+  border: 2px solid var(--st-line);
+  border-bottom-width: 4px;
+  border-radius: var(--st-radius);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  animation: pop 150ms ease-out;
+}
+
+.menuHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.5rem 0.75rem 0.75rem;
+  border-bottom: 2px solid var(--st-line);
+  margin-bottom: 0.35rem;
+  overflow-wrap: anywhere;
+}
+
+.menuHeader span {
+  font-size: 0.85rem;
+  color: var(--st-ink-soft);
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  color: var(--st-red-dark);
+  font: inherit;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menuItem:hover,
+.menuItem:focus-visible {
+  background: var(--st-red-bg);
+  outline: none;
+}
+
+.menuItem:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+@keyframes pop {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu { animation: none; }
+}

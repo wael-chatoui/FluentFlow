@@ -2,7 +2,7 @@ import { useId } from 'react'
 import Link from 'next/link'
 import { formatLessonDate, plural } from '@/components/lesson/format'
 import { exerciseCount } from '@/components/student/lessons/progress'
-import ui from '@/components/student/ui.module.css'
+import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/home/UpNext.module.css'
 
 const DATE_OPTS = { weekday: 'long', month: 'long', day: 'numeric' }

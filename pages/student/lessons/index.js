@@ -7,7 +7,7 @@ import { EmptyState, ErrorCard } from '@/components/student/lessons/StatusViews'
 import { FILTERS, filterById, sortNewestFirst } from '@/components/student/lessons/progress'
 import { plural } from '@/components/lesson/format'
 import { api } from '@/utils/apiClient'
-import ui from '@/components/student/ui.module.css'
+import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/lessons/LessonsPage.module.css'
 
 const EMPTY = {

@@ -10,7 +10,7 @@ import { levelShort } from '@/components/student/profile/levels'
 import { ErrorCard } from '@/components/student/lessons/StatusViews'
 import { api } from '@/utils/apiClient'
 import { safeHttpsUrl } from '@/utils/lesson/schema'
-import ui from '@/components/student/ui.module.css'
+import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/profile/Profile.module.css'
 
 function ProfileSkeleton() {

@@ -2,7 +2,7 @@ import { useId } from 'react'
 import { formatLessonDate } from '@/components/lesson/format'
 import MasteryRing from '@/components/student/lessons/MasteryRing'
 import { bestPct, shortDate } from '@/components/student/lessons/progress'
-import ui from '@/components/student/ui.module.css'
+import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/home/Progress.module.css'
 
 // Bars are colored by score (not by lesson) so red always means "needs work"

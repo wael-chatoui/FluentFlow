@@ -7,11 +7,11 @@ import LessonView from '@/components/lesson/LessonView'
 import MasteryRing from '@/components/student/lessons/MasteryRing'
 import { EmptyState, ErrorCard } from '@/components/student/lessons/StatusViews'
 import { lessonEmoji } from '@/components/student/lessons/progress'
-import { accentStyle } from '@/components/student/accents'
+import { accentStyle } from '@/components/ui/accents'
 import { formatLessonDate, percent, plural } from '@/components/lesson/format'
 import { api } from '@/utils/apiClient'
 import { safeHttpsUrl } from '@/utils/lesson/schema'
-import ui from '@/components/student/ui.module.css'
+import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/lessons/LessonPage.module.css'
 
 const DATE_OPTS = { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }

@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
-import { accentStyle } from '@/components/student/accents'
+import { accentStyle } from '@/components/ui/accents'
 import { formatLessonDate, plural } from '@/components/lesson/format'
 import SpeakButton from '@/components/student/vocabulary/SpeakButton'
-import ui from '@/components/student/ui.module.css'
+import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/vocabulary/Vocabulary.module.css'
 
 function groupByLesson(items) {

@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
 import Link from 'next/link'
-import { accentStyle } from '@/components/student/accents'
+import { accentStyle } from '@/components/ui/accents'
 import { formatLessonDate, plural } from '@/components/lesson/format'
-import ui from '@/components/student/ui.module.css'
+import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/review/ReviewIntro.module.css'
 
 // GET /api/student/review returns at most this many mistakes per round

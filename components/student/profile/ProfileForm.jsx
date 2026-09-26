@@ -2,7 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { api } from '@/utils/apiClient'
 import { LEVELS } from '@/utils/lesson/schema'
 import { LEVEL_OPTIONS } from '@/components/student/profile/levels'
-import ui from '@/components/student/ui.module.css'
+import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/profile/Profile.module.css'
 
 const MAX_NAME = 120

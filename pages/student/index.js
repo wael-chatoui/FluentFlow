@@ -14,7 +14,7 @@ import { levelShort } from '@/components/student/profile/levels'
 import { plural } from '@/components/lesson/format'
 import { api } from '@/utils/apiClient'
 import { safeHttpsUrl } from '@/utils/lesson/schema'
-import ui from '@/components/student/ui.module.css'
+import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/home/Home.module.css'
 
 function firstName(name) {

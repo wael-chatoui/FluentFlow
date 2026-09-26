@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { shuffle, cx } from '@/components/practice/utils'
 import SpeakButton from '@/components/student/vocabulary/SpeakButton'
-import ui from '@/components/student/ui.module.css'
+import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/vocabulary/Flashcards.module.css'
 import { playSound } from '@/utils/sound'
 

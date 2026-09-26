@@ -1,4 +1,4 @@
-import ui from '@/components/student/ui.module.css'
+import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/lessons/StatusViews.module.css'
 
 /** Friendly empty state: big emoji, title, text and an optional action. */
