@@ -8,6 +8,11 @@ export function getRole(user) {
   return user?.app_metadata?.role === 'teacher' ? 'teacher' : 'student'
 }
 
+/** Back office access: a separate app_metadata flag (an admin is usually also a teacher). */
+export function isAdmin(user) {
+  return user?.app_metadata?.is_admin === true
+}
+
 /**
  * Rejects methods not in `methods` with 405. Returns true if the request may continue.
  * @param {string[]} methods
@@ -44,6 +49,17 @@ export async function requireTeacher(req, res) {
   if (!auth) return null
   if (auth.role !== 'teacher') {
     res.status(403).json({ error: 'Forbidden — teacher role required' })
+    return null
+  }
+  return auth
+}
+
+/** Like requireUser, but also sends 403 unless the user is an admin (back office). */
+export async function requireAdmin(req, res) {
+  const auth = await requireUser(req, res)
+  if (!auth) return null
+  if (!isAdmin(auth.user)) {
+    res.status(403).json({ error: 'Accès réservé aux administrateurs.' })
     return null
   }
   return auth

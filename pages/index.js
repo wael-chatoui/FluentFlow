@@ -2,12 +2,14 @@ import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/components/AuthProvider'
 import { api } from '@/utils/apiClient'
+import LoadingScreen from '@/components/ui/LoadingScreen'
 
 /**
  * Root page — routes based on auth state:
  * - not logged in → /login
  * - teacher (app_metadata.role) → /teacher
  * - student → /student if onboarded (GET /api/me), else /onboarding
+ * - on a backoffice.* host → /admin
  */
 export default function Home() {
   const router = useRouter()
@@ -22,6 +24,11 @@ export default function Home() {
 
     if (!userId) {
       go('/login')
+      return
+    }
+    // On the back-office host, a signed-in user always lands in /admin (the proxy gates it)
+    if (window.location.hostname.startsWith('backoffice.')) {
+      go('/admin')
       return
     }
     if (role === 'teacher') {
@@ -44,10 +51,5 @@ export default function Home() {
     return () => controller.abort()
   }, [loading, userId, role])
 
-  return (
-    <div className="loading-screen" role="status">
-      <div className="spinner spinner-lg" aria-hidden="true" />
-      <span className="sr-only">Loading…</span>
-    </div>
-  )
+  return <LoadingScreen />
 }

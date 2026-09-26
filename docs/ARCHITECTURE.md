@@ -73,10 +73,44 @@ Browser code calls these with `api()` from `utils/apiClient.js`.
 - `/teacher`, `/teacher/students/[id]`, `/teacher/lessons/new?student=<id>`, `/teacher/lessons/[id]` — French
 - `/dev/preview` — dev-only preview of LessonView + PracticePlayer with `SAMPLE_LESSON` (404 in production)
 
-`proxy.js` does optimistic redirects (auth, teacher vs student areas). Use
-`components/AppShell.jsx` for page chrome (except the full-screen practice player).
+`proxy.js` does optimistic redirects (auth, teacher vs student areas, back office).
+
+Design system (whole app except onboarding): tokens in `styles/tokens.css` (`--st-*`),
+primitives in `components/ui/ui.module.css`, Nunito via `components/ui/font.js`.
+Page chrome: `StudentShell` / `TeacherShell` (both built on `components/ui/Shell.jsx`),
+`AdminShell` for the back office; the practice player is full-screen without a shell.
 
 ## AI (utils/ai/)
 
 OpenAI-compatible `chat/completions`. Env: `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`.
 Without `AI_API_KEY` outside production, a demo generator returns `SAMPLE_LESSON`.
+
+## Back office (admin)
+
+Served by the same app under `/admin`. `proxy.js` keeps back-office hosts
+(`BACKOFFICE_HOSTS`, default `backoffice.lurl.com,backoffice.localhost`) inside
+`/admin`, and every `/admin` page requires `app_metadata.is_admin === true`
+(non-admins → `/admin/forbidden`). An admin keeps their normal role (usually teacher).
+Migration: `supabase/migrations/0004_backoffice.sql` (`lessons.ai_usage`, `admin_audit_log`).
+
+UI in **French**, desktop-first but usable on mobile, chrome = `components/admin/AdminShell.jsx`.
+
+All routes: `requireAdmin` (utils/auth/server.js) → service-role client. French errors
+`{ error }`. Every successful write calls `logAdminAction` (utils/api/audit.js).
+Pagination params `page` (1-based) and `perPage` (default 50, max 200).
+
+- `GET    /api/admin/stats` → `{ totals: { users, students, teachers, admins, onboarded, lessons, lessons_published, lessons_failed, practice_sessions, review_attempts }, last30: { days: ['YYYY-MM-DD' ×30, oldest first], signups: number[], lessons: number[], sessions: number[] }, successRate: number|null /* 0–100, avg of score/total */, ai: { calls, prompt_tokens, completion_tokens, estimated_cost_usd, price_input_per_m, price_output_per_m }, recent: { lessons: [{ id, title, student_id, student_name, status, created_at }] /* 5 */, signups: [{ id, email, full_name, created_at }] /* 5 */ } }`
+- `GET    /api/admin/users?q=&role=all|student|teacher|admin&page=&perPage=` → `{ users: [{ id, email, full_name, role, is_admin, level, onboarded_at, created_at, last_sign_in_at, banned, lesson_count, session_count }], total, page, perPage }` (q matches email/name, case-insensitive; newest first)
+- `POST   /api/admin/users` `{ email, fullName?, role: 'student'|'teacher', isAdmin?: boolean }` → `201 { user }` — sends a Supabase invitation email (the person sets their own password); role/is_admin set in app_metadata.
+- `GET    /api/admin/users/[id]` → `{ user: { id, email, created_at, last_sign_in_at, role, is_admin, banned, providers: string[] }, profile, notes, lessons: [{ id, title, lesson_date, status, exercise_count, best_score, best_total, attempts }], sessions: [{ id, lesson_id, lesson_title, score, total, completed_at }] /* last 50 */, reviews: [{ id, lesson_id, exercise_id, correct, created_at }] /* last 50 */ }`
+- `PATCH  /api/admin/users/[id]` any of `{ role, isAdmin, fullName, level, goals, interests, driveFolderUrl, notes, resetOnboarding: true, banned: boolean }` → same shape as GET. An admin cannot change their own role, remove their own admin flag, or ban themselves (400).
+- `DELETE /api/admin/users/[id]` `{ confirmEmail }` (must equal the user's email) → `{ success: true }` (cannot delete yourself).
+- `GET    /api/admin/lessons?q=&status=&studentId=&page=&perPage=` → `{ lessons: [{ id, title, lesson_date, status, student_id, student_name, exercise_count, ai_model, created_at, updated_at }], total, page, perPage }`
+- `GET    /api/admin/lessons/[id]` → `{ lesson: { id, student_id, student_name, title, lesson_date, status, error, content, exercises, drive_url, transcript, canva, ai_model, ai_usage, generated_at, created_at, updated_at }, sessions: [{ id, score, total, completed_at }] }`
+- `PATCH  /api/admin/lessons/[id]` any of `{ title, lessonDate, status: 'published'|'failed', studentId, driveUrl, content, exercises }` → `{ lesson }` (same shape as GET). `content` is re-normalized with `normalizeLessonContent`; `exercises` is the full edited array, validated with `normalizeExercisesForEdit` (keeps ids, no shuffling; items without id get the next free `ex_N`). `studentId` must be an existing student.
+- `DELETE /api/admin/lessons/[id]` → `{ success: true }`
+- `GET    /api/admin/tables` → `{ tables: [{ name, label, count }] }` — read-only explorer over: `auth_users` (virtual, from the Auth admin API), `profiles`, `student_notes`, `lessons`, `practice_sessions`, `review_attempts`, `admin_audit_log`.
+- `GET    /api/admin/tables/[table]?q=&sort=<column>&dir=asc|desc&page=&perPage=` → `{ table, label, columns: [{ name, type: 'text'|'number'|'boolean'|'date'|'json'|'uuid' }], rows: object[], total, page, perPage }` — `q` searches the table's text columns; long text/json values are truncated to 500 chars (`lessons.transcript`/`canva` always truncated).
+- `GET    /api/admin/audit?action=&entity=&page=&perPage=` → `{ entries: [{ id, admin_email, action, entity, entity_id, details, created_at }], total, page, perPage }`
+
+AI cost estimate uses `AI_PRICE_INPUT_PER_M` / `AI_PRICE_OUTPUT_PER_M` (USD per 1M tokens, defaults 0.05 / 0.40 = qwen-flash) over `lessons.ai_usage`.

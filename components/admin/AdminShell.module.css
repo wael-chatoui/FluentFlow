@@ -1,0 +1,248 @@
+.shell {
+  --sidebar-w: 248px;
+}
+
+/* ---- Sidebar (desktop) ---- */
+.sidebar {
+  display: none;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.25rem 0.5rem 1.25rem;
+  color: var(--st-ink);
+  text-decoration: none;
+}
+
+.brand strong {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 900;
+}
+
+.brand small {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--st-ink-soft);
+}
+
+.brandIcon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--st-purple-bg);
+  border: 2px solid var(--st-purple);
+  border-bottom-width: 4px;
+  font-size: 1.3rem;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.navLink {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 46px;
+  padding: 0 0.75rem;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  color: var(--st-ink-soft);
+  font-weight: 800;
+  text-decoration: none;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.navLink:hover {
+  background: var(--st-bg);
+  color: var(--st-ink);
+}
+
+.navLink.active {
+  background: var(--st-blue-bg);
+  border-color: #84d8ff;
+  color: var(--st-blue-dark);
+}
+
+.navIcon {
+  width: 1.5rem;
+  text-align: center;
+  font-size: 1.15rem;
+}
+
+.sideFooter {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 2px solid var(--st-line);
+}
+
+.footerLink {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border-radius: 12px;
+  color: var(--st-ink-soft);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.footerLink:hover {
+  background: var(--st-bg);
+}
+
+.me {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0 0.75rem;
+}
+
+.meEmail {
+  font-size: 0.8rem;
+  color: var(--st-ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.signOut {
+  align-self: flex-start;
+  min-height: 36px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--st-red-dark);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* ---- Mobile bar + drawer ---- */
+.mobileBar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 60px;
+  padding: 0 0.5rem;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 2px solid var(--st-line);
+}
+
+.menuBtn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 12px;
+  background: none;
+  color: var(--st-ink);
+  cursor: pointer;
+}
+
+.mobileTitle {
+  font-weight: 900;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.35);
+  animation: fade 150ms ease-out;
+}
+
+.drawer {
+  display: flex;
+  flex-direction: column;
+  width: min(300px, 85vw);
+  height: 100%;
+  padding: calc(1rem + env(safe-area-inset-top)) 1rem calc(1rem + env(safe-area-inset-bottom));
+  background: var(--st-surface);
+  overflow-y: auto;
+  animation: slide 180ms ease-out;
+}
+
+/* ---- Content ---- */
+.main {
+  min-width: 0;
+  padding: 1.25rem 1rem 3rem;
+}
+
+.titleBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: var(--st-ink);
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+@media (min-width: 1024px) {
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    display: flex;
+    flex-direction: column;
+    width: var(--sidebar-w);
+    padding: 1.25rem 1rem;
+    background: var(--st-surface);
+    border-right: 2px solid var(--st-line);
+    overflow-y: auto;
+  }
+
+  .mobileBar {
+    display: none;
+  }
+
+  .main {
+    margin-left: var(--sidebar-w);
+    padding: 2rem 2rem 4rem;
+    max-width: calc(1280px + var(--sidebar-w));
+  }
+}
+
+@keyframes fade {
+  from { opacity: 0; }
+}
+
+@keyframes slide {
+  from { transform: translateX(-100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .drawer {
+    animation: none;
+  }
+}
