@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { shuffle, cx } from '@/components/practice/utils'
 import styles from '@/components/practice/Exercises.module.css'
+import { playSound } from '@/utils/sound'
 
 const WRONG_FLASH_MS = 450
 const DONE_DELAY_MS = 350
@@ -52,6 +53,7 @@ export default function MatchExercise({ exercise, onDone, disabled }) {
       const next = new Set(matched)
       next.add(l)
       setMatched(next)
+      if (next.size < total) playSound('pair')
       setAnnounce(`Match: ${exercise.pairs[l].fr} — ${exercise.pairs[l].en}.`)
       if (next.size === total && !doneRef.current) {
         doneRef.current = true
@@ -59,6 +61,7 @@ export default function MatchExercise({ exercise, onDone, disabled }) {
       }
     } else {
       mistakesRef.current += 1
+      playSound('pairWrong')
       setWrong({ l, r })
       setAnnounce('Not a match, try again.')
       later(() => setWrong((w) => (w && w.l === l && w.r === r ? null : w)), WRONG_FLASH_MS)

@@ -7,6 +7,8 @@ import FeedbackSheet, { describeFeedback } from '@/components/practice/FeedbackS
 import EndScreen from '@/components/practice/EndScreen'
 import { playableExercises, cx } from '@/components/practice/utils'
 import styles from '@/components/practice/PracticePlayer.module.css'
+import { playSound } from '@/utils/sound'
+import SoundToggle from '@/components/SoundToggle'
 
 /*
  * Duolingo-style practice flow. Client-only: render it after mount (it shuffles
@@ -150,6 +152,8 @@ function PracticeRun({ exercises, onComplete, onExit, onRestart, labels }) {
     setFeedback(null)
     if (completeCalledRef.current) return
     completeCalledRef.current = true
+    const perfect = attemptsRef.current.length === items.length && attemptsRef.current.every((a) => a.correct)
+    playSound(perfect ? 'perfect' : 'complete')
     answersRef.current = attemptsRef.current.map(({ exerciseId, value }) => ({ exerciseId, value }))
     runSave(answersRef.current)
   }
@@ -173,6 +177,7 @@ function PracticeRun({ exercises, onComplete, onExit, onRestart, labels }) {
 
     const fb = { ...grade, value }
     setFeedback(fb)
+    playSound(correct ? (grade.accentWarning ? 'almost' : 'correct') : current.type === 'match' ? 'almost' : 'wrong')
     const { title, answer: shown } = describeFeedback(current, fb)
     setLive(`${title}${shown ? ` ${shown}` : ''}`)
   }
@@ -259,6 +264,7 @@ function PracticeRun({ exercises, onComplete, onExit, onRestart, labels }) {
       const i = Number(e.key) - 1
       if (i < current.choices.length) {
         e.preventDefault()
+        if (i !== answer) playSound('select')
         setAnswer(i)
       }
     }
@@ -306,6 +312,7 @@ function PracticeRun({ exercises, onComplete, onExit, onRestart, labels }) {
         >
           <div className={styles.progressFill} style={{ transform: `scaleX(${progress})` }} />
         </div>
+        <SoundToggle className={styles.soundBtn} />
       </div>
 
       <div className={styles.body}>
@@ -329,7 +336,11 @@ function PracticeRun({ exercises, onComplete, onExit, onRestart, labels }) {
                 <McqExercise
                   exercise={current}
                   value={answer}
-                  onChange={(i) => !feedback && setAnswer(i)}
+                  onChange={(i) => {
+                    if (feedback) return
+                    if (i !== answer) playSound('select')
+                    setAnswer(i)
+                  }}
                   feedback={feedback}
                 />
               )}

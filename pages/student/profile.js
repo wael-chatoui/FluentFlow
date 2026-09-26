@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/components/AuthProvider'
+import { useSoundEnabled } from '@/utils/sound'
 import StudentShell from '@/components/student/StudentShell'
 import ProfileForm from '@/components/student/profile/ProfileForm'
 import DeleteAccountDialog from '@/components/student/profile/DeleteAccountDialog'
@@ -203,6 +204,7 @@ export default function StudentProfilePage() {
                 <dd>{email || '—'}</dd>
               </div>
             </dl>
+            <SoundSwitch />
             <button
               type="button"
               className={`${ui.btn} ${ui.ghost} ${ui.block}`}
@@ -243,5 +245,24 @@ export default function StudentProfilePage() {
 
       {confirmOpen && <DeleteAccountDialog busy={deleting} onCancel={closeDialog} onConfirm={handleDelete} />}
     </StudentShell>
+  )
+}
+
+function SoundSwitch() {
+  const [enabled, setEnabled] = useSoundEnabled()
+  return (
+    <label className={styles.switchRow}>
+      <span>
+        <strong>Sound effects</strong>
+        <span className={styles.switchHint}>Little sounds for right and wrong answers</span>
+      </span>
+      <input
+        type="checkbox"
+        role="switch"
+        className={styles.switch}
+        checked={enabled}
+        onChange={(e) => setEnabled(e.target.checked)}
+      />
+    </label>
   )
 }

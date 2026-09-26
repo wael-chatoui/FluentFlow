@@ -3,6 +3,7 @@ import { shuffle, cx } from '@/components/practice/utils'
 import SpeakButton from '@/components/student/vocabulary/SpeakButton'
 import ui from '@/components/student/ui.module.css'
 import styles from '@/components/student/vocabulary/Flashcards.module.css'
+import { playSound } from '@/utils/sound'
 
 const SWIPE_THRESHOLD = 80 // px
 const DRAG_START = 10 // px before a touch counts as a horizontal drag
@@ -84,6 +85,7 @@ export default function Flashcards({ items, speech, direction, onDirectionChange
     if (!current) return
     const next = !flipped
     setFlipped(next)
+    playSound('flip')
     setLive(next ? `${back.label}: ${back.text}` : `${front.label}: ${front.text}`)
   }
 
@@ -92,6 +94,8 @@ export default function Flashcards({ items, speech, direction, onDirectionChange
     ratedTurnRef.current = turn
     const [key, ...rest] = queue
     let nextDone = done
+    // Last card of the deck gets the end-of-deck fanfare instead
+    playSound(gotIt ? (rest.length === 0 ? 'complete' : 'pair') : 'pairWrong')
     if (gotIt) {
       nextDone = done + 1
       if (!missed.has(key)) setFirstTry((n) => n + 1)
