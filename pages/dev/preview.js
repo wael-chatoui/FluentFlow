@@ -57,7 +57,7 @@ export default function DevPreviewPage() {
               type="button"
               className="btn btn-primary no-print"
               style={{ minHeight: 44 }}
-              onClick={() => setExercises(normalizeExercises(SAMPLE_LESSON.exercises))}
+              onClick={() => setExercises((prev) => prev || normalizeExercises(SAMPLE_LESSON.exercises))}
             >
               Start practice
             </button>

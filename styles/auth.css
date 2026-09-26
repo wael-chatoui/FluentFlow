@@ -103,6 +103,17 @@
   box-shadow: 0 4px 14px rgba(255, 105, 180, 0.35) !important;
 }
 
+.auth-card .supabase-auth-ui_ui-button:not([type="submit"]) {
+  background: #ffffff !important;
+  color: var(--gray-800) !important;
+  border: 1.5px solid var(--border-color) !important;
+}
+
+.auth-card .supabase-auth-ui_ui-button:not([type="submit"]):hover {
+  background: var(--gray-50) !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
 .auth-card [data-supabase-auth-ui] input {
   border-radius: var(--radius-md) !important;
   font-family: var(--font-sans) !important;
