@@ -63,6 +63,25 @@ pnpm dev
 - <http://localhost:3000> — l'app
 - <http://localhost:3000/dev/preview> — aperçu d'une leçon + exercices sans connexion (dev uniquement)
 
+## Back office (`backoffice.lurl.com`)
+
+Gestion de toute la base : utilisateurs (invitation, rôle, admin, bannissement,
+suppression), leçons et exercices (éditeur complet), statistiques et coût IA,
+explorateur de tables en lecture seule, journal d'audit de toutes les actions admin.
+
+1. Exécute `supabase/migrations/0004_backoffice.sql` après avoir remplacé l'email
+   par le tien (tu gardes ton rôle prof et deviens aussi admin), puis déconnecte-toi /
+   reconnecte-toi.
+2. Vercel → Settings → Domains : ajoute `backoffice.lurl.com` au **même projet**, et chez
+   ton registrar un enregistrement `CNAME backoffice → cname.vercel-dns.com`.
+3. Supabase → Authentication → URL Configuration → Redirect URLs : ajoute
+   `https://backoffice.lurl.com/**`.
+4. (Optionnel) `BACKOFFICE_HOSTS` si le domaine change, et `AI_PRICE_INPUT_PER_M` /
+   `AI_PRICE_OUTPUT_PER_M` pour le calcul du coût IA.
+
+En local : <http://backoffice.localhost:3000> (ou <http://localhost:3000/admin>).
+Un compte non admin est renvoyé vers une page « Accès réservé ».
+
 ## Stockage des PDF
 
 Les bilans sont des pages web ; l'élève (ou toi) fait « Save as PDF » depuis la page.

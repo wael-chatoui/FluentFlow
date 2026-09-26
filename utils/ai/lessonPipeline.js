@@ -50,6 +50,11 @@ async function loadContext(admin, lesson) {
   }
 }
 
+// PostgREST "column not found in schema cache" / Postgres "undefined column"
+function isMissingUsageColumn(error) {
+  return (error?.code === 'PGRST204' || error?.code === '42703') && /ai_usage/.test(error?.message || '')
+}
+
 /**
  * Runs the AI on a lesson row that is already in status 'generating'.
  * @param {object} lesson  { id, student_id, lesson_date, transcript, canva }
@@ -60,7 +65,7 @@ export async function runLessonGeneration(admin, lesson, { title } = {}) {
   let update
   try {
     const context = await loadContext(admin, lesson)
-    const { content, exercises, model } = await generateLesson({
+    const { content, exercises, model, usage } = await generateLesson({
       ...context,
       transcript: lesson.transcript,
       canva: lesson.canva,
@@ -72,6 +77,7 @@ export async function runLessonGeneration(admin, lesson, { title } = {}) {
       content,
       exercises,
       ai_model: model,
+      ai_usage: usage || null,
       title: title || content.title,
       generated_at: new Date().toISOString(),
     }
@@ -85,7 +91,12 @@ export async function runLessonGeneration(admin, lesson, { title } = {}) {
     return { id: lesson.id, status: 'failed', error: message }
   }
 
-  const { error } = await admin.from('lessons').update(update).eq('id', lesson.id)
+  let { error } = await admin.from('lessons').update(update).eq('id', lesson.id)
+  if (error && isMissingUsageColumn(error)) {
+    // Migration 0004 not applied yet: store the lesson without the token usage
+    const { ai_usage: _ignored, ...rest } = update
+    ;({ error } = await admin.from('lessons').update(rest).eq('id', lesson.id))
+  }
   if (error) throw error
   return { id: lesson.id, status: update.status, error: update.error }
 }

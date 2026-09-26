@@ -1,0 +1,80 @@
+/* Back-office audit log (pages/admin/audit.js) */
+
+.filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
+}
+
+.filterLabel {
+  flex: none;
+  min-width: 4.5rem;
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--st-ink-soft);
+}
+
+.filterRow > :last-child {
+  min-width: 0;
+}
+
+.entity {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.45rem;
+}
+
+.entityName {
+  font-weight: 800;
+}
+
+.details {
+  max-width: 420px;
+}
+
+.summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  color: var(--st-blue-dark);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.summary:focus-visible {
+  outline: 3px solid var(--st-blue);
+  outline-offset: 1px;
+  border-radius: 6px;
+}
+
+@media (pointer: coarse) {
+  .summary {
+    min-height: 44px;
+  }
+}
+
+.json {
+  max-height: 320px;
+  margin: 0.35rem 0 0;
+  padding: 0.65rem 0.75rem;
+  overflow: auto;
+  border-radius: 12px;
+  background: #1f2430;
+  color: #e6edf3;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

@@ -1,0 +1,174 @@
+/* Back-office table explorer (pages/admin/tables/*) */
+
+.intro {
+  margin: -0.5rem 0 1.25rem;
+}
+
+/* ---------- Table cards ---------- */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 0.9rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-height: 84px;
+  padding: 1rem;
+  border: 2px solid var(--st-line);
+  border-bottom-width: 5px;
+  border-radius: var(--st-radius-lg);
+  background: var(--st-surface);
+  color: var(--st-ink);
+  text-decoration: none;
+  transition: transform 80ms ease, border-color 150ms ease;
+}
+
+.card:link,
+.card:visited,
+.card:hover {
+  color: var(--st-ink);
+  text-decoration: none;
+}
+
+.card:hover {
+  border-color: #84d8ff;
+}
+
+.card:active {
+  transform: translateY(2px);
+  border-bottom-width: 3px;
+}
+
+.card:focus-visible {
+  outline: 3px solid var(--st-blue);
+  outline-offset: 2px;
+}
+
+.cardSkel {
+  height: 84px;
+  border-radius: var(--st-radius-lg);
+}
+
+.cardIcon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  flex: none;
+  border: 2px solid #b3e5fc;
+  border-bottom-width: 4px;
+  border-radius: 14px;
+  background: var(--st-blue-bg);
+  font-size: 1.4rem;
+}
+
+.cardText {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cardLabel {
+  font-weight: 900;
+}
+
+.cardCount {
+  flex: none;
+  font-size: 1.2rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.cardCountLabel {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--st-ink-soft);
+}
+
+/* ---------- Cells ---------- */
+.null {
+  color: #bdbdbd;
+  font-weight: 800;
+}
+
+.text {
+  overflow-wrap: anywhere;
+}
+
+.longCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.preview {
+  display: inline-block;
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+  color: var(--st-ink-soft);
+}
+
+.viewBtn {
+  flex: none;
+  min-width: 44px;
+  min-height: 32px;
+  padding: 0 0.5rem;
+  border: 2px solid var(--st-line);
+  border-radius: 10px;
+  background: var(--st-surface);
+  color: var(--st-blue-dark);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.viewBtn:hover {
+  background: var(--st-blue-bg);
+}
+
+.viewBtn:focus-visible {
+  outline: 3px solid var(--st-blue);
+  outline-offset: 1px;
+}
+
+@media (pointer: coarse) {
+  .viewBtn {
+    min-height: 44px;
+  }
+}
+
+/* ---------- Value dialog ---------- */
+.valuePre {
+  max-height: 55vh;
+  margin: 0;
+  padding: 0.9rem 1rem;
+  overflow: auto;
+  border-radius: var(--st-radius);
+  background: #1f2430;
+  color: #e6edf3;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.valuePre:focus-visible {
+  outline: 3px solid var(--st-blue);
+}

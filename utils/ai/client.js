@@ -80,13 +80,45 @@ function messageText(content) {
   return ''
 }
 
+const EMPTY_USAGE = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
+
+const tokens = (value) => (Number.isFinite(Number(value)) && Number(value) > 0 ? Math.round(Number(value)) : 0)
+
+/**
+ * Adds provider usage objects ({ prompt_tokens, completion_tokens, total_tokens }).
+ * Missing/invalid values count as 0; returns a fresh object.
+ */
+export function addUsage(...usages) {
+  const sum = { ...EMPTY_USAGE }
+  for (const u of usages) {
+    if (!u || typeof u !== 'object') continue
+    const prompt = tokens(u.prompt_tokens)
+    const completion = tokens(u.completion_tokens)
+    sum.prompt_tokens += prompt
+    sum.completion_tokens += completion
+    sum.total_tokens += tokens(u.total_tokens) || prompt + completion
+  }
+  return sum
+}
+
 /**
  * Sends one chat completion and returns the parsed JSON object the model answered with.
  * @param {{ system: string, user: string, maxTokens?: number, timeoutMs?: number }} params
  * @returns {Promise<object>}
  * @throws {AiError}
  */
-export async function chatJSON({ system, user, maxTokens = 8192, timeoutMs }) {
+export async function chatJSON(params) {
+  const { data } = await chatJSONWithUsage(params)
+  return data
+}
+
+/**
+ * Like chatJSON, but also returns the token usage reported by the provider
+ * (summed over the HTTP attempts that returned a completion).
+ * @returns {Promise<{ data: object, usage: { prompt_tokens: number, completion_tokens: number, total_tokens: number } }>}
+ * @throws {AiError}
+ */
+export async function chatJSONWithUsage({ system, user, maxTokens = 8192, timeoutMs }) {
   const config = aiConfig()
   if (!config.apiKey) throw new AiError('IA non configurée : ajoute AI_API_KEY dans les variables d’environnement.')
 
@@ -152,9 +184,10 @@ export async function chatJSON({ system, user, maxTokens = 8192, timeoutMs }) {
         throw new AiError(MESSAGES.invalidJson, err)
       }
 
+      const usage = addUsage(payload?.usage)
       const choice = payload?.choices?.[0]
       const parsed = parseJsonObject(messageText(choice?.message?.content))
-      if (parsed) return parsed
+      if (parsed) return { data: parsed, usage }
       throw new AiError(choice?.finish_reason === 'length' ? MESSAGES.truncated : MESSAGES.invalidJson)
     }
   } finally {

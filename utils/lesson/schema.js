@@ -26,7 +26,7 @@ export const EXERCISE_TYPES = ['mcq', 'fill_blank', 'match']
 export const BLANK = '___'
 export const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'unknown']
 
-const MAX_EXERCISES = 20
+export const MAX_EXERCISES = 20
 
 function str(value, max = 2000) {
   if (typeof value !== 'string') {
@@ -117,22 +117,22 @@ function oneBlank(sentence) {
   return s.split(BLANK).length === 2 ? s : ''
 }
 
-function normalizeMcq(e) {
+function normalizeMcq(e, { shuffleChoices = true } = {}) {
   const choices = list(e.choices, 3).map((c) => str(c, 160))
   const answer = Number.isInteger(e.answer) ? e.answer : Number.parseInt(e.answer, 10)
   const sentence = str(e.sentence, 400)
   if (!sentence || choices.length !== 3 || choices.some((c) => !c)) return null
   if (new Set(choices.map((c) => c.toLowerCase())).size !== 3) return null
   if (!(answer >= 0 && answer <= 2)) return null
-  // Shuffle so the right answer is not always in the same slot
+  // Shuffle so the right answer is not always in the same slot (AI output only)
   const correct = choices[answer]
-  const shuffled = shuffle(choices)
+  const ordered = shuffleChoices ? shuffle(choices) : choices
   return {
     type: 'mcq',
     prompt: str(e.prompt, 200) || 'Choose the right answer',
     sentence,
-    choices: shuffled,
-    answer: shuffled.indexOf(correct),
+    choices: ordered,
+    answer: ordered.indexOf(correct),
     explanation: str(e.explanation, 500),
   }
 }
@@ -168,11 +168,53 @@ function normalizeMatch(e) {
 
 const NORMALIZERS = { mcq: normalizeMcq, fill_blank: normalizeFillBlank, match: normalizeMatch }
 
+function normalizeOne(e, options) {
+  return e && NORMALIZERS[e.type] ? NORMALIZERS[e.type](e, options) : null
+}
+
 /** Drops invalid exercises, fixes what can be fixed, assigns ids ex_1, ex_2, … */
 export function normalizeExercises(raw) {
   return list(raw, MAX_EXERCISES * 2)
-    .map((e) => (e && NORMALIZERS[e.type] ? NORMALIZERS[e.type](e) : null))
+    .map((e) => normalizeOne(e))
     .filter(Boolean)
     .slice(0, MAX_EXERCISES)
     .map((e, i) => ({ id: `ex_${i + 1}`, ...e }))
+}
+
+const EDIT_ID_RE = /^[A-Za-z0-9_-]{1,40}$/
+
+/**
+ * Same validation as normalizeExercises, for an array edited by a human (back office):
+ * keeps the order, never shuffles MCQ choices and keeps existing string ids.
+ * Missing, invalid or duplicate ids get the next free `ex_N` (after the highest
+ * existing ex_N, so an id is never reused for a different exercise).
+ */
+export function normalizeExercisesForEdit(raw) {
+  const items = list(raw, MAX_EXERCISES * 2)
+    .map((e) => {
+      const normalized = normalizeOne(e, { shuffleChoices: false })
+      if (!normalized) return null
+      const id = typeof e.id === 'string' ? e.id.trim() : ''
+      return { id: EDIT_ID_RE.test(id) ? id : '', exercise: normalized }
+    })
+    .filter(Boolean)
+    .slice(0, MAX_EXERCISES)
+
+  const used = new Set()
+  for (const item of items) {
+    if (item.id && !used.has(item.id)) used.add(item.id)
+    else item.id = ''
+  }
+  let next = 1
+  for (const id of used) {
+    const m = /^ex_(\d+)$/.exec(id)
+    if (m) next = Math.max(next, Number(m[1]) + 1)
+  }
+  return items.map(({ id, exercise }) => {
+    if (id) return { id, ...exercise }
+    while (used.has(`ex_${next}`)) next++
+    const fresh = `ex_${next++}`
+    used.add(fresh)
+    return { id: fresh, ...exercise }
+  })
 }

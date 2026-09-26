@@ -1,5 +1,5 @@
 // Turns a class (transcript + Canva notes) into normalized lesson content + exercises.
-import { AiError, aiConfig, chatJSON } from '@/utils/ai/client'
+import { AiError, addUsage, aiConfig, chatJSONWithUsage } from '@/utils/ai/client'
 import { buildLessonPrompt } from '@/utils/ai/prompt'
 import { normalizeExercises, normalizeLessonContent } from '@/utils/lesson/schema'
 import { SAMPLE_LESSON } from '@/utils/lesson/sample'
@@ -43,13 +43,15 @@ function isDemoMode(config) {
 
 async function demoLesson() {
   await new Promise((resolve) => setTimeout(resolve, 1500))
-  return { ...toResult(SAMPLE_LESSON), model: 'demo' }
+  return { ...toResult(SAMPLE_LESSON), model: 'demo', usage: null }
 }
 
 /**
  * @param {{ profile?: object, notes?: string, transcript?: string, canva?: string,
  *           lessonDate?: string, previousLessons?: object[] }} input
- * @returns {Promise<{ content: object, exercises: object[], model: string }>}
+ * @returns {Promise<{ content: object, exercises: object[], model: string,
+ *                     usage: { prompt_tokens: number, completion_tokens: number, total_tokens: number } | null }>}
+ *   usage = provider token usage summed over every call (null in demo mode)
  * @throws {AiError}
  */
 export async function generateLesson(input) {
@@ -62,7 +64,9 @@ export async function generateLesson(input) {
   const deadline = Date.now() + config.timeoutMs
   const { system, user } = buildLessonPrompt(input)
 
-  const raw = await chatJSON({ system, user })
+  const first = await chatJSONWithUsage({ system, user })
+  const raw = first.data
+  let usage = first.usage
   let result = toResult(raw)
 
   const remaining = deadline - Date.now()
@@ -72,8 +76,9 @@ export async function generateLesson(input) {
       describeInvalid(raw?.exercises),
       'Return the COMPLETE JSON object again (recap + 10–14 valid exercises), following every rule.',
     ].join('\n')
-    const retryRaw = await chatJSON({ system, user: `${user}\n\n${feedback}`, timeoutMs: remaining })
-    const retry = toResult(retryRaw)
+    const second = await chatJSONWithUsage({ system, user: `${user}\n\n${feedback}`, timeoutMs: remaining })
+    usage = addUsage(usage, second.usage)
+    const retry = toResult(second.data)
     if (isUsable(retry) || retry.exercises.length >= result.exercises.length) result = retry
   }
 
@@ -84,5 +89,5 @@ export async function generateLesson(input) {
     throw new AiError("L'IA n'a pas produit de bilan. Relance la génération.")
   }
 
-  return { ...result, model: config.model }
+  return { ...result, model: config.model, usage }
 }
