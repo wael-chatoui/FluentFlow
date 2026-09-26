@@ -1,396 +1,177 @@
-import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/router'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Head from 'next/head'
+import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
+import TeacherShell from '@/components/teacher/TeacherShell'
+import StudentCard, { StudentCardSkeleton } from '@/components/teacher/StudentCard'
+import PageState from '@/components/teacher/PageState'
+import StatTiles, { StatTilesSkeleton } from '@/components/teacher/dashboard/StatTiles'
+import StudentSearch from '@/components/teacher/dashboard/StudentSearch'
+import { api } from '@/utils/apiClient'
+import { isAbortError, parseLocalDate, studentDisplayName } from '@/components/teacher/format'
+import { useMountedRef } from '@/components/teacher/hooks'
+import ui from '@/components/ui/ui.module.css'
+import styles from '@/components/teacher/Dashboard.module.css'
+
+// Case- and accent-insensitive search
+function normalize(text) {
+  return (text || '')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim()
+}
+
+function byRecentLesson(a, b) {
+  const da = a.last_lesson_date || ''
+  const db = b.last_lesson_date || ''
+  if (da !== db) return da < db ? 1 : -1
+  return studentDisplayName(a).localeCompare(studentDisplayName(b), 'fr')
+}
+
+function firstName(name) {
+  return (name || '').trim().split(/\s+/)[0] || ''
+}
 
 export default function TeacherDashboard() {
-  const router = useRouter()
-  const { user, loading, signOut } = useAuth()
+  const { user } = useAuth()
+  const mounted = useMountedRef()
+  const controllerRef = useRef(null)
+  const [students, setStudents] = useState(null)
+  const [error, setError] = useState(null)
+  const [query, setQuery] = useState('')
 
-  // Students list
-  const [students, setStudents] = useState([])
-  const [loadingStudents, setLoadingStudents] = useState(true)
-
-  // Generate lesson
-  const [selectedStudent, setSelectedStudent] = useState('')
-  const [instruction, setInstruction] = useState('')
-  const [generating, setGenerating] = useState(false)
-  const [genResult, setGenResult] = useState(null)
-  const [genError, setGenError] = useState(null)
-
-  // Create student modal
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [newEmail, setNewEmail] = useState('')
-  const [newPassword, setNewPassword] = useState('')
-  const [newName, setNewName] = useState('')
-  const [creating, setCreating] = useState(false)
-  const [createError, setCreateError] = useState(null)
-
-  const fetchStudents = useCallback(async () => {
-    setLoadingStudents(true)
+  const load = useCallback(async () => {
+    controllerRef.current?.abort()
+    const controller = new AbortController()
+    controllerRef.current = controller
+    setError(null)
+    setStudents(null)
     try {
-      const res = await fetch('/api/admin/listStudents')
-      if (res.ok) {
-        const data = await res.json()
-        setStudents(data.students || [])
-      }
+      const data = await api('/api/teacher/students', { signal: controller.signal })
+      if (!mounted.current || controller.signal.aborted) return
+      setStudents(Array.isArray(data.students) ? [...data.students].sort(byRecentLesson) : [])
     } catch (err) {
-      console.error('Failed to fetch students:', err)
+      if (isAbortError(err) || !mounted.current) return
+      setError(err.message || 'Impossible de charger les élèves.')
     }
-    setLoadingStudents(false)
-  }, [])
+  }, [mounted])
 
   useEffect(() => {
-    if (!loading && user) {
-      fetchStudents()
+    load()
+    return () => controllerRef.current?.abort()
+  }, [load])
+
+  const stats = useMemo(() => {
+    if (!students) return null
+    const now = new Date()
+    const seenThisMonth = students.filter((s) => {
+      const d = parseLocalDate(s.last_lesson_date)
+      return d && d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+    }).length
+    return {
+      students: students.length,
+      lessons: students.reduce((sum, s) => sum + (s.lesson_count || 0), 0),
+      seenThisMonth,
     }
-  }, [loading, user, fetchStudents])
+  }, [students])
 
-  const handleGenerate = async (e) => {
-    e.preventDefault()
-    setGenerating(true)
-    setGenResult(null)
-    setGenError(null)
-    try {
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentId: selectedStudent, instruction }),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        setGenResult(data.pdfUrl)
-        setInstruction('')
-      } else {
-        setGenError(data.error || 'Une erreur est survenue')
-      }
-    } catch (err) {
-      setGenError(err.message)
-    }
-    setGenerating(false)
-  }
+  const filtered = useMemo(() => {
+    if (!students) return []
+    const q = normalize(query)
+    if (!q) return students
+    return students.filter((s) => normalize(`${s.full_name || ''} ${s.email || ''}`).includes(q))
+  }, [students, query])
 
-  const handleCreateStudent = async (e) => {
-    e.preventDefault()
-    setCreating(true)
-    setCreateError(null)
-    try {
-      const res = await fetch('/api/admin/createStudent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: newEmail,
-          password: newPassword,
-          fullName: newName,
-        }),
-      })
-      const data = await res.json()
-      if (res.ok) {
-        setShowCreateModal(false)
-        setNewEmail('')
-        setNewPassword('')
-        setNewName('')
-        fetchStudents()
-      } else {
-        setCreateError(data.error || 'Erreur lors de la création')
-      }
-    } catch (err) {
-      setCreateError(err.message)
-    }
-    setCreating(false)
-  }
-
-  const handleSignOut = async () => {
-    await signOut()
-    router.replace('/login')
-  }
-
-  if (loading) {
-    return (
-      <div className="loading-screen">
-        <div className="spinner spinner-lg" />
-      </div>
-    )
-  }
-
-  if (!user) return null
-
-  const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Wael'
+  const loading = !students && !error
+  const first = firstName(user?.user_metadata?.full_name || user?.user_metadata?.name)
+  const hasStudents = Boolean(students?.length)
 
   return (
-    <div className="dashboard">
-      {/* Header */}
-      <header className="dashboard-header">
-        <div className="dashboard-header-inner">
-          <div className="dashboard-brand">
-            <span className="dashboard-brand-icon">🇫🇷</span>
-            <h2>Preply Lessons</h2>
-            <span className="badge badge-blue" style={{ marginLeft: '0.5rem' }}>
-              Teacher
-            </span>
-          </div>
-          <div className="dashboard-user">
-            <div className="dashboard-user-info">
-              <div className="dashboard-user-name">{displayName}</div>
-              <div className="dashboard-user-role">
-                <span className="badge badge-blue">Enseignant</span>
-              </div>
-            </div>
-            <div className="dashboard-avatar">
-              {displayName.charAt(0).toUpperCase()}
-            </div>
-            <button onClick={handleSignOut} className="btn btn-ghost btn-sm">
-              Déconnexion
-            </button>
-          </div>
+    <TeacherShell wide>
+      <Head>
+        <title>Mes élèves — Preply Lessons</title>
+      </Head>
+
+      <header className={styles.header}>
+        <div className={styles.greeting}>
+          <h1 className={styles.hello}>
+            Bonjour{first ? ` ${first}` : ''} <span aria-hidden="true">👋</span>
+          </h1>
+          <p className={styles.tagline}>Prêt à préparer la prochaine leçon ?</p>
         </div>
+        <Link href="/teacher/lessons/new" className={`${ui.btn} ${ui.green} ${styles.cta}`}>
+          <span aria-hidden="true">✨</span> Nouvelle leçon
+        </Link>
       </header>
 
-      {/* Main */}
-      <main className="dashboard-main">
-        <h1 className="dashboard-title animate-fade-in">
-          Tableau de bord enseignant 📋
-        </h1>
-        <p className="dashboard-subtitle animate-fade-in delay-1">
-          Gère tes étudiants et génère des leçons personnalisées
-        </p>
+      {error ? (
+        <PageState role="alert" icon="😕" title="Impossible de charger tes élèves" text={error} onRetry={load} />
+      ) : (
+        <div className={styles.content}>
+          {loading ? <StatTilesSkeleton /> : <StatTiles stats={stats} />}
 
-        {/* Stats */}
-        <div className="stats-row animate-fade-in delay-2">
-          <div className="stat-card">
-            <div className="stat-value">{students.length}</div>
-            <div className="stat-label">Étudiants</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value">
-              {students.filter(
-                (s) =>
-                  new Date(s.created_at) >
-                  new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-              ).length}
+          <section aria-labelledby="students-title" aria-busy={loading}>
+            <div className={styles.sectionHead}>
+              <div className={styles.titleRow}>
+                <h2 id="students-title" className={`${ui.sectionTitle} ${styles.sectionTitle}`}>
+                  Mes élèves
+                </h2>
+                {!loading && hasStudents && (
+                  <span className={styles.count} role="status" aria-live="polite">
+                    {query
+                      ? `${filtered.length} résultat${filtered.length > 1 ? 's' : ''}`
+                      : `${students.length} élève${students.length > 1 ? 's' : ''}`}
+                  </span>
+                )}
+              </div>
+              {!loading && hasStudents && <StudentSearch value={query} onChange={setQuery} />}
             </div>
-            <div className="stat-label">Nouveaux (30j)</div>
-          </div>
-        </div>
 
-        <div className="dashboard-grid">
-          {/* Generate Lesson */}
-          <div className="dashboard-section animate-fade-in delay-2">
-            <div className="dashboard-section-header">
-              <h3 className="dashboard-section-title">📝 Générer une leçon</h3>
-            </div>
-            <div className="dashboard-section-body">
-              <form onSubmit={handleGenerate} className="dashboard-form">
-                <div className="form-group">
-                  <label htmlFor="student-select" className="label">
-                    Étudiant
-                  </label>
-                  <select
-                    id="student-select"
-                    className="select"
-                    value={selectedStudent}
-                    onChange={(e) => setSelectedStudent(e.target.value)}
-                    required
-                  >
-                    <option value="">Sélectionner un étudiant…</option>
-                    {students.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.user_metadata?.full_name || s.email}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="teacher-instruction" className="label">
-                    Instructions
-                  </label>
-                  <textarea
-                    id="teacher-instruction"
-                    className="textarea"
-                    value={instruction}
-                    onChange={(e) => setInstruction(e.target.value)}
-                    placeholder="Ex : Prépare le bilan de la leçon 8 sur le subjonctif…"
-                    required
-                    rows={4}
-                  />
-                </div>
-                <div className="form-actions">
-                  <button
-                    type="submit"
-                    disabled={generating || !selectedStudent || !instruction.trim()}
-                    className="btn btn-primary btn-lg"
-                    style={{ width: '100%' }}
-                  >
-                    {generating ? (
-                      <>
-                        <span className="spinner" /> Génération…
-                      </>
-                    ) : (
-                      '✨ Générer le PDF'
-                    )}
+            {loading ? (
+              <>
+                <span className="sr-only" role="status">Chargement des élèves…</span>
+                <ul className={styles.grid} aria-hidden="true">
+                  {[0, 1, 2, 3, 4, 5].map((i) => (
+                    <li key={i}>
+                      <StudentCardSkeleton />
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : !hasStudents ? (
+              <PageState
+                icon="👋"
+                tone="yellow"
+                headingLevel={3}
+                title="Aucun élève pour l’instant"
+                text="Tes élèves apparaîtront ici dès qu’ils se seront connectés au site."
+              />
+            ) : filtered.length === 0 ? (
+              <PageState
+                icon="🔎"
+                tone="purple"
+                headingLevel={3}
+                title="Aucun élève trouvé"
+                text={`Aucun nom ni e-mail ne correspond à «\u00a0${query.trim()}\u00a0».`}
+                action={
+                  <button type="button" className={`${ui.btn} ${ui.ghost}`} onClick={() => setQuery('')}>
+                    Effacer la recherche
                   </button>
-                </div>
-              </form>
-
-              {genError && (
-                <div className="alert alert-error" style={{ marginTop: '1rem' }}>
-                  ⚠️ {genError}
-                </div>
-              )}
-
-              {genResult && (
-                <div className="alert alert-success" style={{ marginTop: '1rem' }}>
-                  ✅ PDF généré !{' '}
-                  <a href={genResult} target="_blank" rel="noopener noreferrer">
-                    Télécharger
-                  </a>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Students List */}
-          <div className="dashboard-section animate-fade-in delay-3">
-            <div className="dashboard-section-header">
-              <h3 className="dashboard-section-title">👥 Étudiants</h3>
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="btn btn-primary btn-sm"
-              >
-                + Ajouter
-              </button>
-            </div>
-
-            {loadingStudents ? (
-              <div className="dashboard-section-body" style={{ textAlign: 'center', padding: '2rem' }}>
-                <div className="spinner" style={{ margin: '0 auto' }} />
-              </div>
-            ) : students.length === 0 ? (
-              <div className="dashboard-section-body">
-                <div className="empty-state">
-                  <div className="empty-state-icon">👤</div>
-                  <div className="empty-state-title">Aucun étudiant</div>
-                  <div className="empty-state-text">
-                    Ajoute ton premier étudiant avec le bouton ci-dessus
-                  </div>
-                </div>
-              </div>
+                }
+              />
             ) : (
-              <div className="table-container">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Étudiant</th>
-                      <th>Inscrit le</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {students.map((s) => (
-                      <tr key={s.id}>
-                        <td>
-                          <div className="student-row">
-                            <div className="student-avatar-sm">
-                              {(s.user_metadata?.full_name || s.email || '?')
-                                .charAt(0)
-                                .toUpperCase()}
-                            </div>
-                            <div className="student-info">
-                              <span className="student-name">
-                                {s.user_metadata?.full_name || '—'}
-                              </span>
-                              <span className="student-email">{s.email}</span>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          {new Date(s.created_at).toLocaleDateString('fr-FR', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <ul className={styles.grid}>
+                {filtered.map((student, i) => (
+                  <li key={student.id}>
+                    <StudentCard student={student} index={i} />
+                  </li>
+                ))}
+              </ul>
             )}
-          </div>
-        </div>
-      </main>
-
-      {/* Create Student Modal */}
-      {showCreateModal && (
-        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3 className="modal-title">➕ Ajouter un étudiant</h3>
-            <form onSubmit={handleCreateStudent} className="dashboard-form">
-              <div className="form-group">
-                <label htmlFor="new-name" className="label">Nom complet</label>
-                <input
-                  id="new-name"
-                  type="text"
-                  className="input"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  placeholder="Rebecca M."
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="new-email" className="label">Email</label>
-                <input
-                  id="new-email"
-                  type="email"
-                  className="input"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  placeholder="rebecca@example.com"
-                  required
-                />
-              </div>
-              <div className="form-group">
-                <label htmlFor="new-password" className="label">Mot de passe</label>
-                <input
-                  id="new-password"
-                  type="password"
-                  className="input"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Minimum 6 caractères"
-                  minLength={6}
-                  required
-                />
-              </div>
-              {createError && (
-                <div className="alert alert-error">⚠️ {createError}</div>
-              )}
-              <div className="form-actions">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="btn btn-secondary"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="btn btn-primary"
-                  style={{ flex: 1 }}
-                >
-                  {creating ? (
-                    <>
-                      <span className="spinner" /> Création…
-                    </>
-                  ) : (
-                    'Créer le compte'
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
+          </section>
         </div>
       )}
-    </div>
+    </TeacherShell>
   )
 }

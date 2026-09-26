@@ -1,0 +1,17 @@
+.rich p {
+  margin: 0 0 0.75em;
+}
+
+.rich p:last-child {
+  margin-bottom: 0;
+}
+
+.mark {
+  background: #fff3cd;
+  color: inherit;
+  font-weight: 700;
+  padding: 0.05em 0.1em;
+  border-radius: 3px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}

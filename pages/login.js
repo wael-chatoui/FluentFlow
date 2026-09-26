@@ -1,111 +1,65 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { Auth } from '@supabase/auth-ui-react'
-import { ThemeSupa } from '@supabase/auth-ui-shared'
 import { useAuth } from '@/components/AuthProvider'
+import AuthScreen, { AuthHeader } from '@/components/auth/AuthScreen'
+import LoadingScreen from '@/components/ui/LoadingScreen'
+import { APPEARANCE, LOCALIZATION } from '@/components/auth/authUi'
 import { createClient } from '@/utils/supabase/client'
+import formStyles from '@/components/auth/AuthForm.module.css'
 
 export default function LoginPage() {
   const router = useRouter()
-  const { user, role, loading } = useAuth()
-  const supabase = createClient()
+  const { user, loading } = useAuth()
+  const [supabase] = useState(() => createClient())
+  const [redirectTo, setRedirectTo] = useState(undefined)
+  const routerRef = useRef(router)
+  routerRef.current = router
 
-  // Redirect if already logged in
+  // Computed after mount so server and client render the same markup
   useEffect(() => {
-    if (!loading && user) {
-      const target = role === 'teacher' ? '/teacher' : '/student'
-      router.replace(target)
-    }
-  }, [user, role, loading, router])
+    setRedirectTo(`${window.location.origin}/auth/callback`)
+  }, [])
 
-  if (loading) {
+  // Already signed in (or just signed in with email/password) → the root page routes by role/onboarding
+  useEffect(() => {
+    if (!loading && user) routerRef.current.replace('/')
+  }, [user, loading])
+
+  // Wait for redirectTo too: without it Supabase falls back to the Site URL (production)
+  if (loading || user || !redirectTo) {
     return (
-      <div className="loading-screen">
-        <div className="spinner spinner-lg" />
-      </div>
+      <>
+        <Head>
+          <title>Sign in · Preply Lessons</title>
+        </Head>
+        <LoadingScreen />
+      </>
     )
   }
 
-  if (user) return null // Will redirect
-
   return (
-    <div className="auth-page">
-      <div className="auth-container">
-        <div className="auth-card">
-          <div className="auth-logo">
-            <div className="auth-logo-icon">🇫🇷</div>
-            <h1>Preply Lessons</h1>
-            <p>Connecte-toi pour accéder à tes cours</p>
-          </div>
-
-          <Auth
-            supabaseClient={supabase}
-            appearance={{
-              theme: ThemeSupa,
-              variables: {
-                default: {
-                  colors: {
-                    brand: '#FF69B4',
-                    brandAccent: '#E0559E',
-                    inputBackground: 'white',
-                    inputBorder: '#e5e7eb',
-                    inputBorderHover: '#FF69B4',
-                    inputBorderFocus: '#FF69B4',
-                  },
-                  borderWidths: {
-                    buttonBorderWidth: '0px',
-                    inputBorderWidth: '1.5px',
-                  },
-                  radii: {
-                    borderRadiusButton: '10px',
-                    buttonBorderRadius: '10px',
-                    inputBorderRadius: '10px',
-                  },
-                  fontSizes: {
-                    baseBodySize: '14px',
-                    baseInputSize: '15px',
-                    baseLabelSize: '14px',
-                    baseButtonSize: '15px',
-                  },
-                  fonts: {
-                    bodyFontFamily: "'Inter', sans-serif",
-                    buttonFontFamily: "'Inter', sans-serif",
-                    inputFontFamily: "'Inter', sans-serif",
-                    labelFontFamily: "'Inter', sans-serif",
-                  },
-                },
-              },
-            }}
-            providers={['google']}
-            redirectTo={
-              typeof window !== 'undefined'
-                ? `${window.location.origin}/auth/callback`
-                : `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`
-            }
-            view="sign_in"
-            localization={{
-              variables: {
-                sign_in: {
-                  email_label: 'Adresse email',
-                  password_label: 'Mot de passe',
-                  button_label: 'Se connecter',
-                  loading_button_label: 'Connexion en cours…',
-                  social_provider_text: 'Continuer avec {{provider}}',
-                  link_text: "Tu n'as pas de compte ? Inscris-toi",
-                },
-                sign_up: {
-                  email_label: 'Adresse email',
-                  password_label: 'Mot de passe',
-                  button_label: "S'inscrire",
-                  loading_button_label: 'Inscription en cours…',
-                  social_provider_text: 'Continuer avec {{provider}}',
-                  link_text: 'Tu as déjà un compte ? Connecte-toi',
-                },
-              },
-            }}
-          />
-        </div>
+    <AuthScreen labelledBy="login-title">
+      <Head>
+        <title>Sign in · Preply Lessons</title>
+      </Head>
+      <AuthHeader
+        id="login-title"
+        emoji="🇫🇷"
+        title="Preply Lessons"
+        subtitle="Sign in to see your French lessons and practise"
+      />
+      <div className={formStyles.form}>
+        <Auth
+          supabaseClient={supabase}
+          appearance={APPEARANCE}
+          providers={['google']}
+          redirectTo={redirectTo}
+          view="sign_in"
+          localization={LOCALIZATION}
+        />
       </div>
-    </div>
+    </AuthScreen>
   )
 }

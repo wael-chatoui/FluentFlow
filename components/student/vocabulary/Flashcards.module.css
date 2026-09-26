@@ -1,0 +1,467 @@
+.session {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+/* ---- Toolbar: direction + count ---- */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.dirToggle {
+  display: inline-flex;
+  padding: 3px;
+  gap: 3px;
+  border-radius: 14px;
+  background: var(--st-line);
+}
+
+.dirBtn {
+  min-height: 44px;
+  padding: 0 0.8rem;
+  border: none;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--st-ink-soft);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.dirBtn:focus-visible {
+  outline: 3px solid var(--st-blue);
+  outline-offset: 1px;
+}
+
+.dirActive {
+  background: var(--st-surface);
+  color: var(--st-purple-dark);
+  box-shadow: 0 2px 0 #d0d0d0;
+}
+
+.count {
+  margin: 0;
+  font-weight: 800;
+  color: var(--st-ink-soft);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.count strong {
+  color: var(--st-ink);
+  font-weight: 900;
+}
+
+/* ---- Progress ---- */
+.progress {
+  height: 14px;
+  border-radius: 999px;
+  background: var(--st-line);
+  overflow: hidden;
+}
+
+.progressFill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--st-green);
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.1);
+  transform-origin: left center;
+  transition: transform 250ms ease;
+}
+
+/* ---- Card ---- */
+.stage {
+  position: relative;
+  padding: 0.25rem 0;
+}
+
+.card {
+  --dx: 0px;
+  --rot: 0deg;
+  position: relative;
+  display: block;
+  width: 100%;
+  height: clamp(180px, calc(100dvh - 620px), 330px);
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  perspective: 1200px;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transform: translateX(var(--dx)) rotate(var(--rot));
+  border-radius: var(--st-radius-lg);
+}
+
+.card:focus-visible {
+  outline: 3px solid var(--st-blue);
+  outline-offset: 4px;
+}
+
+.dragging {
+  cursor: grabbing;
+}
+
+.returning {
+  transition: transform 200ms ease-out;
+}
+
+.inner {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 350ms cubic-bezier(0.3, 0.7, 0.3, 1);
+  animation: cardIn 200ms ease-out;
+}
+
+.flipped .inner {
+  transform: rotateY(180deg);
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 2.75rem 1.25rem 2.25rem;
+  border: 2px solid var(--st-line);
+  border-bottom-width: 6px;
+  border-radius: var(--st-radius-lg);
+  background: var(--st-surface);
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.back {
+  transform: rotateY(180deg);
+  background: var(--st-blue-bg);
+  border-color: #9fdcfb;
+}
+
+.faceLabel {
+  position: absolute;
+  top: 0.85rem;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  background: var(--st-bg);
+  color: var(--st-ink-soft);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.back .faceLabel {
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--st-blue-dark);
+}
+
+.faceText {
+  max-width: 100%;
+  font-size: 1.85rem;
+  font-weight: 900;
+  line-height: 1.2;
+  color: var(--st-ink);
+  overflow-wrap: anywhere;
+}
+
+.textSm {
+  font-size: 1.35rem;
+}
+
+.textXs {
+  font-size: 1.1rem;
+}
+
+.faceExample {
+  max-width: 100%;
+  font-size: 0.95rem;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--st-ink-soft);
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.faceHint {
+  position: absolute;
+  bottom: 0.8rem;
+  left: 0;
+  right: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #b0b0b0;
+}
+
+.stamp {
+  position: absolute;
+  top: 1rem;
+  z-index: 2;
+  padding: 0.3rem 0.75rem;
+  border: 3px solid currentColor;
+  border-radius: 12px;
+  background: var(--st-surface);
+  font-weight: 900;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.stampAgain {
+  right: 1rem;
+  color: var(--st-red);
+  transform: rotate(8deg);
+}
+
+.stampGot {
+  left: 1rem;
+  color: var(--st-green-dark);
+  transform: rotate(-8deg);
+}
+
+.cardSkel {
+  display: block;
+  width: 100%;
+  height: clamp(180px, calc(100dvh - 620px), 330px);
+  border-radius: var(--st-radius-lg);
+}
+
+/* ---- Under the card ---- */
+.under {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 44px;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--st-ink-soft);
+  text-align: center;
+}
+
+.hint kbd {
+  display: inline-block;
+  min-width: 1.5em;
+  padding: 0 0.35em;
+  border: 2px solid var(--st-line);
+  border-bottom-width: 3px;
+  border-radius: 6px;
+  background: var(--st-surface);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.hintKeys {
+  display: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hintTouch {
+    display: none;
+  }
+
+  .hintKeys {
+    display: inline;
+  }
+}
+
+/* ---- Again / Got it ---- */
+.actions {
+  position: sticky;
+  bottom: calc(var(--st-tabbar-h) + env(safe-area-inset-bottom) + 12px);
+  z-index: 5;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.actionBtn {
+  min-height: 56px;
+  font-size: 1rem;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* ---- End of deck ---- */
+.end {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.75rem 1.25rem 1.5rem;
+  background: var(--st-surface);
+  border: 2px solid var(--st-line);
+  border-bottom-width: 4px;
+  border-radius: var(--st-radius-lg);
+  text-align: center;
+  animation: cardIn 240ms ease-out;
+}
+
+.endEmoji {
+  font-size: 4rem;
+  line-height: 1;
+  animation: bounce 240ms ease-out 100ms both;
+}
+
+.endTitle {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 900;
+  outline: none;
+}
+
+.endScore {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--st-ink-soft);
+}
+
+.endScore strong {
+  color: var(--st-green-dark);
+  font-weight: 900;
+}
+
+.endBar {
+  width: 100%;
+  max-width: 320px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--st-line);
+  overflow: hidden;
+}
+
+.endBarFill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--st-green);
+  transform-origin: left center;
+}
+
+.endActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 420px;
+  margin-top: 0.5rem;
+}
+
+@keyframes cardIn {
+  from { opacity: 0; scale: 0.94; }
+  to { opacity: 1; scale: 1; }
+}
+
+@keyframes bounce {
+  0% { transform: scale(0.6); }
+  70% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+@media (min-width: 768px) {
+  .actions {
+    position: static;
+  }
+
+  .card,
+  .cardSkel {
+    height: clamp(210px, 36vh, 330px);
+  }
+
+  .actionBtn {
+    box-shadow: none;
+  }
+
+  .faceText {
+    font-size: 2.2rem;
+  }
+
+  .textSm {
+    font-size: 1.5rem;
+  }
+
+  .textXs {
+    font-size: 1.2rem;
+  }
+}
+
+/* Reduced motion: crossfade instead of the 3D flip, no pops */
+@media (prefers-reduced-motion: reduce) {
+  .inner,
+  .flipped .inner {
+    transform: none;
+    transition: none;
+    animation: none;
+  }
+
+  .face {
+    transition: opacity 200ms ease;
+  }
+
+  .back {
+    transform: none;
+    opacity: 0;
+  }
+
+  .flipped .front {
+    opacity: 0;
+  }
+
+  .flipped .back {
+    opacity: 1;
+  }
+
+  .returning,
+  .progressFill,
+  .dirBtn {
+    transition: none;
+  }
+
+  .end,
+  .endEmoji {
+    animation: none;
+  }
+}

@@ -1,260 +1,222 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import Head from 'next/head'
+import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/components/AuthProvider'
-import { createClient } from '@/utils/supabase/client'
+import StudentShell from '@/components/student/StudentShell'
+import UpNextCard, { UpNextSkeleton } from '@/components/student/home/UpNextCard'
+import ProgressCard, { ProgressSkeleton } from '@/components/student/home/ProgressCard'
+import { computeUpNext } from '@/components/student/home/upNext'
+import LessonCard, { LessonCardSkeleton } from '@/components/student/lessons/LessonCard'
+import { ErrorCard } from '@/components/student/lessons/StatusViews'
+import { progressStats, scoreHistory, sortNewestFirst } from '@/components/student/lessons/progress'
+import { levelShort } from '@/components/student/profile/levels'
+import { plural } from '@/components/lesson/format'
+import { api } from '@/utils/apiClient'
+import { safeHttpsUrl } from '@/utils/lesson/schema'
+import ui from '@/components/ui/ui.module.css'
+import styles from '@/components/student/home/Home.module.css'
 
-export default function StudentDashboard() {
+function firstName(name) {
+  return (name || '').trim().split(/\s+/)[0] || ''
+}
+
+function MistakesCard({ count }) {
+  return (
+    <Link href="/student/review" className={styles.mistakes}>
+      <span className={styles.mistakesIcon} aria-hidden="true">
+        🎯
+      </span>
+      <span className={styles.mistakesText}>
+        <span className={styles.mistakesTitle}>{plural(count, 'mistake')} to fix</span>
+        <span className={styles.mistakesSub}>Turn them into wins in a quick review</span>
+      </span>
+      <span className={styles.chevron} aria-hidden="true">
+        ›
+      </span>
+    </Link>
+  )
+}
+
+function HowItWorks() {
+  const steps = [
+    { emoji: '🗣️', text: 'Take your class with Wael on Preply' },
+    { emoji: '📝', text: 'Get a recap of everything you covered' },
+    { emoji: '🎮', text: 'Practise with fun exercises' },
+  ]
+  return (
+    <section className={`${ui.card} ${styles.how}`} aria-labelledby="how-title">
+      <h2 id="how-title" className={styles.howTitle}>
+        How it works
+      </h2>
+      <ol className={styles.howList}>
+        {steps.map((s, i) => (
+          <li key={i} className={styles.howStep}>
+            <span className={styles.howEmoji} aria-hidden="true">
+              {s.emoji}
+            </span>
+            <span>{s.text}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  )
+}
+
+export default function StudentHome() {
   const router = useRouter()
-  const { user, role, loading, signOut } = useAuth()
-  const [supabase] = useState(() => createClient())
-
-  // Generate lesson form
-  const [instruction, setInstruction] = useState('')
-  const [generating, setGenerating] = useState(false)
-  const [genResult, setGenResult] = useState(null)
-  const [genError, setGenError] = useState(null)
-
-  // Lesson history
-  const [lessons, setLessons] = useState([])
-  const [loadingLessons, setLoadingLessons] = useState(true)
-
-  const fetchLessons = useCallback(async () => {
-    if (!user) return
-    setLoadingLessons(true)
-    try {
-      const res = await fetch('/api/lessons')
-      if (res.ok) {
-        const data = await res.json()
-        setLessons(data.lessons || [])
-      }
-    } catch (err) {
-      console.error('Failed to fetch lessons:', err)
-    }
-    setLoadingLessons(false)
-  }, [user])
+  const { user } = useAuth()
+  const recentId = useId()
+  const [state, setState] = useState({ status: 'loading', me: null, data: null, error: '' })
+  const [reloadKey, setReloadKey] = useState(0)
+  const routerRef = useRef(router)
+  routerRef.current = router
 
   useEffect(() => {
-    if (!loading && user) {
-      fetchLessons()
-    }
-  }, [loading, user, fetchLessons])
+    const controller = new AbortController()
+    const { signal } = controller
+    setState((s) => ({ ...s, status: 'loading', error: '' }))
 
-  const handleGenerate = async (e) => {
-    e.preventDefault()
-    setGenerating(true)
-    setGenResult(null)
-    setGenError(null)
-    try {
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentId: user.id, instruction }),
+    Promise.all([api('/api/me', { signal }), api('/api/student/lessons', { signal })])
+      .then(([me, data]) => {
+        if (signal.aborted) return
+        if (me?.role === 'teacher') {
+          routerRef.current.replace('/teacher')
+          return
+        }
+        if (!me?.profile?.onboarded_at) {
+          routerRef.current.replace('/onboarding')
+          return
+        }
+        setState({ status: 'ready', me, data, error: '' })
       })
-      const data = await res.json()
-      if (res.ok) {
-        setGenResult(data.pdfUrl)
-        setInstruction('')
-        fetchLessons() // Refresh the list
-      } else {
-        setGenError(data.error || 'Une erreur est survenue')
-      }
-    } catch (err) {
-      setGenError(err.message)
-    }
-    setGenerating(false)
-  }
+      .catch((err) => {
+        if (err?.name === 'AbortError' || signal.aborted) return
+        setState({ status: 'error', me: null, data: null, error: err?.message || 'Something went wrong.' })
+      })
 
-  const handleSignOut = async () => {
-    await signOut()
-    router.replace('/login')
-  }
+    return () => controller.abort()
+  }, [reloadKey])
 
-  if (loading) {
-    return (
-      <div className="loading-screen">
-        <div className="spinner spinner-lg" />
-      </div>
-    )
-  }
+  const lessons = useMemo(() => sortNewestFirst(state.data?.lessons), [state.data])
+  const mistakeCount = Math.max(0, Number(state.data?.mistakeCount) || 0)
+  const upNext = useMemo(() => computeUpNext(lessons, mistakeCount), [lessons, mistakeCount])
+  const stats = useMemo(() => progressStats(lessons), [lessons])
+  const history = useMemo(() => scoreHistory(lessons, 8), [lessons])
 
-  if (!user) return null
-
-  const initials = (user.user_metadata?.full_name || user.email || '?')
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
-
-  const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Étudiant'
+  const profile = state.me?.profile || null
+  const first = firstName(profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || '')
+  const level = levelShort(profile?.level)
+  const driveUrl = safeHttpsUrl(state.data?.driveFolderUrl)
+  const loading = state.status === 'loading'
+  const hasLessons = lessons.length > 0
 
   return (
-    <div className="dashboard">
-      {/* Header */}
-      <header className="dashboard-header">
-        <div className="dashboard-header-inner">
-          <div className="dashboard-brand">
-            <span className="dashboard-brand-icon">🇫🇷</span>
-            <h2>Preply Lessons</h2>
+    <StudentShell wide>
+      <Head>
+        <title>Home · Preply Lessons</title>
+      </Head>
+
+      <header className={styles.greeting}>
+        {loading ? (
+          <div>
+            <h1 className="sr-only">Home</h1>
+            <span className={ui.skel} style={{ width: 240, maxWidth: '80%', height: 34 }} aria-hidden="true" />
+            <span className={ui.skel} style={{ width: 170, height: 28, marginTop: 10, borderRadius: 999 }} aria-hidden="true" />
           </div>
-          <div className="dashboard-user">
-            <div className="dashboard-user-info">
-              <div className="dashboard-user-name">{displayName}</div>
-              <div className="dashboard-user-role">
-                <span className="badge badge-pink">Étudiant</span>
-              </div>
+        ) : (
+          <>
+            <h1 className={styles.hello}>
+              Bonjour{first ? `, ${first}` : ''}! <span aria-hidden="true">👋</span>
+            </h1>
+            <div className={styles.greetMeta}>
+              {level && (
+                <span className={`${ui.pill} ${styles.levelPill}`}>
+                  <span aria-hidden="true">🇫🇷</span>
+                  <span className="sr-only">Your French level: </span>
+                  {level}
+                </span>
+              )}
+              <span className={styles.tagline}>Ready for some French?</span>
             </div>
-            <div className="dashboard-avatar">{initials}</div>
-            <button onClick={handleSignOut} className="btn btn-ghost btn-sm">
-              Déconnexion
-            </button>
-          </div>
-        </div>
+          </>
+        )}
+        {loading && <span className="sr-only" role="status">Loading your lessons…</span>}
       </header>
 
-      {/* Main Content */}
-      <main className="dashboard-main">
-        <h1 className="dashboard-title animate-fade-in">
-          Bonjour, {displayName.split(' ')[0]} 👋
-        </h1>
-        <p className="dashboard-subtitle animate-fade-in delay-1">
-          Prêt pour ta prochaine leçon de français ?
-        </p>
+      {state.status === 'error' ? (
+        <ErrorCard
+          title="Couldn’t load your lessons"
+          message={state.error}
+          onRetry={() => setReloadKey((k) => k + 1)}
+        />
+      ) : (
+        <div className={styles.layout}>
+          <div className={styles.primary}>
+            <div className={styles.oHero}>{loading ? <UpNextSkeleton /> : <UpNextCard upNext={upNext} />}</div>
 
-        {/* Stats */}
-        <div className="stats-row animate-fade-in delay-2">
-          <div className="stat-card">
-            <div className="stat-value">{lessons.length}</div>
-            <div className="stat-label">Leçons générées</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value">
-              {lessons.length > 0
-                ? new Date(lessons[0]?.lastModified || Date.now()).toLocaleDateString('fr-FR', {
-                    day: 'numeric',
-                    month: 'short',
-                  })
-                : '—'}
-            </div>
-            <div className="stat-label">Dernière leçon</div>
-          </div>
-        </div>
-
-        <div className="dashboard-grid">
-          {/* Generate Form */}
-          <div className="dashboard-section animate-fade-in delay-2">
-            <div className="dashboard-section-header">
-              <h3 className="dashboard-section-title">📝 Générer une leçon</h3>
-            </div>
-            <div className="dashboard-section-body">
-              <form onSubmit={handleGenerate} className="dashboard-form">
-                <div className="form-group">
-                  <label htmlFor="instruction" className="label">
-                    Instructions pour le cours
-                  </label>
-                  <textarea
-                    id="instruction"
-                    className="textarea"
-                    value={instruction}
-                    onChange={(e) => setInstruction(e.target.value)}
-                    placeholder="Ex : Prépare un bilan de la leçon d'aujourd'hui sur les expressions idiomatiques…"
-                    required
-                    rows={4}
-                  />
-                </div>
-                <div className="form-actions">
-                  <button
-                    type="submit"
-                    disabled={generating || !instruction.trim()}
-                    className="btn btn-primary btn-lg"
-                    style={{ width: '100%' }}
-                  >
-                    {generating ? (
-                      <>
-                        <span className="spinner" /> Génération en cours…
-                      </>
-                    ) : (
-                      '✨ Générer le PDF'
-                    )}
-                  </button>
-                </div>
-              </form>
-
-              {genError && (
-                <div className="alert alert-error" style={{ marginTop: '1rem' }}>
-                  ⚠️ {genError}
-                </div>
-              )}
-
-              {genResult && (
-                <div className="alert alert-success" style={{ marginTop: '1rem' }}>
-                  ✅ PDF généré !{' '}
-                  <a href={genResult} target="_blank" rel="noopener noreferrer">
-                    Télécharger
-                  </a>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Lesson History */}
-          <div className="dashboard-section animate-fade-in delay-3">
-            <div className="dashboard-section-header">
-              <h3 className="dashboard-section-title">📚 Historique des leçons</h3>
-              <button onClick={fetchLessons} className="btn btn-ghost btn-sm">
-                ↻ Rafraîchir
-              </button>
-            </div>
-
-            {loadingLessons ? (
-              <div className="dashboard-section-body" style={{ textAlign: 'center', padding: '2rem' }}>
-                <div className="spinner" style={{ margin: '0 auto' }} />
+            {!loading && mistakeCount > 0 && upNext.kind !== 'mistakes' && (
+              <div className={styles.oMistakes}>
+                <MistakesCard count={mistakeCount} />
               </div>
-            ) : lessons.length === 0 ? (
-              <div className="dashboard-section-body">
-                <div className="empty-state">
-                  <div className="empty-state-icon">📄</div>
-                  <div className="empty-state-title">Pas encore de leçon</div>
-                  <div className="empty-state-text">
-                    Génère ta première leçon avec le formulaire ci-dessus !
-                  </div>
+            )}
+
+            {(loading || hasLessons) && (
+              <section className={styles.oRecent} aria-labelledby={recentId} aria-busy={loading}>
+                <div className={styles.sectionHead}>
+                  <h2 id={recentId} className={`${ui.sectionTitle} ${styles.sectionTitle}`}>
+                    Recent lessons
+                  </h2>
+                  <Link href="/student/lessons" className={styles.seeAll}>
+                    See all lessons<span aria-hidden="true"> ›</span>
+                  </Link>
                 </div>
+                <ul className={styles.list}>
+                  {loading ? (
+                    <>
+                      <LessonCardSkeleton />
+                      <LessonCardSkeleton />
+                      <LessonCardSkeleton />
+                    </>
+                  ) : (
+                    lessons.slice(0, 3).map((lesson, i) => <LessonCard key={lesson.id} lesson={lesson} index={i} />)
+                  )}
+                </ul>
+              </section>
+            )}
+          </div>
+
+          <div className={styles.aside}>
+            {loading ? (
+              <div className={styles.oProgress}>
+                <ProgressSkeleton />
+              </div>
+            ) : hasLessons ? (
+              <div className={styles.oProgress}>
+                <ProgressCard stats={stats} history={history} />
               </div>
             ) : (
-              <ul className="lesson-list">
-                {lessons.map((lesson, i) => (
-                  <li key={lesson.name || i} className="lesson-item">
-                    <div className="lesson-item-info">
-                      <span className="lesson-item-name">
-                        📄 {lesson.name?.replace('.pdf', '') || `Leçon ${i + 1}`}
-                      </span>
-                      {lesson.lastModified && (
-                        <span className="lesson-item-date">
-                          {new Date(lesson.lastModified).toLocaleDateString('fr-FR', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric',
-                          })}
-                        </span>
-                      )}
-                    </div>
-                    <div className="lesson-item-actions">
-                      <a
-                        href={lesson.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-secondary btn-sm"
-                      >
-                        Ouvrir
-                      </a>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <div className={styles.oProgress}>
+                <HowItWorks />
+              </div>
+            )}
+
+            {!loading && driveUrl && (
+              <div className={styles.oDrive}>
+                <a
+                  href={driveUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${ui.btn} ${ui.ghost} ${ui.block}`}
+                >
+                  <span aria-hidden="true">📁</span> My Google Drive folder
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              </div>
             )}
           </div>
         </div>
-      </main>
-    </div>
+      )}
+    </StudentShell>
   )
 }

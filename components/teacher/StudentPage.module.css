@@ -1,0 +1,109 @@
+/* Teacher student page (/teacher/students/[id]) layout. The header card lives in
+   components/teacher/students/StudentHero.module.css. */
+
+.crumbs {
+  margin: -0.5rem 0 0.5rem;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 44px;
+  padding: 0 0.5rem 0 0.25rem;
+  margin-left: -0.25rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.back:link,
+.back:visited {
+  color: var(--st-blue-dark);
+}
+
+.back:hover {
+  color: var(--st-blue);
+  background: var(--st-blue-bg);
+}
+
+.back:focus-visible {
+  outline: 3px solid var(--st-blue);
+  outline-offset: 2px;
+}
+
+.back > span {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.sectionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.6rem;
+  margin-bottom: 0.85rem;
+}
+
+.sectionHead .sectionTitle {
+  margin: 0;
+}
+
+.count {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  background: var(--st-blue-bg);
+  color: var(--st-blue-dark);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.since {
+  margin-left: auto;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--st-ink-soft);
+}
+
+/* Profile card: ui.card + a bit more room on larger screens */
+.profileCard {
+  min-width: 0;
+}
+
+.formSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+@media (max-width: 479px) {
+  .since {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+
+  .stack > .profileCard {
+    padding: 1rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .crumbs {
+    margin-top: -1rem;
+  }
+
+  .stack > .profileCard {
+    padding: 1.5rem;
+  }
+}

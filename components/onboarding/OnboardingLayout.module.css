@@ -1,0 +1,192 @@
+/* Onboarding page frame + design tokens (scoped to the onboarding page) */
+
+.page {
+  --ob-fg: #0a0a0a;
+  --ob-fg-soft: #262626;
+  --ob-muted: #666666;
+  --ob-subtle: #8a8a8a;
+  --ob-border: #e8e8e8;
+  --ob-border-strong: #d4d4d4;
+  --ob-surface: #ffffff;
+  --ob-surface-soft: #fafafa;
+  --ob-surface-muted: #f4f4f5;
+  --ob-accent: #ff69b4;
+  --ob-accent-strong: #d94c96;
+  --ob-accent-tint: rgba(255, 105, 180, 0.07);
+  --ob-ring: 0 0 0 3px rgba(255, 105, 180, 0.3);
+  --ob-shadow-sm: 0 1px 2px rgba(10, 10, 10, 0.04);
+  --ob-shadow-md: 0 4px 12px -2px rgba(10, 10, 10, 0.08), 0 1px 3px rgba(10, 10, 10, 0.04);
+  --ob-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ob-header-h: 76px;
+  --ob-gutter: 16px;
+
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--ob-surface);
+  color: var(--ob-fg);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  overflow-x: clip;
+}
+
+@media (min-width: 640px) {
+  .page {
+    --ob-gutter: 24px;
+  }
+}
+
+/* ---- Header (fixed height: no layout jump between steps) ---- */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  height: var(--ob-header-h);
+  flex: none;
+  background: rgba(255, 255, 255, 0.92);
+  -webkit-backdrop-filter: saturate(180%) blur(10px);
+  backdrop-filter: saturate(180%) blur(10px);
+}
+
+.headerInner {
+  max-width: calc(520px + 2 * var(--ob-gutter));
+  height: 100%;
+  margin: 0 auto;
+  padding: 0 var(--ob-gutter);
+}
+
+/* ---- Content column ---- */
+.main {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  /* Mobile: the sticky Continue button sits at the bottom of the screen and
+     the footer lives just below the fold */
+  min-height: calc(100vh - var(--ob-header-h));
+  min-height: calc(100dvh - var(--ob-header-h));
+}
+
+.column {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: calc(520px + 2 * var(--ob-gutter));
+  margin: 0 auto;
+  padding: 0 var(--ob-gutter);
+}
+
+@media (min-width: 640px) {
+  .main {
+    min-height: 0;
+    padding-top: clamp(8px, 6vh, 64px);
+  }
+}
+
+/* ---- Footer ---- */
+.footer {
+  flex: none;
+  width: 100%;
+  max-width: calc(520px + 2 * var(--ob-gutter));
+  margin: 0 auto;
+  padding: 16px var(--ob-gutter) max(16px, env(safe-area-inset-bottom));
+  font-size: 13px;
+  color: var(--ob-muted);
+  text-align: center;
+}
+
+.footerRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  column-gap: 6px;
+}
+
+.footerEmail {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.footerSep {
+  color: var(--ob-border-strong);
+}
+
+.textButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--ob-muted);
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+
+.textButton:hover:not(:disabled) {
+  color: var(--ob-fg);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.textButton:focus-visible {
+  outline: none;
+  box-shadow: var(--ob-ring);
+}
+
+.textButton:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.dangerButton:hover:not(:disabled) {
+  color: #b91c1c;
+}
+
+/* ---- Skeleton (before we know who the user is) ---- */
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 52px;
+}
+
+.skeletonBar {
+  height: 14px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--ob-surface-muted) 25%, #ececee 50%, var(--ob-surface-muted) 75%);
+  background-size: 200% 100%;
+  animation: obShimmer 1.4s ease-in-out infinite;
+}
+
+.skeletonTitle {
+  height: 30px;
+  width: 72%;
+}
+
+.skeletonLine {
+  width: 55%;
+  margin-bottom: 20px;
+}
+
+.skeletonInput {
+  height: 56px;
+  border-radius: 12px;
+}
+
+@keyframes obShimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeletonBar {
+    animation: none;
+  }
+}

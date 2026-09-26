@@ -1,0 +1,248 @@
+/* ---- Greeting ---- */
+.greeting {
+  min-height: 72px;
+  margin-bottom: 1.1rem;
+}
+
+.hello {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 900;
+  line-height: 1.2;
+  color: var(--st-ink);
+  overflow-wrap: anywhere;
+}
+
+.greetMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.6rem;
+  margin-top: 0.45rem;
+}
+
+.greetMeta .levelPill {
+  background: var(--st-blue-bg);
+  color: var(--st-ink);
+  border: 2px solid #84d8ff;
+  font-weight: 800;
+}
+
+.tagline {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--st-ink-soft);
+}
+
+/* ---- Layout ----
+   Mobile: one column; the two wrappers use display: contents so their
+   children can be ordered freely. ≥ 960px: main column + side column. */
+.layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.primary,
+.aside {
+  display: contents;
+}
+
+.oHero { order: 1; }
+.oMistakes { order: 2; }
+.oProgress { order: 3; }
+.oRecent { order: 4; }
+.oDrive { order: 5; }
+
+@media (min-width: 960px) {
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 1.5rem;
+  }
+
+  .primary,
+  .aside {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    min-width: 0;
+  }
+
+  .hello {
+    font-size: 2.1rem;
+  }
+}
+
+/* ---- Mistakes card (whole card is a link) ---- */
+.mistakes {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-height: 72px;
+  padding: 0.85rem 1rem;
+  background: var(--st-orange-bg);
+  border: 2px solid var(--st-orange);
+  border-bottom-width: 4px;
+  border-bottom-color: var(--st-orange-dark);
+  border-radius: var(--st-radius-lg);
+  color: var(--st-ink);
+  text-decoration: none;
+  animation: rise 220ms ease-out both;
+  transition: transform 80ms ease, border-bottom-width 80ms ease;
+}
+
+.mistakes:hover {
+  color: var(--st-ink);
+  filter: brightness(1.02);
+}
+
+.mistakes:active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+}
+
+.mistakes:focus-visible {
+  outline: 3px solid var(--st-blue);
+  outline-offset: 2px;
+}
+
+.mistakesIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--st-orange);
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.mistakesText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.mistakesTitle {
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.mistakesSub {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--st-ink-soft);
+}
+
+.chevron {
+  flex: none;
+  font-size: 2rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--st-orange-dark);
+}
+
+/* ---- Recent lessons ---- */
+.sectionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.sectionHead .sectionTitle {
+  margin: 0;
+}
+
+.seeAll {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--st-blue-dark);
+  text-decoration: none;
+}
+
+.seeAll:hover {
+  color: var(--st-blue);
+}
+
+.seeAll:focus-visible {
+  outline: 3px solid var(--st-blue);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* ---- How it works (no lessons yet) ---- */
+.how {
+  animation: rise 220ms ease-out both;
+}
+
+.howTitle {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--st-ink);
+}
+
+.howList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.howStep {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--st-ink);
+}
+
+.howEmoji {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--st-bg);
+  border: 2px solid var(--st-line);
+  font-size: 1.35rem;
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mistakes,
+  .how {
+    animation: none;
+    transition: none;
+  }
+}

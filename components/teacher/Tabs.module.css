@@ -1,0 +1,95 @@
+/* Segmented control (same look as the student's Liste / Cartes switch).
+   Scrolls sideways on narrow screens instead of widening the page. */
+
+.scroller {
+  position: relative; /* offsetParent for the tabs (keep-in-view math) */
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 16px;
+}
+
+.scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.list {
+  display: flex;
+  gap: 4px;
+  width: max-content;
+  min-width: 100%;
+  padding: 4px;
+  border-radius: 16px;
+  background: var(--st-line);
+}
+
+.tab {
+  flex: 1 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0 0.85rem;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--st-ink-soft);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+.tab:hover:not(.active) {
+  color: var(--st-ink);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.tab:focus-visible {
+  outline: 3px solid var(--st-blue);
+  outline-offset: -3px;
+}
+
+.active {
+  background: var(--st-surface);
+  color: var(--st-blue);
+  box-shadow: 0 3px 0 #cfcfcf;
+}
+
+.count {
+  min-width: 1.6em;
+  padding: 0.05rem 0.4em;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--st-ink-soft);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.active .count {
+  background: var(--st-blue-bg);
+  color: var(--st-blue-dark);
+}
+
+@media (min-width: 768px) {
+  .tab {
+    padding: 0 1.1rem;
+    font-size: 0.88rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab {
+    transition: none;
+  }
+}

@@ -1,0 +1,269 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.fieldset {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.fieldset:disabled {
+  opacity: 0.7;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.1rem;
+}
+
+@media (min-width: 640px) {
+  .row {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.label {
+  font-size: 0.9rem;
+  font-weight: 900;
+  color: var(--st-ink);
+}
+
+/* ---- Inputs: 2px border, 14px radius, 16px font (no iOS zoom), blue focus ring ---- */
+.input {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 0.65rem 0.9rem;
+  border: 2px solid var(--st-line);
+  border-radius: 14px;
+  background: var(--st-surface);
+  color: var(--st-ink);
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.45;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+}
+
+.input::placeholder {
+  color: #afafaf;
+  font-weight: 600;
+}
+
+.input:hover {
+  border-color: #d0d0d0;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--st-blue);
+  box-shadow: 0 0 0 4px var(--st-blue-bg);
+}
+
+.input:disabled {
+  background: var(--st-bg);
+  cursor: not-allowed;
+}
+
+.select {
+  padding-right: 2.6rem;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1.5 1.5 7 7l5.5-5.5' fill='none' stroke='%23777' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.95rem center;
+  background-size: 14px 9px;
+}
+
+.textarea {
+  min-height: 96px;
+  resize: vertical;
+  font-weight: 600;
+}
+
+.form .invalid,
+.form .invalid:hover,
+.form .invalid:focus {
+  border-color: var(--st-red);
+  background-color: #fff8f8;
+}
+
+.form .invalid:focus {
+  box-shadow: 0 0 0 4px var(--st-red-bg);
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--st-ink-soft);
+}
+
+.fieldError {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 800;
+  line-height: 1.45;
+  color: var(--st-red-dark);
+}
+
+/* Private notes: soft yellow panel so it reads as "teacher only" */
+.private {
+  padding: 0.9rem;
+  border-radius: var(--st-radius);
+  background: var(--st-yellow-bg);
+  border: 2px dashed #ffe27a;
+}
+
+.private .hint {
+  color: #8a6d00;
+}
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.8rem 1rem;
+  border: 2px solid #ffc1c1;
+  border-radius: 14px;
+  background: var(--st-red-bg);
+  color: var(--st-red-dark);
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+/* ---- Footer: status + buttons. Sticks to the bottom of the viewport while
+   there are unsaved changes (above the mobile tab bar). ---- */
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 0.75rem;
+  padding-top: 1rem;
+  border-top: 2px dashed var(--st-line);
+}
+
+.footerSticky {
+  position: sticky;
+  bottom: calc(var(--st-tabbar-h) + env(safe-area-inset-bottom) + 0.5rem);
+  z-index: 5;
+  padding: 0.75rem;
+  border: 2px solid var(--st-line);
+  border-bottom-width: 4px;
+  border-radius: var(--st-radius);
+  background: var(--st-surface);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+}
+
+.status {
+  min-height: 1.4em;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--st-ink-soft);
+}
+
+.saved {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  background: var(--st-green-bg);
+  color: #2b7a0b;
+  font-weight: 900;
+  animation: pop 200ms ease-out both;
+}
+
+.dirty {
+  color: #b25e00;
+}
+
+.buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border: 3px solid rgba(0, 0, 0, 0.12);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 700ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes pop {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (max-width: 519px) {
+  .status {
+    flex: 1 1 100%;
+    text-align: center;
+  }
+
+  .status:empty {
+    min-height: 0;
+  }
+
+  .buttons {
+    flex: 1 1 100%;
+    margin-left: 0;
+  }
+
+  .buttons .cancel {
+    flex: 1;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .buttons .save {
+    flex: 2;
+  }
+}
+
+@media (min-width: 768px) {
+  .footerSticky {
+    bottom: 1rem;
+  }
+
+  .buttons .save {
+    min-width: 170px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .saved {
+    animation: none;
+  }
+
+  .spinner {
+    animation-duration: 1.5s;
+  }
+}

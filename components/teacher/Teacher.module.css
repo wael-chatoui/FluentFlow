@@ -1,0 +1,202 @@
+/* Shared styles for the teacher pages, on the app design system (--st-* tokens,
+   see styles/tokens.css and components/ui/ui.module.css).
+   Used by StatusBadge, Skeleton, PageState and the teacher lesson pages. */
+
+/* Page root: bigger tap targets and visible keyboard focus for every control
+   (still covers pages that use the legacy global .btn / .input classes). */
+.page :global(.btn) {
+  min-height: 44px;
+}
+
+.page :global(.input),
+.page :global(.select) {
+  min-height: 44px;
+}
+
+.page :global(.btn):focus-visible,
+.page a:focus-visible,
+.page summary:focus-visible,
+.page [role='tab']:focus-visible {
+  outline: 3px solid var(--st-blue);
+  outline-offset: 2px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ---- Status pill (StatusBadge) ---- */
+.status {
+  --tone: var(--st-ink-soft);
+  --tone-bg: var(--st-bg);
+  --tone-line: var(--st-line);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: none;
+  padding: 0.2rem 0.6rem;
+  border: 2px solid var(--tone-line);
+  border-radius: 999px;
+  background: var(--tone-bg);
+  color: var(--tone);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.statusGreen { --tone: #2b7a0b; --tone-bg: var(--st-green-bg); --tone-line: #b8eb8f; }
+.statusBlue { --tone: var(--st-blue-dark); --tone-bg: var(--st-blue-bg); --tone-line: #84d8ff; }
+.statusRed { --tone: var(--st-red-dark); --tone-bg: var(--st-red-bg); --tone-line: #ffc1c1; }
+.statusGray { --tone: var(--st-ink-soft); --tone-bg: var(--st-bg); --tone-line: var(--st-line); }
+
+.statusBlue .statusDot {
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Legacy badge tints (kept for callers combining them with the global .badge) */
+.badgeRed {
+  background: var(--st-red-bg);
+  color: var(--st-red-dark);
+}
+
+.badgeAmber {
+  background: var(--st-orange-bg);
+  color: #b25e00;
+}
+
+/* ---- Skeletons (same shimmer as ui.skel) ---- */
+.skeleton {
+  display: block;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #ececec 25%, #f5f5f5 37%, #ececec 63%);
+  background-size: 400% 100%;
+  animation: skeletonShimmer 1.4s ease infinite;
+}
+
+@keyframes skeletonShimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* ---- Error / not-found / empty state (PageState) ---- */
+.state {
+  --tone: var(--st-blue);
+  --tone-bg: var(--st-blue-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 2rem 1.25rem;
+  text-align: center;
+  background: var(--st-surface);
+  border: 2px solid var(--st-line);
+  border-bottom-width: 4px;
+  border-radius: var(--st-radius-lg);
+  animation: statePop 220ms ease-out both;
+}
+
+.toneBlue { --tone: var(--st-blue); --tone-bg: var(--st-blue-bg); }
+.toneGreen { --tone: var(--st-green); --tone-bg: var(--st-green-bg); }
+.toneOrange { --tone: var(--st-orange); --tone-bg: var(--st-orange-bg); }
+.tonePurple { --tone: var(--st-purple); --tone-bg: var(--st-purple-bg); }
+.tonePink { --tone: var(--st-pink); --tone-bg: var(--st-pink-bg); }
+.toneYellow { --tone: var(--st-yellow); --tone-bg: var(--st-yellow-bg); }
+.toneRed { --tone: var(--st-red); --tone-bg: var(--st-red-bg); }
+
+.stateIcon {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  margin-bottom: 0.6rem;
+  border-radius: 50%;
+  background: var(--tone-bg);
+  border: 3px solid var(--tone);
+  font-size: 2.6rem;
+  line-height: 1;
+}
+
+.stateTitle {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 900;
+  line-height: 1.3;
+  color: var(--st-ink);
+  overflow-wrap: anywhere;
+}
+
+.stateText {
+  max-width: 40ch;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--st-ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.stateActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 1rem;
+  width: 100%;
+}
+
+@media (max-width: 479px) {
+  .stateActions > * {
+    flex: 1 1 100%;
+  }
+}
+
+@keyframes statePop {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---- Misc helpers used by the lesson pages ---- */
+.sectionHeader {
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.muted {
+  color: var(--st-ink-soft);
+}
+
+.inlineAlert {
+  align-items: flex-start;
+  overflow-wrap: anywhere;
+}
+
+.alertWarning {
+  background: var(--st-orange-bg);
+  color: #b25e00;
+  border: 2px solid #ffd49a;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton,
+  .state,
+  .statusBlue .statusDot {
+    animation: none;
+  }
+}

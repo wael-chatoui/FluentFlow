@@ -1,8 +1,51 @@
+// Next.js 16 Proxy (formerly Middleware): refreshes the Supabase session cookie
+// and does optimistic redirects. Real authorization happens in each API route
+// (utils/auth/server.js) — this only keeps people on the right pages.
+//
+// Back office: requests on a back-office host (BACKOFFICE_HOSTS, e.g.
+// backoffice.lurl.com) are kept inside /admin; /admin requires app_metadata.is_admin.
 import { NextResponse } from 'next/server'
-import { createServerClient, parseCookieHeader, serializeCookieHeader } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
+
+const BACKOFFICE_HOSTS = (process.env.BACKOFFICE_HOSTS || 'backoffice.lurl.com,backoffice.localhost')
+  .split(',')
+  .map((h) => h.trim().toLowerCase())
+  .filter(Boolean)
+
+// Paths that work the same on every host (auth flow, public admin error page)
+const SHARED_PATHS = ['/login', '/auth/callback', '/admin/forbidden']
+
+function isBackofficeHost(req) {
+  const host = (req.headers.get('host') || '').split(':')[0].toLowerCase()
+  return BACKOFFICE_HOSTS.includes(host)
+}
+
+function isShared(pathname) {
+  return SHARED_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+}
+
+function needsAuth(pathname) {
+  return ['/student', '/teacher', '/onboarding', '/admin'].some((p) => pathname === p || pathname.startsWith(`${p}/`))
+}
+
+function redirectTo(req, pathname, response) {
+  const redirect = NextResponse.redirect(new URL(pathname, req.url))
+  // Keep any refreshed auth cookies on the redirect response
+  response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie))
+  return redirect
+}
 
 export async function proxy(req) {
-  const res = NextResponse.next()
+  const { pathname } = req.nextUrl
+  const backoffice = isBackofficeHost(req)
+
+  // On the back-office host everything lives under /admin
+  if (backoffice && !isShared(pathname) && !pathname.startsWith('/admin')) {
+    return NextResponse.redirect(new URL('/admin', req.url))
+  }
+  if (isShared(pathname) || !needsAuth(pathname)) return NextResponse.next()
+
+  let response = NextResponse.next({ request: req })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -10,58 +53,37 @@ export async function proxy(req) {
     {
       cookies: {
         getAll() {
-          return parseCookieHeader(req.headers.get('cookie') ?? '')
+          return req.cookies.getAll()
         },
         setAll(cookiesToSet, headers) {
-          // Update request cookies for downstream server components
-          cookiesToSet.forEach(({ name, value }) => {
-            req.cookies.set(name, value)
-          })
-          // Update response cookies for the browser
-          cookiesToSet.forEach(({ name, value, options }) => {
-            res.headers.append(
-              'Set-Cookie',
-              serializeCookieHeader(name, value, options)
-            )
-          })
-          // Apply cache headers
+          cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value))
+          response = NextResponse.next({ request: req })
+          cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options))
           if (headers) {
-            Object.entries(headers).forEach(([key, value]) => {
-              res.headers.set(key, value)
-            })
+            Object.entries(headers).forEach(([key, value]) => response.headers.set(key, value))
           }
         },
       },
     }
   )
 
-  // Refresh the auth token
-  const { data: { user }, error } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return redirectTo(req, '/login', response)
 
-  // If not authenticated, redirect to login
-  if (error || !user) {
-    const loginUrl = new URL('/login', req.url)
-    return NextResponse.redirect(loginUrl)
+  if (pathname.startsWith('/admin')) {
+    return user.app_metadata?.is_admin === true ? response : redirectTo(req, '/admin/forbidden', response)
   }
 
-  const role = user.user_metadata?.role
-
-  // Role-based access control
-  const pathname = req.nextUrl.pathname
-
-  if (pathname.startsWith('/teacher') && role !== 'teacher') {
-    // Non-teachers trying to access teacher area
-    return NextResponse.redirect(new URL('/student', req.url))
+  const isTeacher = user.app_metadata?.role === 'teacher'
+  if (pathname.startsWith('/teacher') && !isTeacher) return redirectTo(req, '/student', response)
+  if ((pathname.startsWith('/student') || pathname.startsWith('/onboarding')) && isTeacher) {
+    return redirectTo(req, '/teacher', response)
   }
 
-  if (pathname.startsWith('/student') && role === 'teacher') {
-    // Teachers accessing student area — redirect to teacher dashboard
-    return NextResponse.redirect(new URL('/teacher', req.url))
-  }
-
-  return res
+  return response
 }
 
 export const config = {
-  matcher: ['/student/:path*', '/teacher/:path*'],
+  // Everything except Next internals, API routes and static files
+  matcher: ['/((?!_next/|api/|favicon\\.ico|.*\\.[a-zA-Z0-9]+$).*)'],
 }

@@ -1,0 +1,213 @@
+/* Student card on the teacher dashboard. Accent vars (--accent, --accent-dark,
+   --accent-bg) come from accentStyle(student.id). */
+.card {
+  --accent: var(--st-blue);
+  --accent-dark: var(--st-blue-dark);
+  --accent-bg: var(--st-blue-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+  height: 100%;
+  padding: 1rem;
+  background: var(--st-surface);
+  border: 2px solid var(--st-line);
+  border-bottom-width: 4px;
+  border-radius: var(--st-radius-lg);
+  color: var(--st-ink);
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  animation: rise 220ms ease-out backwards;
+  animation-delay: calc(var(--i, 0) * 30ms);
+  transition: border-color 150ms ease, transform 150ms ease;
+}
+
+a.card:link,
+a.card:visited,
+a.card:hover {
+  color: var(--st-ink);
+  text-decoration: none;
+}
+
+a.card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+a.card:active {
+  transform: translateY(1px);
+}
+
+a.card:focus-visible {
+  border-color: var(--accent);
+  outline: 3px solid var(--st-blue);
+  outline-offset: 2px;
+}
+
+.skeletonCard {
+  pointer-events: none;
+  animation: none;
+}
+
+/* ---- Head: avatar tile + identity ---- */
+.head {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background: var(--accent);
+  border-bottom: 4px solid var(--accent-dark);
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.08);
+}
+
+.identity {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Up to two lines, then ellipsis (long compound names stay readable) */
+.name {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  font-size: 1.1rem;
+  font-weight: 900;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.email {
+  margin-top: 0.1rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--st-ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chevron {
+  flex: none;
+  font-size: 1.9rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--accent-dark);
+  transition: transform 150ms ease;
+}
+
+a.card:hover .chevron {
+  transform: translateX(3px);
+}
+
+/* ---- Pills ---- */
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  min-height: 28px;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.65rem;
+  border: 2px solid var(--st-line);
+  border-radius: 999px;
+  background: var(--st-bg);
+  color: var(--st-ink-soft);
+  font-size: 0.8rem;
+  font-weight: 800;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.pillLevel {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  color: var(--st-ink);
+  font-weight: 900;
+}
+
+.pillPending {
+  background: var(--st-yellow-bg);
+  border-color: #ffe27a;
+  color: #8a6d00;
+}
+
+/* ---- Stats ---- */
+.meta {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 0.5rem;
+  margin: auto 0 0;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  min-width: 0;
+  padding: 0.5rem 0.7rem;
+  border-radius: 14px;
+  background: var(--st-bg);
+}
+
+.statLabel {
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--st-ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.statValue {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1.3;
+  color: var(--st-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.statEmpty {
+  color: var(--st-ink-soft);
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    animation: none;
+    transition: border-color 150ms ease;
+  }
+
+  a.card:hover,
+  a.card:active,
+  a.card:hover .chevron {
+    transform: none;
+  }
+}

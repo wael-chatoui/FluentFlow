@@ -1,0 +1,117 @@
+.header {
+  margin-bottom: 1.1rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 900;
+  line-height: 1.2;
+  color: var(--st-ink);
+}
+
+.subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--st-ink-soft);
+}
+
+/* ---- Filter chips ---- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.1rem;
+}
+
+.chip {
+  --chip: var(--st-blue);
+  --chip-dark: var(--st-blue-dark);
+  --chip-bg: var(--st-blue-bg);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0 0.8rem 0 1rem;
+  border: 2px solid var(--st-line);
+  border-bottom-width: 4px;
+  border-radius: 999px;
+  background: var(--st-surface);
+  color: var(--st-ink-soft);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease, transform 80ms ease;
+}
+
+.chip_todo { --chip: var(--st-green); --chip-dark: var(--st-green-dark); --chip-bg: var(--st-green-bg); }
+.chip_work { --chip: var(--st-orange); --chip-dark: var(--st-orange-dark); --chip-bg: var(--st-orange-bg); }
+.chip_mastered { --chip: var(--st-purple); --chip-dark: var(--st-purple-dark); --chip-bg: var(--st-purple-bg); }
+
+.chip:hover:not(:disabled) {
+  border-color: var(--chip);
+}
+
+.chip:active:not(:disabled) {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+}
+
+.chip:focus-visible {
+  outline: 3px solid var(--st-blue);
+  outline-offset: 2px;
+}
+
+.chip:disabled {
+  cursor: default;
+}
+
+.chipActive {
+  background: var(--chip-bg);
+  border-color: var(--chip);
+  border-bottom-color: var(--chip-dark);
+  color: var(--st-ink);
+}
+
+.chipCount {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--st-bg);
+  color: var(--st-ink-soft);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.chipActive .chipCount {
+  background: var(--chip);
+  color: #fff;
+}
+
+/* ---- List ---- */
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+@media (min-width: 768px) {
+  .title {
+    font-size: 2rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    transition: none;
+  }
+}

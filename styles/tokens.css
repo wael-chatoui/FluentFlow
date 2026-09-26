@@ -1,0 +1,35 @@
+:root {
+  /* ============================================
+     App design tokens (playful, Duolingo-like). Used by every page except the
+     onboarding flow, which has its own minimal SaaS look.
+     ============================================ */
+  --st-green: #58cc02;
+  --st-green-dark: #46a302;
+  --st-green-bg: #e9f9dc;
+  --st-blue: #1cb0f6;
+  --st-blue-dark: #1899d6;
+  --st-blue-bg: #ddf4ff;
+  --st-orange: #ff9600;
+  --st-orange-dark: #e08600;
+  --st-orange-bg: #fff1dc;
+  --st-red: #ff4b4b;
+  --st-red-dark: #ea2b2b;
+  --st-red-bg: #ffe5e5;
+  --st-purple: #ce82ff;
+  --st-purple-dark: #a568cc;
+  --st-purple-bg: #f6e9ff;
+  --st-yellow: #ffc800;
+  --st-yellow-dark: #e5b400;
+  --st-yellow-bg: #fff7d6;
+  --st-pink: #ff69b4;
+  --st-pink-dark: #e0559e;
+  --st-pink-bg: #ffe6f3;
+  --st-ink: #3c3c3c;
+  --st-ink-soft: #777777;
+  --st-line: #e5e5e5;
+  --st-surface: #ffffff;
+  --st-bg: #f7f7f7;
+  --st-radius: 16px;
+  --st-radius-lg: 20px;
+  --st-tabbar-h: 64px;
+}

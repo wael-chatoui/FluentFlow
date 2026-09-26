@@ -1,0 +1,309 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pageTitle {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 900;
+  color: var(--st-ink);
+}
+
+/* ---- Result banner (after a round) ---- */
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.9rem 1rem;
+  border: 2px solid #ffd79e;
+  border-radius: var(--st-radius-lg);
+  background: var(--st-orange-bg);
+  animation: slideIn 220ms ease-out;
+}
+
+.bannerGood {
+  border-color: #b8ea8f;
+  background: var(--st-green-bg);
+}
+
+.bannerIcon {
+  flex: none;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.bannerText {
+  min-width: 0;
+}
+
+.bannerTitle,
+.bannerSub {
+  margin: 0;
+}
+
+.bannerTitle {
+  font-weight: 900;
+  font-size: 1.05rem;
+}
+
+.bannerSub {
+  font-weight: 700;
+  color: var(--st-ink-soft);
+}
+
+/* ---- Hero ---- */
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.6rem;
+  padding: 1.5rem 1.25rem 1.25rem;
+  border-bottom-width: 4px;
+}
+
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.6rem;
+  padding: 2rem 1.25rem 1.5rem;
+}
+
+.target {
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: var(--st-orange-bg);
+  border: 3px solid #ffd79e;
+  font-size: 3.2rem;
+  line-height: 1;
+}
+
+.bigEmoji {
+  font-size: 4rem;
+  line-height: 1;
+}
+
+.heroTitle {
+  margin: 0.25rem 0 0;
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1.2;
+  color: var(--st-ink);
+}
+
+.heroText {
+  margin: 0;
+  max-width: 34ch;
+  color: var(--st-ink-soft);
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.heroHint {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--st-orange-dark);
+}
+
+.startBtn {
+  margin-top: 0.6rem;
+  min-height: 56px;
+  font-size: 1.05rem;
+  max-width: 420px;
+}
+
+.emptyActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 420px;
+  margin-top: 0.6rem;
+}
+
+/* ---- Lesson groups ---- */
+.groups {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 64px;
+  padding: 0.75rem 1rem;
+  background: var(--st-surface);
+  border: 2px solid var(--st-line);
+  border-left: 6px solid var(--accent, var(--st-line));
+  border-radius: var(--st-radius);
+  color: var(--st-ink);
+  text-decoration: none;
+  transition: transform 120ms ease, border-color 150ms ease;
+}
+
+a.group:hover {
+  border-color: var(--accent, var(--st-line));
+}
+
+a.group:active {
+  transform: scale(0.99);
+}
+
+a.group:focus-visible {
+  outline: 3px solid var(--st-blue);
+  outline-offset: 2px;
+}
+
+.dot {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 2px 0 var(--accent-dark);
+}
+
+.groupMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.groupTitle {
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.groupDate {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--st-ink-soft);
+}
+
+.count {
+  flex: none;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  background: var(--accent-bg);
+  color: var(--accent-dark);
+  font-size: 0.8rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+/* ---- Skeleton ---- */
+.skelBadge {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+}
+
+.skelTitle {
+  width: 60%;
+  height: 28px;
+  margin-top: 0.25rem;
+}
+
+.skelLine {
+  width: 80%;
+  height: 16px;
+}
+
+.skelButton {
+  width: 100%;
+  max-width: 420px;
+  height: 56px;
+  margin-top: 0.6rem;
+  border-radius: var(--st-radius);
+}
+
+.skelHeading {
+  width: 45%;
+  height: 22px;
+  margin: 1rem 0 0.75rem;
+}
+
+.groupSkel {
+  border-left-color: var(--st-line);
+}
+
+.skelDot {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+.skelRowTitle {
+  width: 70%;
+  height: 16px;
+}
+
+.skelRowDate {
+  width: 35%;
+  height: 12px;
+  margin-top: 0.25rem;
+}
+
+/* ---- Motion ---- */
+.pop {
+  animation: pop 240ms ease-out;
+}
+
+.bounce {
+  display: inline-block;
+  animation: bounce 240ms ease-out 120ms both;
+}
+
+@keyframes pop {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes bounce {
+  0% { transform: scale(0.6); }
+  70% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (min-width: 768px) {
+  .pageTitle {
+    font-size: 2rem;
+  }
+
+  .hero {
+    padding: 2rem 2rem 1.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .banner,
+  .pop,
+  .bounce {
+    animation: none;
+  }
+
+  .group {
+    transition: none;
+  }
+}

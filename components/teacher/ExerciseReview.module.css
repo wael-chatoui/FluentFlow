@@ -1,0 +1,317 @@
+/* Teacher view of the exercises: same chunky look as the student's practice
+   screens, with the right answers highlighted in green. */
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+  padding: 1rem;
+  background: var(--st-surface);
+  border: 2px solid var(--st-line);
+  border-bottom-width: 4px;
+  border-radius: var(--st-radius-lg);
+  transition: opacity 200ms ease;
+}
+
+.removing {
+  opacity: 0.5;
+}
+
+/* ---- Head: number, type pill, remove ---- */
+.head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.number {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--st-bg);
+  border: 2px solid var(--st-line);
+  color: var(--st-ink-soft);
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.type {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 2px solid var(--type-edge);
+  background: var(--type-bg);
+  color: var(--type-fg);
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.blue { --type-bg: var(--st-blue-bg); --type-edge: #b3e5fc; --type-fg: var(--st-blue-dark); }
+.orange { --type-bg: var(--st-orange-bg); --type-edge: #ffd59e; --type-fg: #c46a00; }
+.purple { --type-bg: var(--st-purple-bg); --type-edge: #e6c6ff; --type-fg: var(--st-purple-dark); }
+.gray { --type-bg: var(--st-bg); --type-edge: var(--st-line); --type-fg: var(--st-ink-soft); }
+
+.remove {
+  margin-left: auto;
+  flex: none;
+}
+
+@media (max-width: 380px) {
+  /* Icon-only on tiny phones (the aria-label names the action) */
+  .removeLabel {
+    display: none;
+  }
+
+  .head .remove {
+    min-width: 44px;
+    padding-left: 0.6rem;
+    padding-right: 0.6rem;
+  }
+}
+
+.prompt {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1.35;
+  color: var(--st-ink);
+  overflow-wrap: anywhere;
+}
+
+/* ---- Sentence with a blank ---- */
+.sentence {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.9;
+  color: var(--st-ink);
+  overflow-wrap: anywhere;
+}
+
+.blank {
+  display: inline-block;
+  min-width: 4em;
+  min-height: 1.4em;
+  margin: 0 0.15rem;
+  padding: 0 0.4rem;
+  border-bottom: 3px solid var(--st-line);
+  line-height: 1.4;
+  text-align: center;
+  vertical-align: baseline;
+}
+
+.blankFilled {
+  border-bottom-color: var(--st-green);
+  background: var(--st-green-bg);
+  border-radius: 8px 8px 0 0;
+  color: var(--st-green-dark);
+  font-weight: 900;
+}
+
+/* ---- MCQ ---- */
+.choices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 52px;
+  padding: 0.6rem 0.85rem;
+  background: var(--st-surface);
+  border: 2px solid var(--st-line);
+  border-bottom-width: 4px;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--st-ink);
+}
+
+.letter {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--st-line);
+  border-radius: 8px;
+  color: var(--st-ink-soft);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.choiceText {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.correct {
+  background: var(--st-green-bg);
+  border-color: var(--st-green);
+  border-bottom-color: var(--st-green-dark);
+  color: #3a7d05;
+}
+
+.correct .letter {
+  border-color: var(--st-green-dark);
+  background: var(--st-green);
+  color: #fff;
+}
+
+/* ---- Fill in the blank ---- */
+.answers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.answersLabel {
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--st-ink-soft);
+}
+
+.chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.chip {
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  background: var(--st-green-bg);
+  border: 2px solid #b8e994;
+  color: #3a7d05;
+  font-size: 0.92rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.hint {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 12px;
+  background: var(--st-blue-bg);
+  color: #0b6a99;
+  font-size: 0.92rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+/* ---- Match ---- */
+.pairs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  gap: 0.4rem;
+}
+
+.tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0.45rem 0.6rem;
+  background: var(--st-surface);
+  border: 2px solid var(--st-line);
+  border-bottom-width: 4px;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  color: var(--st-ink);
+  overflow-wrap: anywhere;
+}
+
+.tileFr {
+  border-color: #e6c6ff;
+  border-bottom-color: var(--st-purple);
+  background: var(--st-purple-bg);
+  color: #7d44a6;
+}
+
+.pairArrow {
+  align-self: center;
+  color: var(--st-purple-dark);
+  font-weight: 900;
+}
+
+/* ---- Explanation ---- */
+.explanation {
+  margin: 0;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  background: var(--st-yellow-bg);
+  border: 2px solid #ffe38a;
+  color: #6b5500;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 768px) {
+  .item {
+    padding: 1.25rem 1.4rem;
+  }
+
+  .choices {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pair {
+    gap: 0.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item {
+    transition: none;
+  }
+}

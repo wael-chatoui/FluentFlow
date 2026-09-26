@@ -1,0 +1,199 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  animation: rise 240ms ease-out both;
+}
+
+.heading {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: var(--st-ink);
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.ringInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.ringValue {
+  font-size: 1.55rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--st-ink);
+}
+
+.ringLabel {
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--st-ink-soft);
+}
+
+.message {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.4;
+  color: var(--st-ink);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.stat {
+  --tone: var(--st-blue);
+  --tone-bg: var(--st-blue-bg);
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  min-width: 0;
+  padding: 0.5rem 0.65rem;
+  border-radius: 14px;
+  background: var(--tone-bg);
+  border: 2px solid var(--tone);
+  border-bottom-width: 4px;
+}
+
+.statBlue { --tone: var(--st-blue); --tone-bg: var(--st-blue-bg); }
+.statPurple { --tone: var(--st-purple); --tone-bg: var(--st-purple-bg); }
+
+.statValue {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 900;
+  line-height: 1.15;
+  color: var(--st-ink);
+}
+
+.statLabel {
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--st-ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- "Your scores" bar chart (CSS only) ---- */
+.chartBlock {
+  padding-top: 1rem;
+  border-top: 2px dashed var(--st-line);
+}
+
+.chartTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--st-ink);
+}
+
+.chartEmpty {
+  margin: 0.4rem 0 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--st-ink-soft);
+}
+
+.chart {
+  list-style: none;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 44px);
+  justify-content: start;
+  gap: 6px;
+  height: 150px;
+  margin: 0.75rem 0 0;
+  padding: 0;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  height: 100%;
+}
+
+.value {
+  flex: none;
+  height: 18px;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: var(--st-ink);
+}
+
+.barWrap {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  min-height: 0;
+  border-bottom: 3px solid var(--st-line);
+}
+
+.bar {
+  display: block;
+  width: 100%;
+  border-radius: 8px 8px 0 0;
+  background: var(--accent);
+  box-shadow: inset 0 -4px 0 var(--accent-dark), inset 0 3px 0 rgba(255, 255, 255, 0.3);
+  transform-origin: bottom center;
+  animation: grow 250ms ease-out both;
+}
+
+.date {
+  flex: none;
+  height: 30px;
+  padding-top: 3px;
+  text-align: center;
+  font-size: 0.62rem;
+  font-weight: 800;
+  line-height: 1.15;
+  text-transform: uppercase;
+  color: var(--st-ink-soft);
+  white-space: pre-line;
+  overflow: hidden;
+}
+
+.chartNote {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--st-ink-soft);
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes grow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .bar {
+    animation: none;
+  }
+}

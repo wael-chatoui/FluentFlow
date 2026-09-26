@@ -1,0 +1,51 @@
+.ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.ring svg {
+  display: block;
+}
+
+.track {
+  fill: none;
+  stroke: var(--st-line, #e5e5e5);
+}
+
+.value {
+  fill: none;
+  stroke: var(--ring, var(--st-green, #58cc02));
+  stroke-linecap: round;
+  animation: draw 250ms ease-out both;
+}
+
+@keyframes draw {
+  from { stroke-dashoffset: var(--ring-len); }
+}
+
+.center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 900;
+  color: var(--st-ink, #3c3c3c);
+  line-height: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .value {
+    animation: none;
+  }
+}
+
+@media print {
+  .value {
+    animation: none;
+  }
+}

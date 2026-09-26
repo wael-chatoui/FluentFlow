@@ -1,0 +1,139 @@
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+}
+
+/* dt (label) comes first in the DOM; column-reverse shows the value on top */
+.tile {
+  --tone: var(--st-blue);
+  --tone-dark: var(--st-blue-dark);
+  --tone-bg: var(--st-blue-bg);
+  position: relative;
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-end;
+  gap: 0.15rem;
+  min-width: 0;
+  min-height: 118px;
+  padding: 3.1rem 0.65rem 0.75rem;
+  background: var(--tone-bg);
+  border: 2px solid var(--tone);
+  border-bottom-width: 4px;
+  border-bottom-color: var(--tone-dark);
+  border-radius: var(--st-radius);
+  animation: rise 220ms ease-out backwards;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+
+.blue { --tone: var(--st-blue); --tone-dark: var(--st-blue-dark); --tone-bg: var(--st-blue-bg); }
+.purple { --tone: var(--st-purple); --tone-dark: var(--st-purple-dark); --tone-bg: var(--st-purple-bg); }
+.green { --tone: var(--st-green); --tone-dark: var(--st-green-dark); --tone-bg: var(--st-green-bg); }
+
+.skeleton {
+  --tone: var(--st-line);
+  --tone-dark: var(--st-line);
+  --tone-bg: var(--st-surface);
+  animation: none;
+}
+
+.value {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 900;
+  line-height: 1.1;
+  color: var(--st-ink);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.label {
+  font-size: 0.7rem;
+  font-weight: 900;
+  line-height: 1.25;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--st-ink-soft);
+  overflow-wrap: anywhere;
+}
+
+/* Mobile: emoji tile on top (in the tile's top padding), value, label */
+.icon {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.65rem;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--st-surface);
+  border: 2px solid var(--tone);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.skeleton .icon {
+  border: none;
+  background: #ececec;
+}
+
+@media (max-width: 359px) {
+  .tiles {
+    gap: 0.4rem;
+  }
+
+  .tile {
+    padding-left: 0.55rem;
+    padding-right: 0.55rem;
+  }
+
+  .label {
+    font-size: 0.64rem;
+    letter-spacing: 0.01em;
+  }
+}
+
+@media (min-width: 640px) {
+  .tiles {
+    gap: 1rem;
+  }
+
+  .tile {
+    min-height: 0;
+    padding: 1rem 1.1rem 1.05rem 5rem;
+    justify-content: center;
+  }
+
+  .value {
+    font-size: 2rem;
+  }
+
+  .label {
+    font-size: 0.78rem;
+  }
+
+  .icon {
+    top: 50%;
+    left: 1rem;
+    right: auto;
+    width: 52px;
+    height: 52px;
+    margin-top: -26px;
+    border-radius: 14px;
+    border-bottom-width: 4px;
+    font-size: 1.6rem;
+  }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile {
+    animation: none;
+  }
+}
