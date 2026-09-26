@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
-import AppShell from '@/components/AppShell'
-import { api } from '@/utils/apiClient'
+import { useAuth } from '@/components/AuthProvider'
+import TeacherShell from '@/components/teacher/TeacherShell'
 import StudentCard, { StudentCardSkeleton } from '@/components/teacher/StudentCard'
 import PageState from '@/components/teacher/PageState'
-import Skeleton from '@/components/teacher/Skeleton'
+import StatTiles, { StatTilesSkeleton } from '@/components/teacher/dashboard/StatTiles'
+import StudentSearch from '@/components/teacher/dashboard/StudentSearch'
+import { api } from '@/utils/apiClient'
 import { isAbortError, parseLocalDate, studentDisplayName } from '@/components/teacher/format'
 import { useMountedRef } from '@/components/teacher/hooks'
-import shared from '@/components/teacher/Teacher.module.css'
+import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/teacher/Dashboard.module.css'
 
 // Case- and accent-insensitive search
@@ -27,7 +29,12 @@ function byRecentLesson(a, b) {
   return studentDisplayName(a).localeCompare(studentDisplayName(b), 'fr')
 }
 
+function firstName(name) {
+  return (name || '').trim().split(/\s+/)[0] || ''
+}
+
 export default function TeacherDashboard() {
+  const { user } = useAuth()
   const mounted = useMountedRef()
   const controllerRef = useRef(null)
   const [students, setStudents] = useState(null)
@@ -77,53 +84,48 @@ export default function TeacherDashboard() {
   }, [students, query])
 
   const loading = !students && !error
+  const first = firstName(user?.user_metadata?.full_name || user?.user_metadata?.name)
+  const hasStudents = Boolean(students?.length)
 
   return (
-    <div className={shared.page}>
+    <TeacherShell wide>
       <Head>
         <title>Mes élèves — Preply Lessons</title>
       </Head>
-      <AppShell
-        title="Mes élèves"
-        actions={
-          <Link href="/teacher/lessons/new" className="btn btn-primary">
-            ✨ Nouvelle leçon
-          </Link>
-        }
-      >
-        {error ? (
-          <PageState
-            role="alert"
-            title="Impossible de charger tes élèves"
-            text={error}
-            onRetry={load}
-          />
-        ) : (
-          <>
-            <div className={`stats-row ${styles.stats}`} aria-busy={loading}>
-              {loading ? (
-                [0, 1, 2].map((i) => (
-                  <div key={i} className={`stat-card ${styles.statSkeleton}`} aria-hidden="true">
-                    <Skeleton width={48} height={28} />
-                    <Skeleton width="70%" height={12} />
-                  </div>
-                ))
-              ) : (
-                <>
-                  <div className="stat-card">
-                    <div className="stat-value">{stats.students}</div>
-                    <div className="stat-label">{stats.students > 1 ? 'Élèves' : 'Élève'}</div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="stat-value">{stats.lessons}</div>
-                    <div className="stat-label">Leçons au total</div>
-                  </div>
-                  <div className="stat-card">
-                    <div className="stat-value">{stats.seenThisMonth}</div>
-                    <div className="stat-label">Élèves vus ce mois-ci</div>
-                  </div>
-                </>
-              )}
+
+      <header className={styles.header}>
+        <div className={styles.greeting}>
+          <h1 className={styles.hello}>
+            Bonjour{first ? ` ${first}` : ''} <span aria-hidden="true">👋</span>
+          </h1>
+          <p className={styles.tagline}>Prêt à préparer la prochaine leçon ?</p>
+        </div>
+        <Link href="/teacher/lessons/new" className={`${ui.btn} ${ui.green} ${styles.cta}`}>
+          <span aria-hidden="true">✨</span> Nouvelle leçon
+        </Link>
+      </header>
+
+      {error ? (
+        <PageState role="alert" icon="😕" title="Impossible de charger tes élèves" text={error} onRetry={load} />
+      ) : (
+        <div className={styles.content}>
+          {loading ? <StatTilesSkeleton /> : <StatTiles stats={stats} />}
+
+          <section aria-labelledby="students-title" aria-busy={loading}>
+            <div className={styles.sectionHead}>
+              <div className={styles.titleRow}>
+                <h2 id="students-title" className={`${ui.sectionTitle} ${styles.sectionTitle}`}>
+                  Mes élèves
+                </h2>
+                {!loading && hasStudents && (
+                  <span className={styles.count} role="status" aria-live="polite">
+                    {query
+                      ? `${filtered.length} résultat${filtered.length > 1 ? 's' : ''}`
+                      : `${students.length} élève${students.length > 1 ? 's' : ''}`}
+                  </span>
+                )}
+              </div>
+              {!loading && hasStudents && <StudentSearch value={query} onChange={setQuery} />}
             </div>
 
             {loading ? (
@@ -137,76 +139,39 @@ export default function TeacherDashboard() {
                   ))}
                 </ul>
               </>
-            ) : students.length === 0 ? (
-              <div className="dashboard-section">
-                <div className="empty-state">
-                  <div className="empty-state-icon" aria-hidden="true">👋</div>
-                  <div className="empty-state-title">Aucun élève pour l&apos;instant</div>
-                  <div className="empty-state-text">
-                    Tes élèves apparaîtront ici dès qu&apos;ils se seront connectés au site.
-                  </div>
-                </div>
-              </div>
+            ) : !hasStudents ? (
+              <PageState
+                icon="👋"
+                tone="yellow"
+                headingLevel={3}
+                title="Aucun élève pour l’instant"
+                text="Tes élèves apparaîtront ici dès qu’ils se seront connectés au site."
+              />
+            ) : filtered.length === 0 ? (
+              <PageState
+                icon="🔎"
+                tone="purple"
+                headingLevel={3}
+                title="Aucun élève trouvé"
+                text={`Aucun nom ni e-mail ne correspond à «\u00a0${query.trim()}\u00a0».`}
+                action={
+                  <button type="button" className={`${ui.btn} ${ui.ghost}`} onClick={() => setQuery('')}>
+                    Effacer la recherche
+                  </button>
+                }
+              />
             ) : (
-              <>
-                <div className={styles.toolbar}>
-                  <div className={styles.search} role="search">
-                    <label htmlFor="student-search" className="sr-only">
-                      Rechercher un élève par nom ou e-mail
-                    </label>
-                    <span className={styles.searchIcon} aria-hidden="true">🔍</span>
-                    <input
-                      id="student-search"
-                      type="search"
-                      className={`input ${styles.searchInput}`}
-                      placeholder="Rechercher par nom ou e-mail…"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      autoComplete="off"
-                      spellCheck={false}
-                    />
-                    {query && (
-                      <button
-                        type="button"
-                        className={styles.clear}
-                        onClick={() => setQuery('')}
-                        aria-label="Effacer la recherche"
-                      >
-                        ×
-                      </button>
-                    )}
-                  </div>
-                  <div className={styles.count} role="status" aria-live="polite">
-                    {query
-                      ? `${filtered.length} résultat${filtered.length > 1 ? 's' : ''}`
-                      : `${students.length} élève${students.length > 1 ? 's' : ''}`}
-                  </div>
-                </div>
-
-                {filtered.length === 0 ? (
-                  <div className="dashboard-section">
-                    <div className="empty-state">
-                      <div className="empty-state-icon" aria-hidden="true">🔎</div>
-                      <div className="empty-state-title">Aucun élève trouvé</div>
-                      <div className="empty-state-text">
-                        Aucun nom ni e-mail ne correspond à « {query.trim()} ».
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <ul className={styles.grid}>
-                    {filtered.map((student) => (
-                      <li key={student.id}>
-                        <StudentCard student={student} />
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </>
+              <ul className={styles.grid}>
+                {filtered.map((student, i) => (
+                  <li key={student.id}>
+                    <StudentCard student={student} index={i} />
+                  </li>
+                ))}
+              </ul>
             )}
-          </>
-        )}
-      </AppShell>
-    </div>
+          </section>
+        </div>
+      )}
+    </TeacherShell>
   )
 }

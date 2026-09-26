@@ -2,23 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import AppShell from '@/components/AppShell'
-import { api } from '@/utils/apiClient'
-import { safeDriveUrl } from '@/utils/lesson/schema'
+import TeacherShell from '@/components/teacher/TeacherShell'
 import LessonList, { LessonListSkeleton } from '@/components/teacher/LessonList'
 import StudentProfileForm from '@/components/teacher/StudentProfileForm'
 import PageState from '@/components/teacher/PageState'
 import Skeleton from '@/components/teacher/Skeleton'
-import {
-  LEVEL_LABELS,
-  initialsOf,
-  isAbortError,
-  isValidId,
-  levelBadgeText,
-  studentDisplayName,
-} from '@/components/teacher/format'
+import StudentHero, { StudentHeroSkeleton } from '@/components/teacher/students/StudentHero'
+import { api } from '@/utils/apiClient'
+import { accentStyle } from '@/components/ui/accents'
+import { isAbortError, isValidId, studentDisplayName } from '@/components/teacher/format'
 import { useMountedRef } from '@/components/teacher/hooks'
-import shared from '@/components/teacher/Teacher.module.css'
+import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/teacher/StudentPage.module.css'
 
 function formatDate(iso) {
@@ -67,7 +61,6 @@ export default function TeacherStudentPage() {
 
   const student = data?.student
   const name = student ? studentDisplayName(student) : ''
-  const level = levelBadgeText(student?.level)
   const lessons = data?.lessons || []
   const newLessonHref = validId ? `/teacher/lessons/new?student=${id}` : '/teacher/lessons/new'
 
@@ -79,133 +72,116 @@ export default function TeacherStudentPage() {
     content = (
       <PageState
         icon="🔍"
+        tone="purple"
+        headingLevel={1}
         title="Élève introuvable"
         text="Ce lien ne correspond à aucun élève. Il a peut-être supprimé son compte."
         link={{ href: '/teacher', label: 'Retour à mes élèves' }}
       />
     )
   } else if (error) {
-    content = <PageState role="alert" title="Impossible de charger l'élève" text={error} onRetry={load} />
+    content = (
+      <PageState
+        role="alert"
+        icon="😕"
+        headingLevel={1}
+        title="Impossible de charger l'élève"
+        text={error}
+        onRetry={load}
+      />
+    )
   } else {
     content = (
-      <div className={shared.stack}>
-        <section className={styles.hero} aria-busy={loading}>
-          {loading ? (
-            <>
-              <Skeleton width={56} height={56} radius="50%" />
-              <div className={styles.heroText}>
-                <Skeleton width="55%" height={14} />
-                <Skeleton width="40%" height={22} style={{ marginTop: 10 }} radius={999} />
-              </div>
-            </>
-          ) : (
-            <>
-              <div className={styles.avatar} aria-hidden="true">{initialsOf(name)}</div>
-              <div className={styles.heroText}>
-                <div className={styles.heroEmail}>
-                  {student.full_name?.trim() ? student.email : 'Nom non renseigné'}
-                </div>
-                <div className={styles.heroBadges}>
-                  <span className={level ? 'badge badge-pink' : 'badge badge-gray'}>
-                    {LEVEL_LABELS[student.level] || LEVEL_LABELS.unknown}
-                  </span>
-                  {student.onboarded_at ? (
-                    <span className="badge badge-green">Inscrit</span>
-                  ) : (
-                    <span className="badge badge-gray">Pas encore inscrit</span>
-                  )}
-                  {safeDriveUrl(student.drive_folder_url) && (
-                    <a
-                      href={safeDriveUrl(student.drive_folder_url)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.driveLink}
-                    >
-                      📁 Dossier Drive<span className="sr-only"> (nouvel onglet)</span>
-                    </a>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-        </section>
+      <div className={styles.stack}>
+        {loading ? (
+          <StudentHeroSkeleton style={validId ? accentStyle(id) : undefined} />
+        ) : (
+          <StudentHero student={student} newLessonHref={newLessonHref} />
+        )}
 
-        <section className="dashboard-section" aria-labelledby="lessons-title">
-          <div className={`dashboard-section-header ${shared.sectionHeader}`}>
-            <h2 id="lessons-title" className="dashboard-section-title">
-              📚 Leçons
-              {!loading && <span className="badge badge-gray">{lessons.length}</span>}
+        <section aria-labelledby="lessons-title" aria-busy={loading}>
+          <div className={styles.sectionHead}>
+            <h2 id="lessons-title" className={`${ui.sectionTitle} ${styles.sectionTitle}`}>
+              <span aria-hidden="true">📚</span> Leçons
             </h2>
+            {!loading && (
+              <span className={styles.count}>
+                {lessons.length}
+                <span className="sr-only"> leçon{lessons.length > 1 ? 's' : ''}</span>
+              </span>
+            )}
           </div>
           {loading ? (
             <LessonListSkeleton />
           ) : lessons.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon" aria-hidden="true">📝</div>
-              <div className="empty-state-title">Aucune leçon pour l&apos;instant</div>
-              <div className="empty-state-text">
-                Après ton prochain cours, colle la transcription et les notes Canva pour générer le bilan.
-              </div>
-              <Link href={newLessonHref} className={`btn btn-primary ${styles.emptyCta}`}>
-                ✨ Créer la première leçon
-              </Link>
-            </div>
+            <PageState
+              icon="📝"
+              tone="green"
+              headingLevel={3}
+              title="Aucune leçon pour l’instant"
+              text="Après ton prochain cours, colle la transcription et les notes Canva pour générer le bilan."
+              action={
+                <Link href={newLessonHref} className={`${ui.btn} ${ui.green}`}>
+                  <span aria-hidden="true">✨</span> Créer la première leçon
+                </Link>
+              }
+            />
           ) : (
             <LessonList lessons={lessons} />
           )}
         </section>
 
-        <section className="dashboard-section" aria-labelledby="profile-title">
-          <div className={`dashboard-section-header ${shared.sectionHeader}`}>
-            <h2 id="profile-title" className="dashboard-section-title">🗂️ Fiche élève</h2>
+        <section className={`${ui.card} ${styles.profileCard}`} aria-labelledby="profile-title">
+          <div className={styles.sectionHead}>
+            <h2 id="profile-title" className={`${ui.sectionTitle} ${styles.sectionTitle}`}>
+              <span aria-hidden="true">🗂️</span> Fiche élève
+            </h2>
             {!loading && student.created_at && (
               <span className={styles.since}>Compte créé le {formatDate(student.created_at)}</span>
             )}
           </div>
-          <div className="dashboard-section-body">
-            {loading ? (
-              <div className={styles.formSkeleton} aria-hidden="true">
-                {[0, 1, 2, 3].map((i) => (
-                  <div key={i}>
-                    <Skeleton width={120} height={12} />
-                    <Skeleton height={i > 1 ? 80 : 44} style={{ marginTop: 8 }} radius={10} />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <StudentProfileForm
-                key={student.id}
-                studentId={student.id}
-                student={student}
-                notes={data.notes}
-                onSaved={handleSaved}
-              />
-            )}
-          </div>
+          {loading ? (
+            <div className={styles.formSkeleton} aria-hidden="true">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i}>
+                  <Skeleton width={120} height={14} />
+                  <Skeleton height={i > 1 ? 96 : 48} style={{ marginTop: 8 }} radius={14} />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <StudentProfileForm
+              key={student.id}
+              studentId={student.id}
+              student={student}
+              notes={data.notes}
+              onSaved={handleSaved}
+            />
+          )}
         </section>
       </div>
     )
   }
 
   return (
-    <div className={shared.page}>
+    <TeacherShell>
       <Head>
         <title>{name ? `${name} — Preply Lessons` : 'Élève — Preply Lessons'}</title>
       </Head>
-      <AppShell
-        title={name || 'Élève'}
-        back={{ href: '/teacher', label: 'Mes élèves' }}
-        actions={
-          !invalid && !notFound ? (
-            <Link href={newLessonHref} className="btn btn-primary">
-              ✨ Nouvelle leçon
-            </Link>
-          ) : undefined
-        }
-      >
-        {loading && <span className="sr-only" role="status">Chargement de l&apos;élève…</span>}
-        {content}
-      </AppShell>
-    </div>
+
+      <nav className={styles.crumbs} aria-label="Fil d’Ariane">
+        <Link href="/teacher" className={styles.back}>
+          <span aria-hidden="true">‹</span> Mes élèves
+        </Link>
+      </nav>
+
+      {loading && (
+        <>
+          <h1 className="sr-only">Élève</h1>
+          <span className="sr-only" role="status">Chargement de l&apos;élève…</span>
+        </>
+      )}
+      {content}
+    </TeacherShell>
   )
 }

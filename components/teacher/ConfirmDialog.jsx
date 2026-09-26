@@ -1,14 +1,17 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import ui from '@/components/ui/ui.module.css'
+import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/ConfirmDialog.module.css'
 
 /**
- * Accessible confirmation modal (replaces window.confirm).
+ * Accessible confirmation dialog (replaces window.confirm): a bottom sheet on
+ * mobile, a centered modal on desktop.
  * Escape / backdrop click cancels, the confirm button gets focus on open,
  * Tab stays inside the dialog and focus returns to the trigger on close.
  *
  * @param {{ open: boolean, title: string, message?: React.ReactNode, confirmLabel?: string,
- *   cancelLabel?: string, danger?: boolean, busy?: boolean,
+ *   cancelLabel?: string, danger?: boolean, busy?: boolean, icon?: string,
  *   onConfirm: () => void, onCancel: () => void }} props
  */
 export default function ConfirmDialog({
@@ -19,6 +22,7 @@ export default function ConfirmDialog({
   cancelLabel = 'Annuler',
   danger = false,
   busy = false,
+  icon,
   onConfirm,
   onCancel,
 }) {
@@ -77,40 +81,44 @@ export default function ConfirmDialog({
 
   if (!mounted || !open) return null
 
+  const emoji = icon || (danger ? '🗑️' : '🤔')
+
   return createPortal(
     <div
-      className={`modal-overlay ${styles.overlay}`}
+      className={`${styles.overlay} no-print`}
       onMouseDown={(e) => {
         if (e.target === e.currentTarget && !busy) onCancel?.()
       }}
     >
       <div
         ref={dialogRef}
-        className={`modal-content ${styles.dialog}`}
+        className={`${styles.dialog} ${danger ? styles.danger : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={message ? messageId : undefined}
       >
-        <h2 id={titleId} className={`modal-title ${styles.title}`}>{title}</h2>
+        <span className={styles.grabber} aria-hidden="true" />
+        <span className={styles.icon} aria-hidden="true">{emoji}</span>
+        <h2 id={titleId} className={styles.title}>{title}</h2>
         {message && (
           <div id={messageId} className={styles.message}>
             {message}
           </div>
         )}
         <div className={styles.actions}>
-          <button type="button" className="btn btn-secondary" onClick={onCancel} disabled={busy}>
+          <button type="button" className={`${ui.btn} ${styles.button}`} onClick={onCancel} disabled={busy}>
             {cancelLabel}
           </button>
           <button
             ref={confirmRef}
             type="button"
-            className={`btn ${danger ? 'btn-danger' : 'btn-primary'}`}
+            className={`${ui.btn} ${danger ? ui.red : ui.blue} ${styles.button}`}
             onClick={onConfirm}
             disabled={busy}
             aria-busy={busy || undefined}
           >
-            {busy && <span className={`spinner ${styles.spinner}`} aria-hidden="true" />}
+            {busy && <span className={bits.spinner} aria-hidden="true" />}
             {confirmLabel}
           </button>
         </div>

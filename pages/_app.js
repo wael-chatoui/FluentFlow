@@ -1,7 +1,4 @@
 import '../styles/globals.css'
-import '../styles/theme.css'
-import '../styles/auth.css'
-import '../styles/dashboard.css'
 import '../styles/print.css'
 import '../styles/tokens.css'
 import AuthProvider from '@/components/AuthProvider'

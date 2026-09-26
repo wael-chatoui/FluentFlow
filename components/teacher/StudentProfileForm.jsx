@@ -3,6 +3,7 @@ import { api } from '@/utils/apiClient'
 import { LEVELS, safeDriveUrl } from '@/utils/lesson/schema'
 import { LEVEL_LABELS, isAbortError } from '@/components/teacher/format'
 import { useBeforeUnload, useMountedRef } from '@/components/teacher/hooks'
+import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/teacher/StudentProfileForm.module.css'
 
 const FIELDS = ['fullName', 'level', 'goals', 'interests', 'driveFolderUrl', 'notes']
@@ -120,11 +121,11 @@ export default function StudentProfileForm({ studentId, student, notes, onSaved 
       <fieldset className={styles.fieldset} disabled={saving}>
         <legend className="sr-only">Fiche élève</legend>
         <div className={styles.row}>
-          <div className="form-group">
-            <label htmlFor={id('name')} className="label">Nom</label>
+          <div className={styles.field}>
+            <label htmlFor={id('name')} className={styles.label}>Nom</label>
             <input
               id={id('name')}
-              className="input"
+              className={styles.input}
               value={values.fullName}
               onChange={set('fullName')}
               placeholder="Prénom Nom"
@@ -132,9 +133,14 @@ export default function StudentProfileForm({ studentId, student, notes, onSaved 
               maxLength={120}
             />
           </div>
-          <div className="form-group">
-            <label htmlFor={id('level')} className="label">Niveau</label>
-            <select id={id('level')} className="select" value={values.level} onChange={set('level')}>
+          <div className={styles.field}>
+            <label htmlFor={id('level')} className={styles.label}>Niveau</label>
+            <select
+              id={id('level')}
+              className={`${styles.input} ${styles.select}`}
+              value={values.level}
+              onChange={set('level')}
+            >
               {LEVELS.map((level) => (
                 <option key={level} value={level}>
                   {LEVEL_LABELS[level] || level}
@@ -144,11 +150,13 @@ export default function StudentProfileForm({ studentId, student, notes, onSaved 
           </div>
         </div>
 
-        <div className="form-group">
-          <label htmlFor={id('goals')} className="label">Objectifs</label>
+        <div className={styles.field}>
+          <label htmlFor={id('goals')} className={styles.label}>
+            <span aria-hidden="true">🎯 </span>Objectifs
+          </label>
           <textarea
             id={id('goals')}
-            className="textarea"
+            className={`${styles.input} ${styles.textarea}`}
             rows={3}
             value={values.goals}
             onChange={set('goals')}
@@ -156,11 +164,13 @@ export default function StudentProfileForm({ studentId, student, notes, onSaved 
           />
         </div>
 
-        <div className="form-group">
-          <label htmlFor={id('interests')} className="label">Centres d&apos;intérêt</label>
+        <div className={styles.field}>
+          <label htmlFor={id('interests')} className={styles.label}>
+            <span aria-hidden="true">💡 </span>Centres d&apos;intérêt
+          </label>
           <textarea
             id={id('interests')}
-            className="textarea"
+            className={`${styles.input} ${styles.textarea}`}
             rows={3}
             value={values.interests}
             onChange={set('interests')}
@@ -168,18 +178,21 @@ export default function StudentProfileForm({ studentId, student, notes, onSaved 
           />
         </div>
 
-        <div className="form-group">
-          <label htmlFor={id('drive')} className="label">Lien du dossier Google Drive</label>
+        <div className={styles.field}>
+          <label htmlFor={id('drive')} className={styles.label}>
+            <span aria-hidden="true">📁 </span>Lien du dossier Google Drive
+          </label>
           <input
             id={id('drive')}
             type="url"
             inputMode="url"
-            className={`input ${showDriveError ? styles.invalid : ''}`}
+            className={`${styles.input} ${showDriveError ? styles.invalid : ''}`}
             value={values.driveFolderUrl}
             onChange={set('driveFolderUrl')}
             onBlur={() => setDriveTouched(true)}
             placeholder="https://drive.google.com/drive/folders/…"
             autoComplete="off"
+            autoCapitalize="none"
             spellCheck={false}
             aria-invalid={showDriveError || undefined}
             aria-describedby={showDriveError ? id('drive-error') : id('drive-hint')}
@@ -195,13 +208,13 @@ export default function StudentProfileForm({ studentId, student, notes, onSaved 
           )}
         </div>
 
-        <div className="form-group">
-          <label htmlFor={id('notes')} className="label">
-            Notes privées <span className={styles.lock} aria-hidden="true">🔒</span>
+        <div className={`${styles.field} ${styles.private}`}>
+          <label htmlFor={id('notes')} className={styles.label}>
+            <span aria-hidden="true">🔒 </span>Notes privées
           </label>
           <textarea
             id={id('notes')}
-            className="textarea"
+            className={`${styles.input} ${styles.textarea}`}
             rows={5}
             value={values.notes}
             onChange={set('notes')}
@@ -215,12 +228,13 @@ export default function StudentProfileForm({ studentId, student, notes, onSaved 
       </fieldset>
 
       {error && (
-        <div className={`alert alert-error ${styles.alert}`} role="alert">
-          ⚠️ {error}
+        <div className={styles.alert} role="alert">
+          <span aria-hidden="true">⚠️</span>
+          <span>{error}</span>
         </div>
       )}
 
-      <div className={styles.footer}>
+      <div className={`${styles.footer} ${dirty || saving ? styles.footerSticky : ''}`}>
         <div className={styles.status} role="status" aria-live="polite">
           {saving ? (
             'Enregistrement…'
@@ -232,12 +246,17 @@ export default function StudentProfileForm({ studentId, student, notes, onSaved 
         </div>
         <div className={styles.buttons}>
           {dirty && !saving && (
-            <button type="button" className="btn btn-ghost" onClick={handleReset}>
+            <button type="button" className={`${ui.btn} ${ui.ghost} ${styles.cancel}`} onClick={handleReset}>
               Annuler
             </button>
           )}
-          <button type="submit" className="btn btn-primary" disabled={!dirty || saving} aria-busy={saving || undefined}>
-            {saving && <span className={`spinner ${styles.spinner}`} aria-hidden="true" />}
+          <button
+            type="submit"
+            className={`${ui.btn} ${ui.green} ${styles.save}`}
+            disabled={!dirty || saving}
+            aria-busy={saving || undefined}
+          >
+            {saving && <span className={styles.spinner} aria-hidden="true" />}
             {saving ? 'Enregistrement…' : 'Enregistrer'}
           </button>
         </div>

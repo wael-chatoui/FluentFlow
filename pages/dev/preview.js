@@ -5,6 +5,8 @@ import PracticePlayer from '@/components/practice/PracticePlayer'
 import { SAMPLE_LESSON } from '@/utils/lesson/sample'
 import { normalizeExercises, normalizeLessonContent } from '@/utils/lesson/schema'
 import { scoreSession } from '@/utils/lesson/grading'
+import ui from '@/components/ui/ui.module.css'
+import styles from '@/components/dev/DevPreview.module.css'
 
 // Dev-only preview of LessonView + PracticePlayer with SAMPLE_LESSON.
 // No auth, no API calls. 404 in production.
@@ -36,38 +38,45 @@ export default function DevPreviewPage() {
   )
 
   return (
-    <div className="dashboard">
+    <div className={ui.theme}>
       <Head>
         <title>Dev preview · Preply Lessons</title>
       </Head>
-      <main className="dashboard-main" style={{ maxWidth: 960 }}>
-        <div className="app-shell-titlebar">
-          <h1 className="dashboard-title">
-            {content.title} <span className="badge badge-gray">dev preview</span>
-          </h1>
-          <div className="app-shell-actions">
-            <label className="btn btn-ghost no-print" style={{ minHeight: 44 }}>
-              <input type="checkbox" checked={failSave} onChange={(e) => setFailSave(e.target.checked)} /> Simulate
-              save error
+      <main className={styles.main}>
+        <header className={styles.header}>
+          <div className={styles.titleRow}>
+            <span className={`${ui.pill} ${styles.devPill} no-print`}>
+              <span aria-hidden="true">🛠️</span> Dev preview
+            </span>
+            <h1 className={styles.title}>{content.title}</h1>
+          </div>
+          <div className={`${styles.actions} no-print`}>
+            <label className={styles.toggle}>
+              <input
+                type="checkbox"
+                className={styles.checkbox}
+                checked={failSave}
+                onChange={(e) => setFailSave(e.target.checked)}
+              />
+              Simulate save error
             </label>
-            <button type="button" className="btn btn-secondary no-print" style={{ minHeight: 44 }} onClick={() => window.print()}>
+            <button type="button" className={`${ui.btn} ${ui.ghost}`} onClick={() => window.print()}>
               Save as PDF
             </button>
             <button
               type="button"
-              className="btn btn-primary no-print"
-              style={{ minHeight: 44 }}
+              className={`${ui.btn} ${ui.green}`}
               onClick={() => setExercises((prev) => prev || normalizeExercises(SAMPLE_LESSON.exercises))}
             >
               Start practice
             </button>
           </div>
-        </div>
+        </header>
 
         {lastResult && (
-          <div className="alert alert-success no-print" style={{ marginBottom: '1rem' }}>
-            Last run: {lastResult.score}/{lastResult.total}
-          </div>
+          <p className={`${styles.result} no-print`} role="status">
+            <span aria-hidden="true">✅</span> Last run: {lastResult.score}/{lastResult.total}
+          </p>
         )}
 
         <LessonView content={content} />

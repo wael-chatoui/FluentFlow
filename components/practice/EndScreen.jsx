@@ -2,7 +2,8 @@ import { forwardRef } from 'react'
 import { expectedText, givenText } from '@/components/practice/utils'
 import styles from '@/components/practice/PracticePlayer.module.css'
 
-const CONFETTI_COLORS = ['#FF69B4', '#a855f7', '#10b981', '#f4b400', '#1a73e8', '#ef4444']
+// Brand palette (--st-* tokens)
+const CONFETTI_COLORS = ['#58cc02', '#1cb0f6', '#ff9600', '#ce82ff', '#ff69b4', '#ffc800']
 // Deterministic pieces (no Math.random → identical on every render)
 const CONFETTI = Array.from({ length: 22 }, (_, i) => ({
   left: (i * 37 + 11) % 100,
@@ -78,7 +79,7 @@ const EndScreen = forwardRef(function EndScreen({ score, total, mistakes, save, 
       <div className={styles.saveStatus} aria-live="polite">
         {save.status === 'saving' && (
           <span className={styles.saving}>
-            <span className="spinner" aria-hidden="true" /> Saving your score…
+            <span className={styles.miniSpinner} aria-hidden="true" /> Saving your score…
           </span>
         )}
         {save.status === 'saved' && (
@@ -90,9 +91,9 @@ const EndScreen = forwardRef(function EndScreen({ score, total, mistakes, save, 
           </span>
         )}
         {save.status === 'error' && (
-          <div className={`alert alert-error ${styles.saveError}`} role="alert">
+          <div className={styles.saveError} role="alert">
             <span>Couldn&apos;t save your score. {save.error}</span>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={onRetrySave}>
+            <button type="button" className={styles.smallBtn} onClick={onRetrySave}>
               Retry
             </button>
           </div>

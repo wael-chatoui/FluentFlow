@@ -1,0 +1,253 @@
+/* ---- Page + soft colorful backdrop ---- */
+.page {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  color: var(--st-ink);
+  background:
+    radial-gradient(circle at 8% 12%, var(--st-yellow-bg) 0, transparent 34%),
+    radial-gradient(circle at 92% 8%, var(--st-pink-bg) 0, transparent 32%),
+    radial-gradient(circle at 90% 92%, var(--st-green-bg) 0, transparent 38%),
+    radial-gradient(circle at 6% 94%, var(--st-purple-bg) 0, transparent 36%),
+    #f1faff;
+}
+
+.decor {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.shape {
+  position: absolute;
+  display: block;
+  animation: float 7s ease-in-out infinite;
+}
+
+.sun {
+  width: 170px;
+  height: 170px;
+  top: -60px;
+  left: -60px;
+  border-radius: 50%;
+  background: var(--st-yellow);
+  opacity: 0.35;
+}
+
+.pinkBlock {
+  --r: 16deg;
+  width: 88px;
+  height: 88px;
+  top: 14%;
+  right: -26px;
+  border-radius: 24px;
+  background: var(--st-pink);
+  border-bottom: 8px solid var(--st-pink-dark);
+  opacity: 0.28;
+  animation-delay: -2s;
+}
+
+.ring {
+  width: 46px;
+  height: 46px;
+  top: 34%;
+  left: 5%;
+  border-radius: 50%;
+  border: 7px solid var(--st-purple);
+  opacity: 0.4;
+  animation-delay: -4s;
+}
+
+.blueDot {
+  width: 58px;
+  height: 58px;
+  bottom: 18%;
+  left: -14px;
+  border-radius: 50%;
+  background: var(--st-blue);
+  opacity: 0.25;
+  animation-delay: -1s;
+}
+
+.greenBlock {
+  --r: -14deg;
+  width: 140px;
+  height: 140px;
+  bottom: -50px;
+  right: -40px;
+  border-radius: 36px;
+  background: var(--st-green);
+  border-bottom: 10px solid var(--st-green-dark);
+  opacity: 0.28;
+  animation-delay: -3s;
+}
+
+.emoji {
+  position: absolute;
+  font-size: 1.9rem;
+  line-height: 1;
+  opacity: 0.85;
+  animation: float 6s ease-in-out infinite;
+}
+
+.emojiA {
+  --r: -12deg;
+  bottom: 7%;
+  left: 9%;
+}
+
+.emojiB {
+  --r: 10deg;
+  top: 7%;
+  right: 12%;
+  animation-delay: -2.5s;
+}
+
+.emojiC {
+  --r: 0deg;
+  top: 9%;
+  left: 20%;
+  font-size: 1.4rem;
+  animation-delay: -4s;
+}
+
+/* ---- Centered card ---- */
+.main {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: calc(1.25rem + env(safe-area-inset-top)) 0.75rem calc(1.25rem + env(safe-area-inset-bottom));
+}
+
+.card {
+  width: 100%;
+  max-width: 420px;
+  /* auto margins: centered when it fits, scrolls normally when taller than the screen */
+  margin: auto;
+  padding: 1.5rem 1.1rem 1.25rem;
+  background: var(--st-surface);
+  border: 2px solid var(--st-line);
+  border-bottom-width: 5px;
+  border-radius: 24px;
+  box-shadow: 0 16px 40px rgba(24, 153, 214, 0.1);
+  animation: pop 260ms ease-out both;
+}
+
+/* ---- Header ---- */
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+
+.tile {
+  --tone: var(--st-blue);
+  --tone-dark: var(--st-blue-dark);
+  --tone-bg: var(--st-blue-bg);
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 0.75rem;
+  border-radius: 20px;
+  background: var(--tone-bg);
+  border: 2px solid var(--tone);
+  border-bottom: 5px solid var(--tone-dark);
+  font-size: 2.1rem;
+  line-height: 1;
+  transform: rotate(-6deg);
+}
+
+.blue { --tone: var(--st-blue); --tone-dark: var(--st-blue-dark); --tone-bg: var(--st-blue-bg); }
+.green { --tone: var(--st-green); --tone-dark: var(--st-green-dark); --tone-bg: var(--st-green-bg); }
+.orange { --tone: var(--st-orange); --tone-dark: var(--st-orange-dark); --tone-bg: var(--st-orange-bg); }
+.pink { --tone: var(--st-pink); --tone-dark: var(--st-pink-dark); --tone-bg: var(--st-pink-bg); }
+.purple { --tone: var(--st-purple); --tone-dark: var(--st-purple-dark); --tone-bg: var(--st-purple-bg); }
+.red { --tone: var(--st-red); --tone-dark: var(--st-red-dark); --tone-bg: var(--st-red-bg); }
+
+.title {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 900;
+  line-height: 1.2;
+  color: var(--st-ink);
+  overflow-wrap: anywhere;
+}
+
+.subtitle {
+  margin: 0.35rem 0 0;
+  max-width: 30ch;
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.45;
+  color: var(--st-ink-soft);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 480px) {
+  .main {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+
+  .card {
+    padding: 2rem 1.75rem 1.5rem;
+  }
+
+  .tile {
+    width: 76px;
+    height: 76px;
+    font-size: 2.5rem;
+  }
+
+  .title {
+    font-size: 1.85rem;
+  }
+
+  .emoji {
+    font-size: 2.3rem;
+  }
+}
+
+/* Short phones: tighter header so the form fits better */
+@media (max-height: 680px) {
+  .header {
+    margin-bottom: 1rem;
+  }
+
+  .tile {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 0.5rem;
+    font-size: 1.8rem;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+  50% { transform: translateY(-10px) rotate(var(--r, 0deg)); }
+}
+
+@keyframes pop {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shape,
+  .emoji {
+    animation: none;
+    transform: rotate(var(--r, 0deg));
+  }
+
+  .card {
+    animation: none;
+  }
+}

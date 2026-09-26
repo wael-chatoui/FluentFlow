@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { safeDriveUrl } from '@/utils/lesson/schema'
 import { useMountedRef } from '@/components/teacher/hooks'
+import ui from '@/components/ui/ui.module.css'
+import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/DriveLinkEditor.module.css'
 
 /**
@@ -77,42 +79,49 @@ export default function DriveLinkEditor({ value, onSave, disabled = false }) {
   }
 
   if (!editing) {
+    const href = safeDriveUrl(value)
     return (
       <div className={styles.view}>
-        <span className={styles.label}>📄 Document Drive</span>
-        {safeDriveUrl(value) ? (
-          <a href={safeDriveUrl(value)} target="_blank" rel="noopener noreferrer" className={styles.link}>
-            Ouvrir le document<span className="sr-only"> (nouvel onglet)</span> ↗
-          </a>
-        ) : (
-          <span className={styles.none}>Aucun lien</span>
-        )}
-        <button
-          ref={editButtonRef}
-          type="button"
-          className="btn btn-ghost btn-sm"
-          onClick={start}
-          disabled={disabled}
-        >
-          {value ? 'Modifier' : 'Ajouter un lien'}
-        </button>
+        <span className={styles.icon} aria-hidden="true">📁</span>
+        <span className={styles.text}>
+          <span className={styles.label}>Document Drive</span>
+          {href ? (
+            <a href={href} target="_blank" rel="noopener noreferrer" className={styles.link}>
+              Ouvrir le document<span className="sr-only"> (nouvel onglet)</span> <span aria-hidden="true">↗</span>
+            </a>
+          ) : (
+            <span className={styles.none}>Aucun lien</span>
+          )}
+        </span>
         <span className={styles.saved} role="status" aria-live="polite">
           {justSaved ? 'Enregistré ✓' : ''}
         </span>
+        <button
+          ref={editButtonRef}
+          type="button"
+          className={`${ui.btn} ${ui.small} ${ui.ghost} ${bits.tap} ${styles.edit}`}
+          onClick={start}
+          disabled={disabled}
+        >
+          {value ? 'Modifier' : 'Ajouter'}
+          <span className="sr-only"> le lien Drive</span>
+        </button>
       </div>
     )
   }
 
   return (
     <form className={styles.form} onSubmit={submit} noValidate>
-      <label htmlFor={`${uid}-drive`} className="label">Lien du document Google Drive</label>
+      <label htmlFor={`${uid}-drive`} className={bits.label}>
+        <span aria-hidden="true">📁 </span>Lien du document Google Drive
+      </label>
       <div className={styles.inputRow}>
         <input
           ref={inputRef}
           id={`${uid}-drive`}
           type="url"
           inputMode="url"
-          className={`input ${showInvalid ? styles.invalid : ''}`}
+          className={`${bits.input} ${styles.input} ${showInvalid ? bits.invalid : ''}`}
           value={draft}
           onChange={(e) => {
             setDraft(e.target.value)
@@ -133,10 +142,15 @@ export default function DriveLinkEditor({ value, onSave, disabled = false }) {
           aria-describedby={`${uid}-drive-help`}
         />
         <div className={styles.buttons}>
-          <button type="submit" className="btn btn-primary btn-sm" disabled={saving || showInvalid}>
+          <button
+            type="submit"
+            className={`${ui.btn} ${ui.small} ${ui.green} ${bits.tap}`}
+            disabled={saving || showInvalid}
+          >
+            {saving && <span className={bits.spinner} aria-hidden="true" />}
             {saving ? 'Enregistrement…' : 'Enregistrer'}
           </button>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={cancel} disabled={saving}>
+          <button type="button" className={`${ui.btn} ${ui.small} ${bits.tap}`} onClick={cancel} disabled={saving}>
             Annuler
           </button>
         </div>

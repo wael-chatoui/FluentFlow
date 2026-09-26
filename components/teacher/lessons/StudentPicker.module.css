@@ -1,0 +1,166 @@
+/* ---- Selectable student chips (≤ CHIP_LIMIT students) ---- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 0;
+  border-radius: var(--st-radius);
+}
+
+.chipsInvalid {
+  padding: 0.5rem;
+  background: #fffafa;
+  outline: 2px solid var(--st-red);
+  outline-offset: 0;
+}
+
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  max-width: 100%;
+  min-height: 48px;
+  padding: 0.3rem 0.9rem 0.3rem 0.35rem;
+  border: 2px solid var(--st-line);
+  border-bottom-width: 4px;
+  border-radius: 999px;
+  background: var(--st-surface);
+  color: var(--st-ink);
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 150ms ease, border-color 150ms ease, transform 80ms ease;
+}
+
+.chip:hover {
+  background: var(--st-bg);
+}
+
+.chip:active {
+  transform: translateY(2px);
+}
+
+.chip:has(.radio:focus-visible) {
+  outline: 3px solid var(--st-blue);
+  outline-offset: 2px;
+}
+
+.chip:has(.radio:disabled) {
+  cursor: not-allowed;
+  opacity: 0.7;
+  transform: none;
+}
+
+/* Visually hidden but focusable / keyboard-operable */
+.radio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--st-purple-bg);
+  color: var(--st-purple-dark);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.level {
+  flex: none;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: var(--st-bg);
+  color: var(--st-ink-soft);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.checked,
+.checked:hover {
+  background: var(--st-blue-bg);
+  border-color: var(--st-blue);
+  border-bottom-color: var(--st-blue-dark);
+  color: #0b6a99;
+}
+
+.checked .avatar {
+  background: var(--st-blue);
+  color: #fff;
+  font-size: 1rem;
+}
+
+.checked .level {
+  background: var(--st-surface);
+  color: var(--st-blue-dark);
+}
+
+/* ---- Big select (many students) ---- */
+select.bigSelect {
+  min-height: 56px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  border-bottom-width: 4px;
+}
+
+/* ---- Loading / empty ---- */
+.loading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.loading .skelChip {
+  width: 140px;
+  height: 48px;
+  border-radius: 999px;
+}
+
+.loading .skelShort {
+  width: 100px;
+}
+
+.none {
+  margin: 0;
+  padding: 0.8rem 1rem;
+  border-radius: var(--st-radius);
+  background: var(--st-bg);
+  color: var(--st-ink-soft);
+  font-weight: 700;
+}
+
+.noneLink,
+.noneLink:link,
+.noneLink:visited,
+.noneLink:hover {
+  color: var(--st-blue-dark);
+  font-weight: 900;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    transition: none;
+  }
+
+  .chip:active {
+    transform: none;
+  }
+}

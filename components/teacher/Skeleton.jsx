@@ -6,7 +6,7 @@ export default function Skeleton({ width = '100%', height = 14, radius, style, c
     <span
       aria-hidden="true"
       className={`${styles.skeleton} ${className}`}
-      style={{ width, height, borderRadius: radius, flexShrink: 0, ...style }}
+      style={{ width, maxWidth: '100%', height, borderRadius: radius, flexShrink: 0, ...style }}
     />
   )
 }

@@ -4,8 +4,10 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import PracticePlayer from '@/components/practice/PracticePlayer'
 import { api } from '@/utils/apiClient'
+import LoadingScreen from '@/components/ui/LoadingScreen'
+import ui from '@/components/ui/ui.module.css'
 
-// Full-screen practice (no AppShell). The player only mounts after the lesson
+// Full-screen practice (no shell). The player only mounts after the lesson
 // has been fetched in the browser, so it never renders on the server.
 export default function StudentPracticePage() {
   const router = useRouter()
@@ -62,48 +64,41 @@ export default function StudentPracticePage() {
         <PracticePlayer exercises={state.lesson.exercises} onComplete={onComplete} onExit={onExit} />
       )}
 
-      {state.status === 'loading' && (
-        <div className="loading-screen" role="status">
-          <div className="spinner spinner-lg" aria-hidden="true" />
-          <span className="sr-only">Loading exercises…</span>
-        </div>
-      )}
+      {state.status === 'loading' && <LoadingScreen message="Loading exercises…" />}
 
       {state.status === 'notfound' && (
-        <div className="loading-screen">
-          <div className="empty-state">
-            <div className="empty-state-icon" aria-hidden="true">🔎</div>
-            <h1 className="empty-state-title">Lesson not found</h1>
-            <p className="empty-state-text">This lesson doesn&apos;t exist or isn&apos;t available anymore.</p>
-            <Link href="/student" className="btn btn-primary" style={{ marginTop: '1.25rem', minHeight: 44 }}>
-              Back to my lessons
-            </Link>
-          </div>
-        </div>
+        <MessageCard icon="🔎" title="Lesson not found" text="This lesson doesn't exist or isn't available anymore.">
+          <Link href="/student" className={`${ui.btn} ${ui.green} ${ui.block}`}>
+            Back to my lessons
+          </Link>
+        </MessageCard>
       )}
 
       {state.status === 'error' && (
-        <div className="loading-screen" style={{ padding: '1rem' }}>
-          <div className="empty-state">
-            <div className="empty-state-icon" aria-hidden="true">⚠️</div>
-            <h1 className="empty-state-title">Couldn&apos;t load the exercises</h1>
-            <p className="empty-state-text">{state.error}</p>
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '1.25rem' }}>
-              <Link href={lessonHref} className="btn btn-secondary" style={{ minHeight: 44 }}>
-                Back to lesson
-              </Link>
-              <button
-                type="button"
-                className="btn btn-primary"
-                style={{ minHeight: 44 }}
-                onClick={() => setReloadKey((k) => k + 1)}
-              >
-                Try again
-              </button>
-            </div>
-          </div>
-        </div>
+        <MessageCard icon="😕" title="Couldn't load the exercises" text={state.error} alert>
+          <button type="button" className={`${ui.btn} ${ui.green} ${ui.block}`} onClick={() => setReloadKey((k) => k + 1)}>
+            Try again
+          </button>
+          <Link href={lessonHref} className={`${ui.btn} ${ui.ghost} ${ui.block}`}>
+            Back to lesson
+          </Link>
+        </MessageCard>
       )}
     </main>
+  )
+}
+
+function MessageCard({ icon, title, text, alert = false, children }) {
+  return (
+    <div className={ui.theme} style={{ display: 'grid', placeItems: 'center', padding: '1rem' }}>
+      <div className={ui.card} style={{ width: '100%', maxWidth: 420, textAlign: 'center' }} role={alert ? 'alert' : undefined}>
+        <div style={{ fontSize: '3rem' }} aria-hidden="true">
+          {icon}
+        </div>
+        <h1 style={{ margin: '0.5rem 0', fontSize: '1.4rem', fontWeight: 900 }}>{title}</h1>
+        <p style={{ margin: '0 0 1.25rem', color: 'var(--st-ink-soft)' }}>{text}</p>
+        <div style={{ display: 'grid', gap: '0.75rem' }}>{children}</div>
+      </div>
+    </div>
   )
 }

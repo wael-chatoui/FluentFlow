@@ -1,0 +1,127 @@
+.screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 1.5rem 1rem;
+  background: var(--st-bg);
+  color: var(--st-ink);
+}
+
+.inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+  text-align: center;
+  /* Invisible for the first moments: quick loads never flash */
+  opacity: 0;
+  animation: appear 240ms ease-out 180ms forwards;
+}
+
+.art {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tile {
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 22px;
+  background: var(--st-surface);
+  border: 2px solid var(--st-line);
+  border-bottom-width: 5px;
+  font-size: 2.5rem;
+  line-height: 1;
+  animation: bounce 900ms cubic-bezier(0.3, 0, 0.3, 1) infinite;
+}
+
+.shadow {
+  display: block;
+  width: 52px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.08);
+  animation: shadow 900ms cubic-bezier(0.3, 0, 0.3, 1) infinite;
+}
+
+.dots {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--st-green);
+  animation: dot 1s ease-in-out infinite;
+}
+
+.dot:nth-child(2) {
+  background: var(--st-blue);
+  animation-delay: 150ms;
+}
+
+.dot:nth-child(3) {
+  background: var(--st-pink);
+  animation-delay: 300ms;
+}
+
+.message {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--st-ink-soft);
+}
+
+@keyframes appear {
+  to { opacity: 1; }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  15% { transform: translateY(0) scale(1.06, 0.94); }
+  50% { transform: translateY(-16px) scale(0.98, 1.02); }
+  85% { transform: translateY(0) scale(1.04, 0.96); }
+}
+
+@keyframes shadow {
+  0%, 100% { transform: scaleX(1); opacity: 1; }
+  50% { transform: scaleX(0.7); opacity: 0.6; }
+}
+
+@keyframes dot {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-6px); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* No motion: static tile, dots only fade (no movement) */
+@media (prefers-reduced-motion: reduce) {
+  .tile,
+  .shadow {
+    animation: none;
+  }
+
+  .dot {
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+
+  .dot:nth-child(2) {
+    animation-delay: 200ms;
+  }
+
+  .dot:nth-child(3) {
+    animation-delay: 400ms;
+  }
+}

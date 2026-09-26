@@ -1,15 +1,50 @@
+/* Playful "the AI is cooking" card. Motion is purely decorative and switched
+   off under prefers-reduced-motion. */
+
 .panel {
-  background: linear-gradient(160deg, #fff 0%, #fdf2f8 100%);
-  border: 1px solid rgba(255, 105, 180, 0.25);
-  border-radius: var(--radius-lg);
-  padding: 1.5rem;
-  box-shadow: var(--shadow-glow);
-  animation: panelIn 0.3s ease-out;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: var(--st-purple-bg);
+  border: 2px solid var(--st-purple);
+  border-bottom-width: 5px;
+  border-bottom-color: var(--st-purple-dark);
+  border-radius: var(--st-radius-lg);
+  color: var(--st-ink);
+  animation: panelIn 260ms ease-out both;
 }
 
-@keyframes panelIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+.panel::before,
+.panel::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.panel::before {
+  width: 220px;
+  height: 220px;
+  right: -90px;
+  top: -110px;
+  background: var(--st-purple);
+  opacity: 0.14;
+}
+
+.panel::after {
+  width: 120px;
+  height: 120px;
+  left: -50px;
+  bottom: -60px;
+  background: var(--st-blue);
+  opacity: 0.1;
+}
+
+.panel > * {
+  position: relative;
 }
 
 .top {
@@ -18,32 +53,36 @@
   gap: 1rem;
 }
 
-.orb {
-  flex-shrink: 0;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--preply-pink), #a855f7);
-  animation: orbGlow 2s ease-in-out infinite;
+/* ---- Mascot ---- */
+.mascot {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 22px;
+  background: var(--st-surface);
+  border: 2px solid var(--st-purple);
+  border-bottom-width: 4px;
 }
 
-.orbIcon {
-  font-size: 1.5rem;
-  animation: orbSpin 6s linear infinite;
+.robot {
+  font-size: 2.4rem;
+  line-height: 1;
+  animation: bob 1.6s ease-in-out infinite;
 }
 
-@keyframes orbGlow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 105, 180, 0.35); }
-  50% { box-shadow: 0 0 0 10px rgba(255, 105, 180, 0); }
+.sparkle {
+  position: absolute;
+  font-size: 1rem;
+  line-height: 1;
+  animation: twinkle 1.8s ease-in-out infinite;
 }
 
-@keyframes orbSpin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
+.s1 { top: -8px; right: -8px; }
+.s2 { bottom: -6px; left: -10px; font-size: 0.8rem; animation-delay: 0.6s; }
+.s3 { top: -6px; left: -6px; font-size: 0.75rem; animation-delay: 1.2s; }
 
 .headText {
   flex: 1;
@@ -51,164 +90,258 @@
 }
 
 .heading {
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--text-primary);
   margin: 0;
+  font-size: 1.2rem;
+  font-weight: 900;
+  line-height: 1.25;
+  color: var(--st-ink);
+  overflow-wrap: anywhere;
 }
 
 .sub {
-  font-size: 0.875rem;
-  color: var(--text-secondary);
-  margin-top: 0.125rem;
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--st-ink-soft);
 }
 
-.timer {
-  flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  font-size: 1rem;
-  color: var(--preply-pink-dark);
-  background: var(--bg-elevated);
-  border: 1px solid rgba(255, 105, 180, 0.25);
-  border-radius: var(--radius-full);
-  padding: 0.25rem 0.75rem;
+/* ---- Progress bar + timer ---- */
+.barRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .bar {
-  margin-top: 1.25rem;
-  height: 8px;
-  border-radius: var(--radius-full);
-  background: var(--gray-200);
+  flex: 1;
+  height: 18px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--st-surface);
+  border: 2px solid rgba(165, 104, 204, 0.35);
   overflow: hidden;
 }
 
 .barFill {
+  position: relative;
   height: 100%;
-  width: 100%;
-  transform-origin: left center;
-  background: linear-gradient(90deg, var(--preply-pink), #a855f7);
-  transition: transform 1s linear;
+  border-radius: 999px;
+  background-color: var(--st-green);
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.28) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.28) 50%,
+    rgba(255, 255, 255, 0.28) 75%,
+    transparent 75%
+  );
+  background-size: 20px 20px;
+  transition: width 900ms ease-out;
+  animation: stripes 900ms linear infinite;
 }
 
-.statusRow {
-  margin-top: 1rem;
-  display: flex;
+/* Shine on top of the fill, like the student's lesson progress bars */
+.barFill::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 2px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.timer {
+  flex: none;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  background: var(--st-surface);
+  border: 2px solid rgba(165, 104, 204, 0.35);
+  color: var(--st-purple-dark);
+  font-size: 0.95rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
 }
 
 .current {
-  font-weight: 600;
-  color: var(--text-primary);
-  min-height: 1.6em;
-  min-width: 0;
+  margin: -0.25rem 0 0;
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--st-purple-dark);
 }
 
+/* ---- Steps ---- */
 .steps {
   list-style: none;
-  margin: 0.75rem 0 0;
-  padding: 0;
-  display: grid;
+  margin: 0;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
   gap: 0.5rem;
+  border-radius: var(--st-radius);
+  background: rgba(255, 255, 255, 0.75);
 }
 
 .step {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
-  font-size: 0.875rem;
-  transition: color var(--transition-base);
+  gap: 0.7rem;
+  min-height: 32px;
+  font-size: 0.93rem;
+  font-weight: 700;
+  color: #afafaf;
+  transition: color 200ms ease;
+}
+
+.stepLabel {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .dot {
-  flex-shrink: 0;
-  width: 22px;
-  height: 22px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-  border: 2px solid var(--gray-300);
-  background: var(--bg-elevated);
-  transition: all var(--transition-base);
+  border: 2px solid var(--st-line);
+  border-bottom-width: 3px;
+  background: var(--st-surface);
+  color: #afafaf;
+  font-size: 0.78rem;
+  font-weight: 900;
+  line-height: 1;
 }
 
 .done {
-  color: var(--text-secondary);
+  color: var(--st-ink);
 }
 
 .done .dot {
-  border-color: var(--color-success);
-  background: var(--color-success);
+  border-color: var(--st-green-dark);
+  background: var(--st-green);
   color: #fff;
+  font-size: 0.9rem;
+  animation: popIn 260ms ease-out both;
 }
 
 .active {
-  color: var(--text-primary);
-  font-weight: 600;
+  color: var(--st-ink);
+  font-weight: 900;
 }
 
 .active .dot {
-  border-color: var(--preply-pink);
-}
-
-.todo {
-  color: var(--text-muted);
+  border-color: var(--st-blue-dark);
+  background: var(--st-blue-bg);
 }
 
 .pulse {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background: var(--preply-pink);
-  animation: dotPulse 1.2s ease-in-out infinite;
-}
-
-@keyframes dotPulse {
-  0%, 100% { transform: scale(0.7); opacity: 0.6; }
-  50% { transform: scale(1.15); opacity: 1; }
+  background: var(--st-blue);
+  animation: pulse 1.1s ease-in-out infinite;
 }
 
 .slow {
-  margin-top: 1rem;
-  font-size: 0.875rem;
-  color: #b45309;
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--st-radius);
+  background: var(--st-yellow-bg);
+  border: 2px solid #ffe38a;
+  color: #8a6d00;
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .note {
-  margin-top: 1rem;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--st-ink-soft);
 }
 
-@media (max-width: 480px) {
+@media (min-width: 768px) {
   .panel {
-    padding: 1.125rem;
+    padding: 1.5rem 1.75rem;
   }
 
-  .top {
-    align-items: flex-start;
+  .mascot {
+    width: 84px;
+    height: 84px;
   }
 
-  .orb {
-    width: 44px;
-    height: 44px;
+  .robot {
+    font-size: 2.8rem;
   }
+
+  .heading {
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .mascot {
+    width: 60px;
+    height: 60px;
+    border-radius: 18px;
+  }
+
+  .robot {
+    font-size: 2rem;
+  }
+}
+
+@keyframes panelIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0) rotate(-4deg); }
+  50% { transform: translateY(-5px) rotate(4deg); }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(0.7); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+
+@keyframes stripes {
+  from { background-position: 0 0; }
+  to { background-position: 20px 0; }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(0.75); opacity: 0.6; }
+  50% { transform: scale(1.1); opacity: 1; }
+}
+
+@keyframes popIn {
+  from { transform: scale(0.4); }
+  to { transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .panel,
-  .orb,
-  .orbIcon,
-  .pulse {
+  .robot,
+  .sparkle,
+  .barFill,
+  .pulse,
+  .done .dot {
     animation: none;
   }
 
-  .barFill {
+  .sparkle {
+    opacity: 0.8;
+  }
+
+  .barFill,
+  .step {
     transition: none;
   }
 }

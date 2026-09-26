@@ -1,7 +1,12 @@
+import EmptyNote from '@/components/teacher/lessons/EmptyNote'
 import { formatDateTime, plural } from '@/components/teacher/format'
-import styles from '@/components/teacher/LessonPage.module.css'
+import styles from '@/components/teacher/lessons/LessonResults.module.css'
 
-/** Practice sessions of a lesson: summary + list (newest first). */
+function tone(pct) {
+  return pct >= 80 ? styles.good : pct >= 50 ? styles.ok : styles.low
+}
+
+/** Practice sessions of a lesson: summary tiles + score bars (newest first). */
 export default function LessonResults({ sessions }) {
   const list = [...(sessions || [])].sort((a, b) =>
     (b.completed_at || '').localeCompare(a.completed_at || '')
@@ -9,11 +14,12 @@ export default function LessonResults({ sessions }) {
 
   if (list.length === 0) {
     return (
-      <div className="empty-state">
-        <div className="empty-state-icon" aria-hidden="true">🎯</div>
-        <div className="empty-state-title">Pas encore de résultats</div>
-        <div className="empty-state-text">L&apos;élève n&apos;a pas encore fait les exercices de cette leçon.</div>
-      </div>
+      <EmptyNote
+        emoji="🎯"
+        tone="orange"
+        title="Pas encore de résultats"
+        text="L'élève n'a pas encore fait les exercices de cette leçon."
+      />
     )
   }
 
@@ -23,40 +29,44 @@ export default function LessonResults({ sessions }) {
 
   return (
     <div className={styles.results}>
-      <div className={`stats-row ${styles.resultStats}`}>
-        <div className="stat-card">
-          <div className="stat-value">{list.length}</div>
-          <div className="stat-label">{list.length > 1 ? 'Tentatives' : 'Tentative'}</div>
+      <dl className={styles.stats}>
+        <div className={`${styles.stat} ${styles.statBlue}`}>
+          <dt className={styles.statLabel}>{list.length > 1 ? 'Tentatives' : 'Tentative'}</dt>
+          <dd className={styles.statValue}>
+            <span className={styles.statIcon} aria-hidden="true">🔁</span>
+            {list.length}
+          </dd>
         </div>
-        <div className="stat-card">
-          <div className="stat-value">
+        <div className={`${styles.stat} ${styles.statGreen}`}>
+          <dt className={styles.statLabel}>Meilleur score</dt>
+          <dd className={styles.statValue}>
+            <span className={styles.statIcon} aria-hidden="true">🏆</span>
             {best.score}/{best.total}
-          </div>
-          <div className="stat-label">Meilleur score</div>
+          </dd>
         </div>
-        <div className="stat-card">
-          <div className="stat-value">{average} %</div>
-          <div className="stat-label">Moyenne</div>
+        <div className={`${styles.stat} ${styles.statOrange}`}>
+          <dt className={styles.statLabel}>Moyenne</dt>
+          <dd className={styles.statValue}>
+            <span className={styles.statIcon} aria-hidden="true">📊</span>
+            {average} %
+          </dd>
         </div>
-      </div>
+      </dl>
 
-      <ul className={styles.sessionList}>
+      <ul className={styles.sessions}>
         {list.map((s, i) => {
           const pct = Math.round(ratio(s) * 100)
           return (
             <li key={`${s.completed_at}-${i}`} className={styles.session}>
               <div className={styles.sessionTop}>
-                <span className={styles.sessionScore}>
+                <span className={`${styles.score} ${tone(pct)}`}>
                   {s.score}/{s.total}
-                  <span className={styles.sessionPct}> · {pct} %</span>
+                  <span className={styles.pct}>{pct} %</span>
                 </span>
-                <span className={styles.sessionDate}>{formatDateTime(s.completed_at)}</span>
+                <span className={styles.date}>{formatDateTime(s.completed_at)}</span>
               </div>
               <div className={styles.meter} aria-hidden="true">
-                <div
-                  className={`${styles.meterFill} ${pct >= 80 ? styles.good : pct >= 50 ? styles.ok : styles.low}`}
-                  style={{ width: `${pct}%` }}
-                />
+                <div className={`${styles.meterFill} ${tone(pct)}`} style={{ width: `${Math.max(pct, 3)}%` }} />
               </div>
               <span className="sr-only">{plural(s.score, 'bonne réponse', 'bonnes réponses')} sur {s.total}</span>
             </li>

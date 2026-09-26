@@ -2,10 +2,12 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import AppShell from '@/components/AppShell'
 import { api, ApiError } from '@/utils/apiClient'
 import ConfirmDialog from '@/components/teacher/ConfirmDialog'
 import GenerationProgress from '@/components/teacher/GenerationProgress'
+import TeacherShell from '@/components/teacher/TeacherShell'
+import BackLink from '@/components/teacher/lessons/BackLink'
+import StudentPicker, { CHIP_LIMIT } from '@/components/teacher/lessons/StudentPicker'
 import { readDraft, removeDraft, writeDraft, hasDraftContent } from '@/components/teacher/lessonDraft'
 import {
   LEVEL_LABELS,
@@ -18,7 +20,8 @@ import {
   todayLocal,
 } from '@/components/teacher/format'
 import { useBeforeUnload, useMountedRef } from '@/components/teacher/hooks'
-import shared from '@/components/teacher/Teacher.module.css'
+import ui from '@/components/ui/ui.module.css'
+import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/NewLesson.module.css'
 
 const MIN_CHARS = 20
@@ -47,6 +50,35 @@ function formatSavedAt(ts) {
 
 function charCount(n) {
   return `${n.toLocaleString('fr-FR')} caractère${n > 1 ? 's' : ''}`
+}
+
+// One numbered card of the form. `htmlFor` turns the title into the field's label.
+function StepCard({ id, number, tone, title, htmlFor, sub, aside, children }) {
+  return (
+    <section className={`${styles.step} ${styles[tone]}`} aria-labelledby={id}>
+      <div className={styles.stepHead}>
+        <span className={styles.stepNumber} aria-hidden="true">{number}</span>
+        <div className={styles.stepHeadText}>
+          <h2 id={id} className={styles.stepTitle}>
+            {htmlFor ? <label htmlFor={htmlFor}>{title}</label> : title}
+          </h2>
+          {sub && <p className={styles.stepSub}>{sub}</p>}
+        </div>
+        {aside}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function Counter({ length }) {
+  const ok = length >= MIN_CHARS
+  return (
+    <span className={`${styles.counter} ${ok ? styles.counterOk : ''}`}>
+      {ok && <span aria-hidden="true">✓ </span>}
+      {charCount(length)}
+    </span>
+  )
 }
 
 export default function NewLessonPage() {
@@ -354,6 +386,7 @@ export default function NewLessonPage() {
   const backHref = form?.studentId ? `/teacher/students/${form.studentId}` : '/teacher'
   const backLabel = selected ? studentDisplayName(selected) : form?.studentId ? "Fiche de l'élève" : 'Mes élèves'
   const hasContent = form ? hasDraftContent(form) : false
+  const sourcesDescribedBy = `${fieldId('sources-hint')}${showErrors && errors.sources ? ` ${fieldId('sources-error')}` : ''}`
 
   let statusPanel = null
   if (phase === 'generating') {
@@ -365,14 +398,16 @@ export default function NewLessonPage() {
     )
   } else if (phase === 'done') {
     statusPanel = (
-      <div className={`alert alert-success ${styles.bigAlert}`} role="status">
-        <span className="spinner" aria-hidden="true" /> Leçon publiée ! Ouverture de la leçon…
+      <div className={`${bits.alert} ${bits.success} ${styles.doneAlert}`} role="status">
+        <span className={bits.alertIcon} aria-hidden="true">🎉</span>
+        <span className={bits.alertBody}>Leçon publiée ! Ouverture de la leçon…</span>
+        <span className={bits.spinner} aria-hidden="true" />
       </div>
     )
   } else if (phase === 'failed' && outcome) {
     statusPanel = (
-      <section className={styles.outcome} role="alert" aria-labelledby={fieldId('failed-title')}>
-        <div className={styles.outcomeIcon} aria-hidden="true">⚠️</div>
+      <section className={`${styles.outcome} ${styles.outcomeFailed}`} role="alert" aria-labelledby={fieldId('failed-title')}>
+        <span className={styles.outcomeIcon} aria-hidden="true">😵</span>
         <div className={styles.outcomeBody}>
           <h2 id={fieldId('failed-title')} className={styles.outcomeTitle}>La génération a échoué</h2>
           <p className={styles.outcomeError}>{outcome.error}</p>
@@ -381,10 +416,10 @@ export default function NewLessonPage() {
             rien recoller.
           </p>
           <div className={styles.outcomeActions}>
-            <button type="button" className="btn btn-primary" onClick={handleRetry}>
-              🔄 Réessayer
+            <button type="button" className={`${ui.btn} ${ui.green}`} onClick={handleRetry}>
+              <span aria-hidden="true">🔄</span> Réessayer
             </button>
-            <Link href={`/teacher/lessons/${outcome.lessonId}`} className="btn btn-secondary">
+            <Link href={`/teacher/lessons/${outcome.lessonId}`} className={`${ui.btn} ${ui.ghost}`}>
               Voir la leçon
             </Link>
           </div>
@@ -393,8 +428,8 @@ export default function NewLessonPage() {
     )
   } else if (phase === 'lost' && outcome) {
     statusPanel = (
-      <section className={`${styles.outcome} ${styles.outcomeWarning}`} role="alert" aria-labelledby={fieldId('lost-title')}>
-        <div className={styles.outcomeIcon} aria-hidden="true">📡</div>
+      <section className={`${styles.outcome} ${styles.outcomeLost}`} role="alert" aria-labelledby={fieldId('lost-title')}>
+        <span className={styles.outcomeIcon} aria-hidden="true">📡</span>
         <div className={styles.outcomeBody}>
           <h2 id={fieldId('lost-title')} className={styles.outcomeTitle}>La connexion a été interrompue</h2>
           <p className={styles.outcomeError}>{outcome.message}</p>
@@ -405,16 +440,16 @@ export default function NewLessonPage() {
           </p>
           <div className={styles.outcomeActions}>
             {outcome.lessonId ? (
-              <Link href={`/teacher/lessons/${outcome.lessonId}`} className="btn btn-primary">
+              <Link href={`/teacher/lessons/${outcome.lessonId}`} className={`${ui.btn} ${ui.blue}`}>
                 Voir la leçon
               </Link>
             ) : (
-              <Link href={`/teacher/students/${outcome.studentId}`} className="btn btn-primary">
+              <Link href={`/teacher/students/${outcome.studentId}`} className={`${ui.btn} ${ui.blue}`}>
                 Voir la page de l&apos;élève
               </Link>
             )}
             {!outcome.lessonId && (
-              <button type="button" className="btn btn-secondary" onClick={() => setPhase('form')}>
+              <button type="button" className={`${ui.btn} ${ui.ghost}`} onClick={() => setPhase('form')}>
                 Revenir au formulaire
               </button>
             )}
@@ -425,114 +460,171 @@ export default function NewLessonPage() {
   }
 
   const hideForm = phase === 'failed' || phase === 'lost'
+  const draftPill = !form
+    ? null
+    : storageFailed
+      ? { tone: styles.pillWarn, icon: '⚠️', text: 'Brouillon non enregistré (stockage du navigateur indisponible)' }
+      : savedAt && hasContent
+        ? { tone: '', icon: '💾', text: `Brouillon enregistré à ${formatTime(savedAt)}` }
+        : null
+  const showClear = hasContent && !locked
 
   return (
-    <div className={shared.page}>
+    <TeacherShell>
       <Head>
         <title>Nouvelle leçon — Preply Lessons</title>
       </Head>
-      <AppShell
-        title="Nouvelle leçon"
-        back={phase === 'generating' || phase === 'done' ? undefined : { href: backHref, label: backLabel }}
-      >
-        <div className={shared.stack}>
-          {statusPanel && <div ref={progressRef} className={styles.statusAnchor}>{statusPanel}</div>}
 
-          {!hideForm && (
-            <form className={`dashboard-section ${styles.card}`} onSubmit={handleSubmit} noValidate aria-busy={locked}>
-              {!form ? (
-                <div className={styles.formLoading} role="status">
-                  <span className="spinner" aria-hidden="true" /> Chargement du formulaire…
-                </div>
-              ) : (
-                <fieldset className={styles.fieldset} disabled={locked}>
-                  <legend className="sr-only">Informations de la leçon</legend>
+      {phase !== 'generating' && phase !== 'done' && <BackLink href={backHref} label={backLabel} />}
 
-                  {restoredAt && phase === 'form' && (
-                    <div className={`alert ${styles.infoAlert}`} role="status">
-                      <span>
-                        📝 Brouillon restauré (enregistré {formatSavedAt(restoredAt)}).
-                      </span>
-                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirmClear(true)}>
-                        Effacer le brouillon
-                      </button>
+      <div className={styles.page}>
+        <div className={styles.pageHead}>
+          <h1 className={styles.pageTitle}>
+            <span className={styles.pageEmoji} aria-hidden="true">✨</span> Nouvelle leçon
+          </h1>
+          <p className={styles.pageSub}>
+            Colle la transcription et tes notes Canva : l&apos;IA prépare le bilan et les exercices.
+          </p>
+          {(draftPill || (showClear && !hideForm)) && (
+            <div className={styles.draftRow}>
+              {draftPill && (
+                <span className={`${styles.draftPill} ${draftPill.tone}`}>
+                  <span aria-hidden="true">{draftPill.icon}</span> {draftPill.text}
+                </span>
+              )}
+              {showClear && !hideForm && (
+                <button
+                  type="button"
+                  className={`${ui.btn} ${ui.small} ${bits.redGhost} ${bits.tap}`}
+                  onClick={() => setConfirmClear(true)}
+                >
+                  <span aria-hidden="true">🧹</span> Vider le formulaire
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {statusPanel && (
+          <div ref={progressRef} className={styles.statusAnchor}>
+            {statusPanel}
+          </div>
+        )}
+
+        {!hideForm && (
+          <form
+            className={`${styles.form} ${locked ? styles.locked : ''}`}
+            onSubmit={handleSubmit}
+            noValidate
+            aria-busy={locked}
+          >
+            {!form ? (
+              <div className={styles.formLoading}>
+                <span className="sr-only" role="status">
+                  Chargement du formulaire…
+                </span>
+                <span className={`${ui.skel} ${styles.skelCard}`} aria-hidden="true" />
+                <span className={`${ui.skel} ${styles.skelCard}`} aria-hidden="true" />
+                <span className={`${ui.skel} ${styles.skelCard} ${styles.skelTall}`} aria-hidden="true" />
+              </div>
+            ) : (
+              <fieldset className={styles.fieldset} disabled={locked}>
+                <legend className="sr-only">Informations de la leçon</legend>
+
+                {restoredAt && phase === 'form' && (
+                  <div className={`${bits.alert} ${bits.info}`} role="status">
+                    <span className={bits.alertIcon} aria-hidden="true">📝</span>
+                    <div className={bits.alertBody}>
+                      <span>Brouillon restauré (enregistré {formatSavedAt(restoredAt)}).</span>
+                      <div className={bits.alertActions}>
+                        <button
+                          type="button"
+                          className={`${ui.btn} ${ui.small} ${bits.redGhost} ${bits.tap}`}
+                          onClick={() => setConfirmClear(true)}
+                        >
+                          Effacer le brouillon
+                        </button>
+                      </div>
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {conflictDraft && phase === 'form' && (
-                    <div className={`alert ${shared.alertWarning} ${styles.infoAlert}`} role="status">
+                {conflictDraft && phase === 'form' && (
+                  <div className={`${bits.alert} ${bits.warning}`} role="status">
+                    <span className={bits.alertIcon} aria-hidden="true">🗂️</span>
+                    <div className={bits.alertBody}>
                       <span>
                         Un autre brouillon existe pour cet élève (enregistré {formatSavedAt(conflictDraft.savedAt)}).
                       </span>
-                      <span className={styles.inlineButtons}>
-                        <button type="button" className="btn btn-secondary btn-sm" onClick={restoreConflictDraft}>
+                      <div className={bits.alertActions}>
+                        <button
+                          type="button"
+                          className={`${ui.btn} ${ui.small} ${ui.orange} ${bits.tap}`}
+                          onClick={restoreConflictDraft}
+                        >
                           Remplacer par ce brouillon
                         </button>
-                        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConflictDraft(null)}>
+                        <button
+                          type="button"
+                          className={`${ui.btn} ${ui.small} ${bits.tap}`}
+                          onClick={() => setConflictDraft(null)}
+                        >
                           Garder mon texte
                         </button>
-                      </span>
+                      </div>
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {missingStudent && (
-                    <div className={`alert ${shared.alertWarning} ${shared.inlineAlert}`} role="alert">
+                {missingStudent && (
+                  <div className={`${bits.alert} ${bits.warning}`} role="alert">
+                    <span className={bits.alertIcon} aria-hidden="true">🔍</span>
+                    <span className={bits.alertBody}>
                       L&apos;élève indiqué dans le lien est introuvable. Choisis-le dans la liste.
-                    </div>
+                    </span>
+                  </div>
+                )}
+
+                <StepCard
+                  id={fieldId('student-title')}
+                  number="1"
+                  tone="blue"
+                  title="Élève"
+                  htmlFor={students && students.length > CHIP_LIMIT ? fieldId('student') : undefined}
+                >
+                  <StudentPicker
+                    id={fieldId('student')}
+                    labelledBy={fieldId('student-title')}
+                    students={students}
+                    error={studentsError}
+                    value={students ? form.studentId : ''}
+                    onChange={handleStudentChange}
+                    onRetry={loadStudents}
+                    invalid={showErrors && Boolean(errors.student)}
+                    describedBy={showErrors && errors.student ? fieldId('student-error') : undefined}
+                  />
+                  {showErrors && errors.student && (
+                    <p id={fieldId('student-error')} className={bits.fieldError}>
+                      <span aria-hidden="true">⚠️</span> {errors.student}
+                    </p>
                   )}
+                  {selected && (
+                    <p className={bits.hint}>
+                      {LEVEL_LABELS[selected.level] || LEVEL_LABELS.unknown} ·{' '}
+                      {plural(selected.lesson_count || 0, 'leçon')}
+                      {selected.last_lesson_date && ` · dernière le ${formatLessonDate(selected.last_lesson_date)}`}
+                    </p>
+                  )}
+                </StepCard>
 
+                <StepCard id={fieldId('when-title')} number="2" tone="purple" title="Date & titre">
                   <div className={styles.row}>
-                    <div className="form-group">
-                      <label htmlFor={fieldId('student')} className="label">Élève</label>
-                      <select
-                        id={fieldId('student')}
-                        className={`select ${showErrors && errors.student ? styles.invalid : ''}`}
-                        value={students ? form.studentId : ''}
-                        onChange={handleStudentChange}
-                        disabled={!students}
-                        aria-invalid={(showErrors && Boolean(errors.student)) || undefined}
-                        aria-describedby={showErrors && errors.student ? fieldId('student-error') : undefined}
-                      >
-                        {!students ? (
-                          <option value="">{studentsError ? 'Liste indisponible' : 'Chargement des élèves…'}</option>
-                        ) : (
-                          <>
-                            <option value="">Choisir un élève…</option>
-                            {students.map((s) => (
-                              <option key={s.id} value={s.id}>
-                                {studentDisplayName(s)}
-                                {s.full_name?.trim() ? ` (${s.email})` : ''}
-                              </option>
-                            ))}
-                          </>
-                        )}
-                      </select>
-                      {showErrors && errors.student && (
-                        <p id={fieldId('student-error')} className={styles.fieldError}>{errors.student}</p>
-                      )}
-                      {studentsError && (
-                        <p className={styles.fieldError} role="alert">
-                          {studentsError}{' '}
-                          <button type="button" className={styles.linkButton} onClick={loadStudents}>
-                            Réessayer
-                          </button>
-                        </p>
-                      )}
-                      {selected && (
-                        <p className={styles.hint}>
-                          {LEVEL_LABELS[selected.level] || LEVEL_LABELS.unknown} ·{' '}
-                          {plural(selected.lesson_count || 0, 'leçon')}
-                          {selected.last_lesson_date && ` · dernière le ${formatLessonDate(selected.last_lesson_date)}`}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="form-group">
-                      <label htmlFor={fieldId('date')} className="label">Date du cours</label>
+                    <div className={styles.field}>
+                      <label htmlFor={fieldId('date')} className={bits.label}>Date du cours</label>
                       <input
                         id={fieldId('date')}
                         type="date"
-                        className={`input ${showErrors && errors.date ? styles.invalid : ''}`}
+                        className={`${bits.input} ${showErrors && errors.date ? bits.invalid : ''}`}
                         value={form.lessonDate}
                         onChange={setField('lessonDate')}
                         aria-invalid={(showErrors && Boolean(errors.date)) || undefined}
@@ -540,124 +632,136 @@ export default function NewLessonPage() {
                         required
                       />
                       {showErrors && errors.date && (
-                        <p id={fieldId('date-error')} className={styles.fieldError}>{errors.date}</p>
+                        <p id={fieldId('date-error')} className={bits.fieldError}>
+                          <span aria-hidden="true">⚠️</span> {errors.date}
+                        </p>
                       )}
                     </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label htmlFor={fieldId('title')} className="label">
-                      Titre <span className={styles.optional}>(facultatif)</span>
-                    </label>
-                    <input
-                      id={fieldId('title')}
-                      className="input"
-                      value={form.title}
-                      onChange={setField('title')}
-                      placeholder="Laisse vide : l'IA proposera un titre"
-                      maxLength={120}
-                      autoComplete="off"
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <div className={styles.labelRow}>
-                      <label htmlFor={fieldId('transcript')} className="label">Transcription</label>
-                      <span className={styles.counter}>{charCount(transcriptLen)}</span>
+                    <div className={styles.field}>
+                      <label htmlFor={fieldId('title')} className={bits.label}>
+                        Titre <span className={bits.optional}>(facultatif)</span>
+                      </label>
+                      <input
+                        id={fieldId('title')}
+                        className={bits.input}
+                        value={form.title}
+                        onChange={setField('title')}
+                        placeholder="Laisse vide : l'IA proposera un titre"
+                        maxLength={120}
+                        autoComplete="off"
+                      />
                     </div>
-                    <textarea
-                      id={fieldId('transcript')}
-                      className={`textarea ${styles.bigTextarea} ${showErrors && errors.sources ? styles.invalid : ''}`}
-                      value={form.transcript}
-                      onChange={setField('transcript')}
-                      rows={14}
-                      placeholder="Colle ici la transcription Preply du cours…"
-                      spellCheck={false}
-                      aria-invalid={(showErrors && Boolean(errors.sources)) || undefined}
-                      aria-describedby={`${fieldId('sources-hint')}${showErrors && errors.sources ? ` ${fieldId('sources-error')}` : ''}`}
-                    />
                   </div>
+                </StepCard>
 
-                  <div className="form-group">
-                    <div className={styles.labelRow}>
-                      <label htmlFor={fieldId('canva')} className="label">Notes Canva</label>
-                      <span className={styles.counter}>{charCount(canvaLen)}</span>
-                    </div>
-                    <textarea
-                      id={fieldId('canva')}
-                      className={`textarea ${styles.midTextarea} ${showErrors && errors.sources ? styles.invalid : ''}`}
-                      value={form.canva}
-                      onChange={setField('canva')}
-                      rows={8}
-                      placeholder="Colle ici le texte de tes notes Canva…"
-                      spellCheck={false}
-                      aria-invalid={(showErrors && Boolean(errors.sources)) || undefined}
-                      aria-describedby={`${fieldId('sources-hint')}${showErrors && errors.sources ? ` ${fieldId('sources-error')}` : ''}`}
-                    />
-                  </div>
+                <StepCard
+                  id={fieldId('transcript-title')}
+                  number="3"
+                  tone="orange"
+                  title="Transcription"
+                  htmlFor={fieldId('transcript')}
+                  sub={
+                    <>
+                      <span aria-hidden="true">📋 </span>Colle ici la transcription Preply
+                    </>
+                  }
+                  aside={<Counter length={transcriptLen} />}
+                >
+                  <textarea
+                    id={fieldId('transcript')}
+                    className={`${bits.textarea} ${styles.bigTextarea} ${showErrors && errors.sources ? bits.invalid : ''}`}
+                    value={form.transcript}
+                    onChange={setField('transcript')}
+                    rows={14}
+                    placeholder="Colle ici la transcription Preply du cours…"
+                    spellCheck={false}
+                    aria-invalid={(showErrors && Boolean(errors.sources)) || undefined}
+                    aria-describedby={sourcesDescribedBy}
+                  />
+                </StepCard>
 
-                  <p id={fieldId('sources-hint')} className={styles.hint}>
+                <StepCard
+                  id={fieldId('canva-title')}
+                  number="4"
+                  tone="pink"
+                  title="Notes Canva"
+                  htmlFor={fieldId('canva')}
+                  sub={
+                    <>
+                      <span aria-hidden="true">🎨 </span>Colle ici le texte de tes notes Canva
+                    </>
+                  }
+                  aside={<Counter length={canvaLen} />}
+                >
+                  <textarea
+                    id={fieldId('canva')}
+                    className={`${bits.textarea} ${styles.midTextarea} ${showErrors && errors.sources ? bits.invalid : ''}`}
+                    value={form.canva}
+                    onChange={setField('canva')}
+                    rows={8}
+                    placeholder="Colle ici le texte de tes notes Canva…"
+                    spellCheck={false}
+                    aria-invalid={(showErrors && Boolean(errors.sources)) || undefined}
+                    aria-describedby={sourcesDescribedBy}
+                  />
+                </StepCard>
+
+                <div className={styles.sourcesNote}>
+                  <p id={fieldId('sources-hint')} className={styles.sourcesHint}>
+                    <span aria-hidden="true">💡 </span>
                     Au moins l&apos;un des deux est nécessaire ({MIN_CHARS} caractères minimum). Ton texte est
                     enregistré automatiquement sur cet appareil jusqu&apos;à la génération.
                   </p>
                   {showErrors && errors.sources && (
-                    <p id={fieldId('sources-error')} className={styles.fieldError}>{errors.sources}</p>
+                    <p id={fieldId('sources-error')} className={bits.fieldError}>
+                      <span aria-hidden="true">⚠️</span> {errors.sources}
+                    </p>
                   )}
-                </fieldset>
-              )}
-
-              {submitError && (
-                <div className={`alert alert-error ${shared.inlineAlert} ${styles.submitAlert}`} role="alert">
-                  ⚠️ {submitError}
                 </div>
-              )}
+              </fieldset>
+            )}
 
-              {form && (
-                <div className={styles.footer}>
-                  <div className={styles.saveState}>
-                    {storageFailed
-                      ? '⚠️ Brouillon non enregistré (stockage du navigateur indisponible)'
-                      : savedAt && hasContent
-                        ? `Brouillon enregistré à ${formatTime(savedAt)}`
-                        : ''}
-                  </div>
-                  <div className={styles.footerButtons}>
-                    {hasContent && !locked && (
-                      <button type="button" className="btn btn-ghost" onClick={() => setConfirmClear(true)}>
-                        Vider le formulaire
-                      </button>
-                    )}
-                    <button
-                      type="submit"
-                      className={`btn btn-primary btn-lg ${styles.submit}`}
-                      disabled={locked || !students}
-                      aria-busy={phase === 'generating' || undefined}
-                    >
-                      {phase === 'generating' ? (
-                        <>
-                          <span className={`spinner ${styles.btnSpinner}`} aria-hidden="true" /> Génération en cours…
-                        </>
-                      ) : (
-                        '✨ Générer la leçon'
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </form>
-          )}
-        </div>
+            {submitError && (
+              <div className={`${bits.alert} ${bits.error}`} role="alert">
+                <span className={bits.alertIcon} aria-hidden="true">⚠️</span>
+                <span className={bits.alertBody}>{submitError}</span>
+              </div>
+            )}
 
-        <ConfirmDialog
-          open={confirmClear}
-          title="Vider le formulaire ?"
-          message="Le titre, la transcription et les notes Canva seront effacés, ainsi que le brouillon enregistré."
-          confirmLabel="Vider"
-          danger
-          onConfirm={clearForm}
-          onCancel={() => setConfirmClear(false)}
-        />
-      </AppShell>
-    </div>
+            {form && (
+              <div className={`${styles.actionBar} no-print`}>
+                <button
+                  type="submit"
+                  className={`${ui.btn} ${ui.green} ${ui.block} ${styles.submit}`}
+                  disabled={locked || !students}
+                  aria-busy={phase === 'generating' || undefined}
+                >
+                  {phase === 'generating' ? (
+                    <>
+                      <span className={bits.spinner} aria-hidden="true" /> Génération en cours…
+                    </>
+                  ) : (
+                    <>
+                      <span aria-hidden="true">✨</span> Générer la leçon
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </form>
+        )}
+      </div>
+
+      <ConfirmDialog
+        open={confirmClear}
+        title="Vider le formulaire ?"
+        message="Le titre, la transcription et les notes Canva seront effacés, ainsi que le brouillon enregistré."
+        confirmLabel="Vider"
+        icon="🧹"
+        danger
+        onConfirm={clearForm}
+        onCancel={() => setConfirmClear(false)}
+      />
+    </TeacherShell>
   )
 }

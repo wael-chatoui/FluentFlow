@@ -1,0 +1,139 @@
+/* Supabase Auth UI overrides (classes passed via appearance.className in authUi.js).
+   The Auth UI styles itself with one runtime (stitches) class per element: the
+   `.form` prefix gives our rules a higher specificity, no !important needed.
+   Colors, fonts, radii and sizes come from the appearance variables. */
+
+.form {
+  width: 100%;
+}
+
+/* ---- Buttons: chunky 3D ---- */
+.form .button {
+  position: relative;
+  min-height: 52px;
+  border-width: 2px;
+  border-bottom-width: 4px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: transform 80ms ease, border-bottom-width 80ms ease, filter 150ms ease, background-color 150ms ease;
+}
+
+.form .button:active:not(:disabled) {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+  margin-bottom: 2px;
+}
+
+.form .button:focus-visible {
+  outline: 3px solid var(--st-blue);
+  outline-offset: 2px;
+}
+
+.form .button:disabled {
+  cursor: progress;
+}
+
+/* Google (the only non-submit button): white with dark text */
+.form .button:not([type='submit']) {
+  color: var(--st-ink);
+}
+
+.form .button:not([type='submit']) svg {
+  flex: none;
+}
+
+/* Primary submit: green, a touch brighter on hover (not darker) */
+.form .button[type='submit']:hover:not(:disabled) {
+  background-color: var(--st-green);
+  filter: brightness(1.06);
+}
+
+/* ---- "OR" divider ---- */
+.form .divider {
+  position: relative;
+  height: 2px;
+  margin: 1.1rem 0;
+  overflow: visible;
+}
+
+.form .divider::after {
+  content: 'or';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 0 0.75rem;
+  background: var(--st-surface);
+  color: var(--st-ink-soft);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+/* ---- Fields ---- */
+.form .label {
+  font-weight: 800;
+}
+
+.form .input {
+  min-height: 52px;
+  font-weight: 700;
+  transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.form .input:focus {
+  background: var(--st-surface);
+  box-shadow: 0 0 0 3px var(--st-blue-bg);
+}
+
+.form .input::placeholder {
+  font-weight: 600;
+}
+
+/* ---- Links ---- */
+.form .anchor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 0.5rem;
+  border-radius: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.form .anchor:hover {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.form .anchor:focus-visible {
+  outline: 3px solid var(--st-blue);
+  outline-offset: 0;
+}
+
+/* ---- Info / error messages ---- */
+.form .message {
+  margin: 0;
+  padding: 0.8rem 1rem;
+  border-width: 2px;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .form .button,
+  .form .input {
+    transition: none;
+  }
+}

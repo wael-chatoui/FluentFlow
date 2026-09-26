@@ -72,10 +72,10 @@ export default function LessonView({ content }) {
   if (isEmpty) {
     return (
       <div className={`lesson-view ${styles.root}`}>
-        <div className="empty-state">
-          <div className="empty-state-icon" aria-hidden="true">📄</div>
-          <div className="empty-state-title">This recap is empty</div>
-        </div>
+        <p style={{ margin: 0, padding: '2rem 1rem', textAlign: 'center', fontWeight: 800, color: 'var(--st-ink-soft, #777)' }}>
+          <span aria-hidden="true" style={{ display: 'block', fontSize: '2.5rem' }}>📄</span>
+          This recap is empty
+        </p>
       </div>
     )
   }

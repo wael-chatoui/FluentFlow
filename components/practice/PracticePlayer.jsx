@@ -76,6 +76,9 @@ function ConfirmExit({ onStay, onQuit }) {
         onKeyDown={onKeyDown}
         onClick={(e) => e.stopPropagation()}
       >
+        <span className={styles.dialogEmoji} aria-hidden="true">
+          🥺
+        </span>
         <h2 id={titleId} className={styles.dialogTitle}>
           Quit this practice? Your progress in this session will be lost.
         </h2>
@@ -459,10 +462,10 @@ export default function PracticePlayer({ exercises, onComplete, onExit, labels: 
       <div className={styles.player}>
         <div className={styles.body}>
           <div className={cx(styles.content, styles.emptyContent)}>
-            <div className="empty-state">
-              <div className="empty-state-icon" aria-hidden="true">🧩</div>
-              <div className="empty-state-title">No exercises to practise</div>
-              <div className="empty-state-text">This lesson doesn&apos;t have any exercises yet.</div>
+            <div className={styles.empty}>
+              <span className={styles.emptyEmoji} aria-hidden="true">🧩</span>
+              <p className={styles.emptyTitle}>No exercises to practise</p>
+              <p className={styles.emptyText}>This lesson doesn&apos;t have any exercises yet.</p>
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import StatusBadge from '@/components/teacher/StatusBadge'
 import Skeleton from '@/components/teacher/Skeleton'
+import { accentStyle } from '@/components/ui/accents'
 import { formatLessonDate, parseLocalDate, plural } from '@/components/teacher/format'
 import styles from '@/components/teacher/LessonList.module.css'
 
@@ -13,25 +14,74 @@ function sortNewestFirst(lessons) {
   })
 }
 
-function scoreText(lesson) {
+function bestPct(lesson) {
   if (lesson.best_score == null || !lesson.best_total) return null
-  return `${lesson.best_score}/${lesson.best_total}`
+  const pct = Math.round((Number(lesson.best_score) / Number(lesson.best_total)) * 100)
+  return Number.isFinite(pct) ? Math.max(0, Math.min(100, pct)) : null
 }
 
-/** Lessons of one student, newest first, each linking to the teacher lesson page. */
+// Bars are colored by score (not by lesson) so red always means "needs work"
+function scoreTone(pct) {
+  const tone = pct >= 80 ? 'green' : pct >= 50 ? 'orange' : 'red'
+  return { '--score': `var(--st-${tone})` }
+}
+
+function Footer({ lesson }) {
+  if (lesson.status === 'generating') {
+    return (
+      <p className={`${styles.note} ${styles.noteBlue}`}>
+        <span aria-hidden="true">⏳</span>
+        <span className={styles.noteText}>Génération en cours…</span>
+      </p>
+    )
+  }
+  if (lesson.status === 'failed') {
+    return (
+      <p className={`${styles.note} ${styles.noteRed}`} title={lesson.error || undefined}>
+        <span aria-hidden="true">⚠️</span>
+        <span className={styles.noteText}>{lesson.error || 'La génération a échoué.'}</span>
+      </p>
+    )
+  }
+  if (lesson.status !== 'published') return null
+
+  const pct = bestPct(lesson)
+  const attempts = lesson.attempts || 0
+  if (pct === null) {
+    return (
+      <p className={styles.note}>
+        <span aria-hidden="true">🌱</span>
+        <span className={styles.noteText}>Pas encore pratiquée</span>
+      </p>
+    )
+  }
+  return (
+    <div className={styles.progress} style={scoreTone(pct)}>
+      <span className={styles.track} aria-hidden="true">
+        <span className={styles.fill} style={{ width: `${Math.max(pct, 4)}%` }} />
+      </span>
+      <span className={styles.score}>
+        Meilleur score <strong>{lesson.best_score}/{lesson.best_total}</strong>
+        <span className={styles.attempts}> · {plural(attempts, 'tentative')}</span>
+      </span>
+    </div>
+  )
+}
+
+/** Lessons of one student, newest first, each card linking to the teacher lesson page. */
 export default function LessonList({ lessons }) {
   const sorted = sortNewestFirst(lessons || [])
 
   return (
     <ul className={styles.list}>
-      {sorted.map((lesson) => {
+      {sorted.map((lesson, i) => {
         const date = parseLocalDate(lesson.lesson_date)
-        const score = scoreText(lesson)
-        const attempts = lesson.attempts || 0
+        const title = lesson.title?.trim() || 'Leçon sans titre'
+        const count = lesson.exercise_count || 0
         return (
-          <li key={lesson.id}>
-            <Link href={`/teacher/lessons/${lesson.id}`} className={styles.item}>
-              <div className={styles.date} aria-hidden="true">
+          <li key={lesson.id} className={styles.item} style={{ ...accentStyle(lesson.id), '--i': Math.min(i, 6) }}>
+            <Link href={`/teacher/lessons/${lesson.id}`} className={styles.card}>
+              <span className={styles.tile} aria-hidden="true">
                 {date ? (
                   <>
                     <span className={styles.day}>{date.getDate()}</span>
@@ -40,41 +90,29 @@ export default function LessonList({ lessons }) {
                     </span>
                   </>
                 ) : (
-                  <span className={styles.month}>—</span>
+                  <span className={styles.day}>—</span>
                 )}
-              </div>
+              </span>
 
-              <div className={styles.body}>
-                <div className={styles.titleRow}>
-                  <span className={styles.title}>{lesson.title?.trim() || 'Leçon sans titre'}</span>
+              <span className={styles.body}>
+                <span className={styles.top}>
+                  <time className={styles.date} dateTime={lesson.lesson_date || undefined}>
+                    {formatLessonDate(lesson.lesson_date)}
+                  </time>
                   <StatusBadge status={lesson.status} />
-                </div>
-                <div className={styles.meta}>
-                  <span>{formatLessonDate(lesson.lesson_date)}</span>
-                  {lesson.status === 'published' && (
-                    <>
-                      <span>{plural(lesson.exercise_count || 0, 'exercice')}</span>
-                      <span>
-                        {score ? (
-                          <>
-                            Meilleur score <strong className={styles.score}>{score}</strong>
-                            {' · '}
-                            {plural(attempts, 'tentative')}
-                          </>
-                        ) : (
-                          'Pas encore pratiquée'
-                        )}
-                      </span>
-                    </>
-                  )}
-                  {lesson.status === 'generating' && <span>Génération en cours…</span>}
-                </div>
-                {lesson.status === 'failed' && lesson.error && (
-                  <div className={styles.error}>{lesson.error}</div>
+                </span>
+                <span className={styles.title}>{title}</span>
+                {lesson.status === 'published' && (
+                  <span className={styles.meta}>
+                    {count > 0 ? plural(count, 'exercice') : 'Aucun exercice'}
+                  </span>
                 )}
-              </div>
+              </span>
 
-              <span className={styles.chevron} aria-hidden="true">›</span>
+              <span className={styles.footer}>
+                <Footer lesson={lesson} />
+                <span className={styles.chevron} aria-hidden="true">›</span>
+              </span>
             </Link>
           </li>
         )
@@ -87,13 +125,17 @@ export function LessonListSkeleton({ rows = 3 }) {
   return (
     <ul className={styles.list} aria-hidden="true">
       {Array.from({ length: rows }, (_, i) => (
-        <li key={i}>
-          <div className={styles.item}>
-            <Skeleton width={48} height={48} radius={10} />
-            <div className={styles.body}>
-              <Skeleton width="60%" height={16} />
-              <Skeleton width="80%" height={12} style={{ marginTop: 8 }} />
-            </div>
+        <li key={i} className={styles.item}>
+          <div className={`${styles.card} ${styles.skeleton}`}>
+            <Skeleton width={52} height={52} radius={14} />
+            <span className={styles.body}>
+              <Skeleton width="35%" height={12} />
+              <Skeleton width="75%" height={18} style={{ marginTop: 8 }} />
+              <Skeleton width="30%" height={12} style={{ marginTop: 8 }} />
+            </span>
+            <span className={styles.footer}>
+              <Skeleton height={12} radius={999} style={{ flex: 1 }} />
+            </span>
           </div>
         </li>
       ))}

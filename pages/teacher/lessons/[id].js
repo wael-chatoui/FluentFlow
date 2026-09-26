@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import AppShell from '@/components/AppShell'
 import LessonView from '@/components/lesson/LessonView'
 import { api } from '@/utils/apiClient'
 import ConfirmDialog from '@/components/teacher/ConfirmDialog'
@@ -12,12 +11,16 @@ import GenerationProgress from '@/components/teacher/GenerationProgress'
 import LessonResults from '@/components/teacher/LessonResults'
 import LessonSources from '@/components/teacher/LessonSources'
 import PageState from '@/components/teacher/PageState'
-import Skeleton from '@/components/teacher/Skeleton'
 import StatusBadge from '@/components/teacher/StatusBadge'
 import Tabs from '@/components/teacher/Tabs'
-import { formatLessonDate, isAbortError, isValidId } from '@/components/teacher/format'
+import TeacherShell from '@/components/teacher/TeacherShell'
+import BackLink from '@/components/teacher/lessons/BackLink'
+import { lessonEmoji } from '@/components/student/lessons/progress'
+import { accentStyle } from '@/components/ui/accents'
+import { formatLessonDate, isAbortError, isValidId, plural } from '@/components/teacher/format'
 import { useBeforeUnload, useMountedRef } from '@/components/teacher/hooks'
-import shared from '@/components/teacher/Teacher.module.css'
+import ui from '@/components/ui/ui.module.css'
+import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/LessonPage.module.css'
 
 const POLL_MS = 4000
@@ -290,12 +293,17 @@ export default function TeacherLessonPage() {
   const studentHref = lesson?.student_id ? `/teacher/students/${lesson.student_id}` : '/teacher'
   const title = lesson ? lessonTitle(lesson) : invalid || notFound ? 'Leçon introuvable' : 'Leçon'
 
+
   const tabs = [
     { key: 'recap', label: 'Bilan' },
-    { key: 'exercises', label: `Exercices (${exercises.length})` },
-    { key: 'results', label: `Résultats (${sessions.length})` },
+    { key: 'exercises', label: 'Exercices', count: exercises.length },
+    { key: 'results', label: 'Résultats', count: sessions.length },
     { key: 'sources', label: 'Sources' },
   ]
+
+  const backLink = lesson?.student_id
+    ? { href: studentHref, label: lesson.student_name || "Fiche de l'élève" }
+    : { href: '/teacher', label: 'Mes élèves' }
 
   let body
   if (invalid || notFound) {
@@ -311,63 +319,102 @@ export default function TeacherLessonPage() {
     body = <PageState role="alert" title="Impossible de charger la leçon" text={loadError} onRetry={load} />
   } else if (loading) {
     body = (
-      <div className={shared.stack} aria-hidden="true">
-        <div className={styles.metaCard}>
-          <Skeleton width="50%" height={16} />
-          <Skeleton width="35%" height={14} style={{ marginTop: 10 }} />
-        </div>
-        <div className={styles.tabsCard}>
-          <Skeleton width="60%" height={36} radius={8} />
-          <div className={styles.panel}>
-            <Skeleton width="90%" height={14} />
-            <Skeleton width="80%" height={14} style={{ marginTop: 10 }} />
-            <Skeleton width="85%" height={14} style={{ marginTop: 10 }} />
-            <Skeleton width="40%" height={14} style={{ marginTop: 10 }} />
-            <Skeleton height={120} style={{ marginTop: 20 }} radius={10} />
+      <div className={styles.stack} aria-hidden="true">
+        <div className={`${styles.header} ${styles.headerSkeleton}`}>
+          <div className={styles.headTop}>
+            <span className={`${ui.skel} ${styles.tileSkel}`} />
+            <div className={styles.headText}>
+              <span className={ui.skel} style={{ width: '45%', height: 12 }} />
+              <span className={ui.skel} style={{ width: '85%', height: 28, marginTop: 10 }} />
+            </div>
           </div>
+          <span className={ui.skel} style={{ width: '60%', height: 32 }} />
+          <span className={ui.skel} style={{ height: 48, borderRadius: 16 }} />
         </div>
+        <span className={ui.skel} style={{ height: 52, borderRadius: 16 }} />
+        <span className={ui.skel} style={{ height: 220, borderRadius: 20 }} />
       </div>
     )
   } else {
+    const busy = regenerating || deleting
     body = (
-      <div className={shared.stack}>
-        <section className={styles.metaCard} aria-label="Informations">
+      <div className={styles.stack}>
+        <header className={styles.header} style={accentStyle(lesson.id)}>
+          <div className={styles.headTop}>
+            <span className={styles.tile} aria-hidden="true">
+              {lessonEmoji(lesson.id)}
+            </span>
+            <div className={styles.headText}>
+              <time className={styles.date} dateTime={lesson.lesson_date || undefined}>
+                {formatLessonDate(lesson.lesson_date, { long: true })}
+              </time>
+              <h1 className={styles.title}>{title}</h1>
+            </div>
+          </div>
+
           <div className={styles.metaRow}>
             <StatusBadge status={status} />
-            <span className={styles.metaItem}>
-              <span aria-hidden="true">👤 </span>
-              {lesson.student_id ? (
-                <Link href={studentHref} className={styles.studentLink}>
-                  {lesson.student_name || 'Élève'}
-                </Link>
+            {lesson.student_id ? (
+              <Link href={studentHref} className={`${styles.metaPill} ${styles.studentLink}`}>
+                <span aria-hidden="true">👤</span>
+                <span className={styles.metaText}>{lesson.student_name || 'Élève'}</span>
+              </Link>
+            ) : (
+              <span className={styles.metaPill}>
+                <span aria-hidden="true">👤</span>
+                <span className={styles.metaText}>{lesson.student_name || 'Élève supprimé'}</span>
+              </span>
+            )}
+            {status === 'published' && (
+              <span className={styles.metaPill}>
+                <span aria-hidden="true">🧩</span> {plural(exercises.length, 'exercice')}
+              </span>
+            )}
+          </div>
+
+          <div className={`${styles.actions} no-print`}>
+            <button
+              type="button"
+              className={`${ui.btn} ${bits.blueGhost} ${styles.actionBtn}`}
+              onClick={() => setConfirm('regenerate')}
+              disabled={!canRegenerate}
+            >
+              {regenerating ? (
+                <>
+                  <span className={bits.spinner} aria-hidden="true" /> Régénération…
+                </>
               ) : (
-                lesson.student_name || 'Élève supprimé'
+                <>
+                  <span aria-hidden="true">🔄</span> Régénérer
+                </>
               )}
-            </span>
-            <span className={styles.metaItem}>
-              <span aria-hidden="true">📅 </span>
-              {formatLessonDate(lesson.lesson_date, { long: true })}
-            </span>
+            </button>
+            <button
+              type="button"
+              className={`${ui.btn} ${bits.redGhost} ${styles.actionBtn}`}
+              onClick={() => setConfirm('delete')}
+              disabled={busy}
+            >
+              <span aria-hidden="true">🗑️</span> Supprimer
+            </button>
           </div>
-          <div className={styles.driveRow}>
-            <DriveLinkEditor
-              key={lesson.id}
-              value={lesson.drive_url || ''}
-              onSave={handleDriveSave}
-              disabled={regenerating || deleting}
-            />
+
+          <div className={styles.drive}>
+            <DriveLinkEditor key={lesson.id} value={lesson.drive_url || ''} onSave={handleDriveSave} disabled={busy} />
           </div>
-        </section>
+        </header>
 
         {notice && (
-          <div className="alert alert-success" role="status">
-            {notice}
+          <div className={`${bits.alert} ${bits.success}`} role="status">
+            <span className={bits.alertIcon} aria-hidden="true">🎉</span>
+            <span className={bits.alertBody}>{notice}</span>
           </div>
         )}
 
         {actionError && (
-          <div className={`alert alert-error ${shared.inlineAlert}`} role="alert">
-            <span>⚠️ {actionError}</span>
+          <div className={`${bits.alert} ${bits.error}`} role="alert">
+            <span className={bits.alertIcon} aria-hidden="true">⚠️</span>
+            <span className={bits.alertBody}>{actionError}</span>
           </div>
         )}
 
@@ -377,11 +424,20 @@ export default function TeacherLessonPage() {
             heading={regenerating ? 'Régénération de la leçon…' : 'Génération en cours…'}
             note={
               staleGeneration ? (
-                <div className={`alert ${shared.alertWarning} ${styles.staleAlert}`}>
-                  <span>La génération semble bloquée depuis plus de 5 minutes.</span>
-                  <button type="button" className="btn btn-primary btn-sm" onClick={() => setConfirm('regenerate')}>
-                    🔄 Relancer
-                  </button>
+                <div className={`${bits.alert} ${bits.warning}`}>
+                  <span className={bits.alertIcon} aria-hidden="true">⏳</span>
+                  <div className={bits.alertBody}>
+                    <span>La génération semble bloquée depuis plus de 5 minutes.</span>
+                    <div className={bits.alertActions}>
+                      <button
+                        type="button"
+                        className={`${ui.btn} ${ui.small} ${ui.orange} ${bits.tap}`}
+                        onClick={() => setConfirm('regenerate')}
+                      >
+                        <span aria-hidden="true">🔄</span> Relancer
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ) : !regenerating ? (
                 'La page se met à jour automatiquement.'
@@ -392,7 +448,7 @@ export default function TeacherLessonPage() {
 
         {status === 'failed' && (
           <section className={styles.failed} role="alert" aria-labelledby="lesson-failed-title">
-            <div className={styles.failedIcon} aria-hidden="true">⚠️</div>
+            <span className={styles.failedIcon} aria-hidden="true">😵</span>
             <div className={styles.failedBody}>
               <h2 id="lesson-failed-title" className={styles.failedTitle}>La génération a échoué</h2>
               <p className={styles.failedError}>{lesson.error || 'Erreur inconnue.'}</p>
@@ -401,18 +457,18 @@ export default function TeacherLessonPage() {
               </p>
               <button
                 type="button"
-                className="btn btn-primary"
+                className={`${ui.btn} ${ui.blue} ${styles.failedBtn}`}
                 onClick={() => setConfirm('regenerate')}
                 disabled={!canRegenerate}
               >
-                🔄 Régénérer
+                <span aria-hidden="true">🔄</span> Régénérer
               </button>
             </div>
           </section>
         )}
 
         {status === 'published' && (
-          <section className={styles.tabsCard}>
+          <section className={styles.content} aria-label="Contenu de la leçon">
             <Tabs tabs={tabs} active={tab} onChange={setTab} idPrefix="lesson" label="Contenu de la leçon" />
             <div
               role="tabpanel"
@@ -425,24 +481,26 @@ export default function TeacherLessonPage() {
                 (lesson.content ? (
                   <LessonView content={lesson.content} />
                 ) : (
-                  <p className={shared.muted}>Aucun bilan pour cette leçon.</p>
+                  <p className={styles.muted}>Aucun bilan pour cette leçon.</p>
                 ))}
               {tab === 'exercises' && (
                 <>
                   {exerciseError && (
-                    <div className={`alert alert-error ${shared.inlineAlert} ${styles.panelAlert}`} role="alert">
-                      ⚠️ {exerciseError}
+                    <div className={`${bits.alert} ${bits.error}`} role="alert">
+                      <span className={bits.alertIcon} aria-hidden="true">⚠️</span>
+                      <span className={bits.alertBody}>{exerciseError}</span>
                     </div>
                   )}
                   <p className={styles.panelIntro}>
-                    Les bonnes réponses sont surlignées. Supprime un exercice s&apos;il n&apos;est pas pertinent :
-                    il disparaîtra aussi chez l&apos;élève.
+                    <span aria-hidden="true">✅ </span>
+                    Les bonnes réponses sont surlignées en vert. Supprime un exercice s&apos;il n&apos;est pas
+                    pertinent : il disparaîtra aussi chez l&apos;élève.
                   </p>
                   <ExerciseReview
                     exercises={exercises}
                     onRemove={handleRemoveExercise}
                     removingIds={removingIds}
-                    disabled={regenerating || deleting || removingIds.size > 0}
+                    disabled={busy || removingIds.size > 0}
                   />
                 </>
               )}
@@ -455,88 +513,54 @@ export default function TeacherLessonPage() {
         )}
 
         {status !== 'published' && (
-          <section className="dashboard-section" aria-labelledby="lesson-sources-title">
-            <div className="dashboard-section-header">
-              <h2 id="lesson-sources-title" className="dashboard-section-title">📄 Sources</h2>
-            </div>
-            <div className="dashboard-section-body">
-              <LessonSources transcript={lesson.transcript} canva={lesson.canva} aiModel={lesson.ai_model} />
-            </div>
+          <section aria-labelledby="lesson-sources-title">
+            <h2 id="lesson-sources-title" className={ui.sectionTitle}>
+              <span aria-hidden="true">📄 </span>Sources
+            </h2>
+            <LessonSources transcript={lesson.transcript} canva={lesson.canva} aiModel={lesson.ai_model} />
           </section>
         )}
       </div>
     )
   }
 
-  const showActions = Boolean(lesson) && !invalid && !notFound
-
   return (
-    <div className={shared.page}>
+    <TeacherShell>
       <Head>
         <title>{`${title} — Preply Lessons`}</title>
       </Head>
-      <AppShell
-        title={title}
-        back={
-          lesson?.student_id
-            ? { href: studentHref, label: lesson.student_name || "Fiche de l'élève" }
-            : { href: '/teacher', label: 'Mes élèves' }
-        }
-        actions={
-          showActions ? (
-            <>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setConfirm('regenerate')}
-                disabled={!canRegenerate}
-              >
-                {regenerating ? (
-                  <>
-                    <span className={`spinner ${styles.btnSpinner}`} aria-hidden="true" /> Régénération…
-                  </>
-                ) : (
-                  '🔄 Régénérer'
-                )}
-              </button>
-              <button
-                type="button"
-                className={`btn btn-ghost ${styles.deleteButton}`}
-                onClick={() => setConfirm('delete')}
-                disabled={regenerating || deleting}
-              >
-                🗑️ Supprimer
-              </button>
-            </>
-          ) : undefined
-        }
-      >
-        {loading && <span className="sr-only" role="status">Chargement de la leçon…</span>}
-        {body}
+      <BackLink href={backLink.href} label={backLink.label} />
+      {loading && (
+        <span className="sr-only" role="status">
+          Chargement de la leçon…
+        </span>
+      )}
+      {(invalid || notFound || loadError) && <h1 className="sr-only">{title}</h1>}
+      {body}
 
-        <ConfirmDialog
-          open={confirm === 'regenerate'}
-          title="Régénérer la leçon ?"
-          message={
-            status === 'published'
-              ? "Le bilan et les exercices actuels seront remplacés par une nouvelle version, à partir de la même transcription et des mêmes notes. L'élève verra la nouvelle version."
-              : 'La génération va être relancée à partir de la transcription et des notes enregistrées.'
-          }
-          confirmLabel="Régénérer"
-          onConfirm={handleRegenerate}
-          onCancel={() => setConfirm(null)}
-        />
-        <ConfirmDialog
-          open={confirm === 'delete'}
-          title="Supprimer la leçon ?"
-          message="La leçon, ses exercices et les résultats de l'élève seront définitivement supprimés."
-          confirmLabel={deleting ? 'Suppression…' : 'Supprimer'}
-          danger
-          busy={deleting}
-          onConfirm={handleDelete}
-          onCancel={() => setConfirm(null)}
-        />
-      </AppShell>
-    </div>
+      <ConfirmDialog
+        open={confirm === 'regenerate'}
+        title="Régénérer la leçon ?"
+        message={
+          status === 'published'
+            ? "Le bilan et les exercices actuels seront remplacés par une nouvelle version, à partir de la même transcription et des mêmes notes. L'élève verra la nouvelle version."
+            : 'La génération va être relancée à partir de la transcription et des notes enregistrées.'
+        }
+        confirmLabel="Régénérer"
+        icon="🔄"
+        onConfirm={handleRegenerate}
+        onCancel={() => setConfirm(null)}
+      />
+      <ConfirmDialog
+        open={confirm === 'delete'}
+        title="Supprimer la leçon ?"
+        message="La leçon, ses exercices et les résultats de l'élève seront définitivement supprimés."
+        confirmLabel={deleting ? 'Suppression…' : 'Supprimer'}
+        danger
+        busy={deleting}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirm(null)}
+      />
+    </TeacherShell>
   )
 }

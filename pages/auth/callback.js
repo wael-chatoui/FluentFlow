@@ -3,6 +3,9 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { createClient } from '@/utils/supabase/client'
 import { api } from '@/utils/apiClient'
+import AuthScreen, { AuthHeader } from '@/components/auth/AuthScreen'
+import LoadingScreen from '@/components/ui/LoadingScreen'
+import ui from '@/components/ui/ui.module.css'
 
 const TIMEOUT_MS = 10000
 
@@ -97,21 +100,22 @@ export default function AuthCallbackPage() {
     }
   }, [])
 
+  if (!failed) return <LoadingScreen message="Signing you in…" />
+
   return (
-    <div className="auth-callback" role="status">
-      {failed ? (
-        <>
-          <p>Sign-in didn&apos;t complete: {failed}</p>
-          <Link href="/login" className="btn btn-primary" style={{ minHeight: 44 }}>
-            Back to sign in
-          </Link>
-        </>
-      ) : (
-        <>
-          <div className="spinner spinner-lg" aria-hidden="true" />
-          <p>Signing you in…</p>
-        </>
-      )}
-    </div>
+    <AuthScreen labelledBy="callback-title">
+      <div role="alert">
+        <AuthHeader
+          id="callback-title"
+          emoji="😕"
+          tone="orange"
+          title="Sign-in didn’t complete"
+          subtitle={failed}
+        />
+      </div>
+      <Link href="/login" className={`${ui.btn} ${ui.green} ${ui.block}`}>
+        Back to sign in
+      </Link>
+    </AuthScreen>
   )
 }

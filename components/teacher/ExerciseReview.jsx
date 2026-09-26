@@ -1,13 +1,17 @@
 import { Fragment, useState } from 'react'
 import ConfirmDialog from '@/components/teacher/ConfirmDialog'
+import EmptyNote from '@/components/teacher/lessons/EmptyNote'
 import { EXERCISE_TYPE_LABELS } from '@/components/teacher/format'
 import { BLANK } from '@/utils/lesson/schema'
+import ui from '@/components/ui/ui.module.css'
+import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/ExerciseReview.module.css'
 
-const TYPE_BADGE = {
-  mcq: 'badge badge-blue',
-  fill_blank: 'badge badge-pink',
-  match: 'badge badge-green',
+// Type pill color + icon: QCM blue, Trous orange, Association purple
+const TYPE_META = {
+  mcq: { tone: styles.blue, icon: '🔘' },
+  fill_blank: { tone: styles.orange, icon: '✏️' },
+  match: { tone: styles.purple, icon: '🔗' },
 }
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
@@ -31,7 +35,7 @@ function Sentence({ text, fill }) {
         <Fragment key={i}>
           <Inline text={piece} />
           {i < pieces.length - 1 && (
-            <span className={styles.blank}>
+            <span className={`${styles.blank} ${fill ? styles.blankFilled : ''}`}>
               {fill ? fill : <span className="sr-only">(blanc)</span>}
             </span>
           )}
@@ -74,13 +78,17 @@ function FillBlankBody({ exercise }) {
         </span>
         <ul className={styles.chips}>
           {answers.map((a, i) => (
-            <li key={i} className={styles.chip}>{a}</li>
+            <li key={i} className={styles.chip}>
+              <span aria-hidden="true">✓ </span>
+              {a}
+            </li>
           ))}
         </ul>
       </div>
       {exercise.hint && (
         <p className={styles.hint}>
-          <span aria-hidden="true">🔎 </span>Indice : <Inline text={exercise.hint} />
+          <span aria-hidden="true">🔎 </span>
+          <strong>Indice :</strong> <Inline text={exercise.hint} />
         </p>
       )}
     </>
@@ -92,10 +100,10 @@ function MatchBody({ exercise }) {
     <ul className={styles.pairs}>
       {(exercise.pairs || []).map((pair) => (
         <li key={`${pair.fr}|${pair.en}`} className={styles.pair}>
-          <span className={styles.pairFr} lang="fr">{pair.fr}</span>
+          <span className={`${styles.tile} ${styles.tileFr}`} lang="fr">{pair.fr}</span>
           <span className={styles.pairArrow} aria-hidden="true">↔</span>
           <span className="sr-only"> : </span>
-          <span className={styles.pairEn} lang="en">{pair.en}</span>
+          <span className={styles.tile} lang="en">{pair.en}</span>
         </li>
       ))}
     </ul>
@@ -114,13 +122,12 @@ export default function ExerciseReview({ exercises, onRemove, removingIds, disab
 
   if (list.length === 0) {
     return (
-      <div className="empty-state">
-        <div className="empty-state-icon" aria-hidden="true">🧩</div>
-        <div className="empty-state-title">Aucun exercice</div>
-        <div className="empty-state-text">
-          Cette leçon n&apos;a pas d&apos;exercices. Tu peux la régénérer pour en créer.
-        </div>
-      </div>
+      <EmptyNote
+        emoji="🧩"
+        tone="purple"
+        title="Aucun exercice"
+        text="Cette leçon n'a pas d'exercices. Tu peux la régénérer pour en créer."
+      />
     )
   }
 
@@ -129,23 +136,27 @@ export default function ExerciseReview({ exercises, onRemove, removingIds, disab
       <ol className={styles.list}>
         {list.map((exercise, index) => {
           const Body = BODIES[exercise.type]
+          const meta = TYPE_META[exercise.type]
           const removing = removingIds?.has(exercise.id)
           return (
-            <li key={exercise.id} className={styles.item}>
+            <li key={exercise.id} className={`${styles.item} ${removing ? styles.removing : ''}`}>
               <div className={styles.head}>
-                <span className={styles.number}>{index + 1}</span>
-                <span className={TYPE_BADGE[exercise.type] || 'badge badge-gray'}>
+                <span className={styles.number} aria-hidden="true">{index + 1}</span>
+                <span className="sr-only">Exercice {index + 1} : </span>
+                <span className={`${styles.type} ${meta?.tone || styles.gray}`}>
+                  {meta && <span aria-hidden="true">{meta.icon}</span>}
                   {EXERCISE_TYPE_LABELS[exercise.type] || exercise.type}
                 </span>
                 {onRemove && (
                   <button
                     type="button"
-                    className={`btn btn-ghost btn-sm ${styles.remove}`}
+                    className={`${ui.btn} ${ui.small} ${bits.redGhost} ${bits.tap} ${styles.remove}`}
                     onClick={() => setPending(exercise)}
                     disabled={disabled || removing}
                     aria-label={`Supprimer l'exercice ${index + 1}`}
                   >
-                    🗑️ Supprimer
+                    {removing ? <span className={bits.spinner} aria-hidden="true" /> : <span aria-hidden="true">🗑️</span>}
+                    <span className={styles.removeLabel}>Supprimer</span>
                   </button>
                 )}
               </div>
