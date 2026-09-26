@@ -2,23 +2,49 @@ import { useEffect, useState } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import AppShell from '@/components/AppShell'
+import StudentShell from '@/components/student/StudentShell'
 import LessonView from '@/components/lesson/LessonView'
-import ScoreRing from '@/components/lesson/ScoreRing'
-import { formatLessonDate, plural } from '@/components/lesson/format'
+import MasteryRing from '@/components/student/lessons/MasteryRing'
+import { EmptyState, ErrorCard } from '@/components/student/lessons/StatusViews'
+import { lessonEmoji } from '@/components/student/lessons/progress'
+import { accentStyle } from '@/components/student/accents'
+import { formatLessonDate, percent, plural } from '@/components/lesson/format'
 import { api } from '@/utils/apiClient'
 import { safeHttpsUrl } from '@/utils/lesson/schema'
-import styles from '@/components/lesson/StudentPages.module.css'
+import ui from '@/components/student/ui.module.css'
+import styles from '@/components/student/lessons/LessonPage.module.css'
 
-const BACK = { href: '/student', label: 'My lessons' }
+const DATE_OPTS = { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }
+
+function BackLink() {
+  return (
+    <Link href="/student/lessons" className={`${styles.back} no-print`}>
+      <span aria-hidden="true">‹</span> All lessons
+    </Link>
+  )
+}
 
 function LessonSkeleton() {
   return (
     <div aria-hidden="true">
-      <span className={styles.skel} style={{ width: '40%', height: 14, marginBottom: 20 }} />
-      <span className={styles.skel} style={{ width: '100%', height: 84, borderRadius: 16, marginBottom: 20 }} />
-      <span className={styles.skel} style={{ width: '100%', height: 180, borderRadius: 16, marginBottom: 20 }} />
-      <span className={styles.skel} style={{ width: '100%', height: 240, borderRadius: 16 }} />
+      <div className={`${styles.header} ${styles.headerSkeleton}`}>
+        <div className={styles.headTop}>
+          <span className={`${ui.skel} ${styles.tileSkel}`} />
+          <div className={styles.headText}>
+            <span className={ui.skel} style={{ width: '45%', height: 12 }} />
+            <span className={ui.skel} style={{ width: '85%', height: 28, marginTop: 10 }} />
+          </div>
+        </div>
+        <div className={styles.score}>
+          <span className={ui.skel} style={{ width: 52, height: 52, borderRadius: '50%', flex: 'none' }} />
+          <span className={ui.skel} style={{ width: 160, height: 34 }} />
+        </div>
+        <div className={styles.actions}>
+          <span className={`${ui.skel} ${styles.dockSkel}`} />
+        </div>
+      </div>
+      <span className={ui.skel} style={{ height: 180, borderRadius: 20, marginTop: 20 }} />
+      <span className={ui.skel} style={{ height: 260, borderRadius: 20, marginTop: 20 }} />
     </div>
   )
 }
@@ -55,122 +81,164 @@ export default function StudentLessonPage() {
 
   if (state.status === 'notfound') {
     return (
-      <AppShell back={BACK}>
+      <StudentShell>
         <Head>
           <title>Lesson not found · Preply Lessons</title>
         </Head>
-        <div className="dashboard-section">
-          <div className="empty-state">
-            <div className="empty-state-icon" aria-hidden="true">🔎</div>
-            <h1 className="empty-state-title">Lesson not found</h1>
-            <p className="empty-state-text">This lesson doesn&apos;t exist or isn&apos;t available anymore.</p>
-            <Link href="/student" className="btn btn-primary" style={{ marginTop: '1.25rem', minHeight: 44 }}>
+        <BackLink />
+        <EmptyState
+          emoji="🔎"
+          tone="blue"
+          headingLevel={1}
+          title="Lesson not found"
+          text="This lesson doesn’t exist or isn’t available anymore."
+          action={
+            <Link href="/student/lessons" className={`${ui.btn} ${ui.blue}`}>
               Back to my lessons
             </Link>
-          </div>
-        </div>
-      </AppShell>
+          }
+        />
+      </StudentShell>
     )
   }
 
   if (state.status === 'error') {
     return (
-      <AppShell back={BACK}>
-        <div className={`alert alert-error ${styles.errorBox}`} role="alert">
-          <span>Couldn&apos;t load this lesson. {state.error}</span>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={() => setReloadKey((k) => k + 1)}>
-            Try again
-          </button>
-        </div>
-      </AppShell>
+      <StudentShell>
+        <Head>
+          <title>Lesson · Preply Lessons</title>
+        </Head>
+        <BackLink />
+        <h1 className="sr-only">Lesson</h1>
+        <ErrorCard
+          title="Couldn’t load this lesson"
+          message={state.error}
+          onRetry={() => setReloadKey((k) => k + 1)}
+        />
+      </StudentShell>
     )
   }
 
   if (state.status !== 'ready') {
     return (
-      <AppShell back={BACK}>
+      <StudentShell>
+        <Head>
+          <title>Lesson · Preply Lessons</title>
+        </Head>
+        <BackLink />
+        <span className="sr-only" role="status">
+          Loading the lesson…
+        </span>
         <LessonSkeleton />
-      </AppShell>
+      </StudentShell>
     )
   }
 
   const { lesson, progress } = state
   const exerciseCount = Array.isArray(lesson.exercises) ? lesson.exercises.length : 0
   const driveUrl = safeHttpsUrl(lesson.drive_url)
-  const date = formatLessonDate(lesson.lesson_date, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
-  const hasBest = progress && Number.isFinite(progress.best_score) && Number(progress.best_total) > 0
+  const date = formatLessonDate(lesson.lesson_date, DATE_OPTS)
+  const bestScore = progress?.best_score == null ? null : Number(progress.best_score)
+  const bestTotal = progress?.best_total == null ? null : Number(progress.best_total)
+  const pct = bestScore === null ? null : percent(bestScore, bestTotal)
+  const attempts = Number(progress?.attempts) || 0
   const practiceHref = `/student/lessons/${encodeURIComponent(lesson.id)}/practice`
   const title = lesson.title || lesson.content?.title || 'Lesson recap'
 
   return (
-    <AppShell
-      back={BACK}
-      title={title}
-      actions={
-        <>
-          <button
-            type="button"
-            className={`btn btn-secondary no-print ${styles.secondaryAction}`}
-            onClick={() => window.print()}
-          >
-            <span aria-hidden="true">🖨️</span> Save as PDF
-          </button>
-          {driveUrl && (
-            <a
-              href={driveUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`btn btn-secondary no-print ${styles.secondaryAction}`}
-            >
-              <span aria-hidden="true">📁</span> Open in Google Drive
-            </a>
-          )}
-        </>
-      }
-    >
+    <StudentShell>
       <Head>
         <title>{`${title} · Preply Lessons`}</title>
       </Head>
 
-      <div className={exerciseCount > 0 ? styles.withCta : undefined}>
-        <p className={styles.lessonMeta}>
-          {date && <time dateTime={lesson.lesson_date}>{date}</time>}
-          {hasBest && (
+      <BackLink />
+
+      <header className={styles.header} style={accentStyle(lesson.id)}>
+        <div className={styles.headTop}>
+          <span className={styles.tile} aria-hidden="true">
+            {lessonEmoji(lesson.id)}
+          </span>
+          <div className={styles.headText}>
+            {date && (
+              <time className={styles.date} dateTime={lesson.lesson_date}>
+                {date}
+              </time>
+            )}
+            <h1 className={styles.title}>{title}</h1>
+          </div>
+        </div>
+
+        <div className={styles.score}>
+          {pct !== null ? (
             <>
-              <span aria-hidden="true">·</span>
-              <span>
-                Best score {progress.best_score}/{progress.best_total}
-                {Number(progress.attempts) > 0 && ` (${plural(Number(progress.attempts), 'attempt')})`}
+              <MasteryRing
+                pct={pct}
+                size={52}
+                stroke={7}
+                label={`Best score ${bestScore} out of ${bestTotal} (${pct}%)`}
+                style={{ '--ring': 'var(--accent)' }}
+              />
+              <span className={styles.scoreText}>
+                <strong>{pct === 100 ? 'Mastered! 👑' : `Best score ${bestScore}/${bestTotal}`}</strong>
+                <span>
+                  {plural(exerciseCount, 'exercise')}
+                  {attempts > 0 && ` · practised ${plural(attempts, 'time')}`}
+                </span>
               </span>
             </>
+          ) : exerciseCount > 0 ? (
+            <span className={styles.scoreText}>
+              <strong>
+                <span aria-hidden="true">✨ </span>Not practised yet
+              </strong>
+              <span>{plural(exerciseCount, 'exercise')} waiting for you</span>
+            </span>
+          ) : (
+            <span className={styles.scoreText}>
+              <strong>
+                <span aria-hidden="true">📖 </span>Recap only
+              </strong>
+              <span>No exercises for this lesson</span>
+            </span>
           )}
-        </p>
+        </div>
 
-        {exerciseCount > 0 && (
-          <div className={`${styles.ctaBar} no-print`}>
-            <div className={styles.ctaText}>
-              <span className={styles.ctaTitle}>
-                {hasBest ? 'Practise again to beat your best' : 'Ready to practise?'}
-              </span>
-              <span className={styles.ctaSub}>
-                {hasBest ? (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    <ScoreRing score={progress.best_score} total={progress.best_total} size={36} />
-                    Best: {progress.best_score}/{progress.best_total}
-                  </span>
-                ) : (
-                  'Quick exercises based on this lesson.'
-                )}
-              </span>
+        <div className={`${styles.actions} no-print`}>
+          {exerciseCount > 0 && (
+            <div className={styles.dock}>
+              <Link href={practiceHref} className={`${ui.btn} ${ui.green} ${ui.block} ${styles.practise}`}>
+                {pct === null ? 'Practise' : 'Practise again'}
+                <span className={styles.practiseCount}>
+                  {' '}
+                  · {plural(exerciseCount, 'exercise')}
+                </span>
+              </Link>
             </div>
-            <Link href={practiceHref} className={`btn btn-primary btn-lg ${styles.ctaBtn}`}>
-              Practice ({plural(exerciseCount, 'exercise')})
-            </Link>
+          )}
+          <div className={styles.secondary}>
+            <button type="button" className={`${ui.btn} ${ui.small} ${ui.ghost} ${styles.secondaryBtn}`} onClick={() => window.print()}>
+              <span aria-hidden="true">🖨️</span> Save as PDF
+            </button>
+            {driveUrl && (
+              <a
+                href={driveUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${ui.btn} ${ui.small} ${ui.ghost} ${styles.secondaryBtn}`}
+              >
+                <span aria-hidden="true">📁</span> Open in Google Drive
+                <span className="sr-only"> (opens in a new tab)</span>
+              </a>
+            )}
           </div>
-        )}
+        </div>
+      </header>
 
+      <div className={styles.recap}>
         <LessonView content={lesson.content} />
       </div>
-    </AppShell>
+
+      {exerciseCount > 0 && <div className={`${styles.dockSpacer} no-print`} aria-hidden="true" />}
+    </StudentShell>
   )
 }

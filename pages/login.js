@@ -95,7 +95,8 @@ export default function LoginPage() {
     if (!loading && user) routerRef.current.replace('/')
   }, [user, loading])
 
-  if (loading || user) {
+  // Wait for redirectTo too: without it Supabase falls back to the Site URL (production)
+  if (loading || user || !redirectTo) {
     return (
       <div className="loading-screen" role="status">
         <div className="spinner spinner-lg" aria-hidden="true" />

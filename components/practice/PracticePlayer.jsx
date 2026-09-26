@@ -18,7 +18,16 @@ import styles from '@/components/practice/PracticePlayer.module.css'
  *               Called once per run, when the last exercise is done. Only the FIRST
  *               attempt at each exercise is included. Throw/reject to show "Retry".
  *   onExit      () => void — close button / "Back to lesson".
+ *   labels      optional { exit?: string, restart?: string | null, saved?: (result) => string }
+ *               exit: end/empty-screen exit button text (default "Back to lesson");
+ *               restart: "Practice again" text, null hides it;
+ *               saved: text after "✓" once onComplete resolved (default "Score saved · Your best: …").
+ *
+ * An exercise may carry `lessonTitle` (review mode mixes several lessons): it is
+ * shown as a small "From: <title>" tag above the prompt.
  */
+
+const DEFAULT_LABELS = { exit: 'Back to lesson', restart: 'Practice again', saved: null }
 
 function canCheck(exercise, value) {
   if (!exercise) return false
@@ -81,7 +90,7 @@ function ConfirmExit({ onStay, onQuit }) {
   )
 }
 
-function PracticeRun({ exercises, onComplete, onExit, onRestart }) {
+function PracticeRun({ exercises, onComplete, onExit, onRestart, labels }) {
   // Snapshot for the whole run: a parent re-render must not reset anything
   const [items] = useState(() => exercises)
   const byId = useMemo(() => new Map(items.map((e) => [e.id, e])), [items])
@@ -308,6 +317,11 @@ function PracticeRun({ exercises, onComplete, onExit, onRestart }) {
                   <span aria-hidden="true">↻ </span>Previous mistake
                 </p>
               )}
+              {typeof current.lessonTitle === 'string' && current.lessonTitle && (
+                <p className={styles.fromTag}>
+                  <span aria-hidden="true">📘 </span>From: {current.lessonTitle}
+                </p>
+              )}
               <h1 ref={promptRef} tabIndex={-1} className={styles.prompt}>
                 {current.prompt}
               </h1>
@@ -341,6 +355,7 @@ function PracticeRun({ exercises, onComplete, onExit, onRestart }) {
               total={total}
               mistakes={mistakes}
               save={save}
+              savedText={labels.saved}
               onRetrySave={() => runSave(answersRef.current)}
             />
           )}
@@ -367,16 +382,18 @@ function PracticeRun({ exercises, onComplete, onExit, onRestart }) {
           )}
           {phase === 'done' && (
             <div className={styles.endActions}>
-              <button
-                type="button"
-                className={cx(styles.bigBtn, styles.secondaryBtn)}
-                onClick={onRestart}
-                disabled={save.status === 'saving'}
-              >
-                Practice again
-              </button>
+              {labels.restart !== null && (
+                <button
+                  type="button"
+                  className={cx(styles.bigBtn, styles.secondaryBtn)}
+                  onClick={onRestart}
+                  disabled={save.status === 'saving'}
+                >
+                  {labels.restart}
+                </button>
+              )}
               <button type="button" className={cx(styles.bigBtn, styles.primaryBtn)} onClick={() => onExit?.()}>
-                Back to lesson
+                {labels.exit}
               </button>
             </div>
           )}
@@ -407,8 +424,13 @@ function PracticeRun({ exercises, onComplete, onExit, onRestart }) {
   )
 }
 
-export default function PracticePlayer({ exercises, onComplete, onExit }) {
+export default function PracticePlayer({ exercises, onComplete, onExit, labels: labelsProp }) {
   const items = useMemo(() => playableExercises(exercises), [exercises])
+  const labels = {
+    exit: labelsProp?.exit || DEFAULT_LABELS.exit,
+    restart: labelsProp?.restart === null ? null : labelsProp?.restart || DEFAULT_LABELS.restart,
+    saved: typeof labelsProp?.saved === 'function' ? labelsProp.saved : null,
+  }
   const [run, setRun] = useState(0)
 
   // Full-screen: stop the page behind from scrolling
@@ -436,7 +458,7 @@ export default function PracticePlayer({ exercises, onComplete, onExit }) {
         <div className={styles.bottomBar}>
           <div className={styles.bottomInner}>
             <button type="button" className={cx(styles.bigBtn, styles.primaryBtn)} onClick={() => onExit?.()}>
-              Back to lesson
+              {labels.exit}
             </button>
           </div>
         </div>
@@ -451,6 +473,7 @@ export default function PracticePlayer({ exercises, onComplete, onExit }) {
       onComplete={onComplete}
       onExit={onExit}
       onRestart={() => setRun((r) => r + 1)}
+      labels={labels}
     />
   )
 }

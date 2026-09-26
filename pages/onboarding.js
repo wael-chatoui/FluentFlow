@@ -1,70 +1,69 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/components/AuthProvider'
 import { api } from '@/utils/apiClient'
 import { LEVELS } from '@/utils/lesson/schema'
-import styles from '@/components/lesson/StudentPages.module.css'
+import ConfirmDialog from '@/components/onboarding/ConfirmDialog'
+import OnboardingFooter from '@/components/onboarding/OnboardingFooter'
+import OnboardingLayout from '@/components/onboarding/OnboardingLayout'
+import OnboardingSkeleton from '@/components/onboarding/OnboardingSkeleton'
+import ProgressHeader from '@/components/onboarding/ProgressHeader'
+import StepActions from '@/components/onboarding/StepActions'
+import StepGoals from '@/components/onboarding/StepGoals'
+import StepInterests from '@/components/onboarding/StepInterests'
+import StepLevel from '@/components/onboarding/StepLevel'
+import StepName from '@/components/onboarding/StepName'
+import StepSummary from '@/components/onboarding/StepSummary'
+import { ArrowLeftIcon } from '@/components/onboarding/Icons'
+import { clearDraft, loadDraft, saveDraft } from '@/components/onboarding/draft'
+import {
+  EMPTY_ANSWERS,
+  GOAL_OPTIONS,
+  INTEREST_OPTIONS,
+  NAME_MAX,
+  STEPS,
+  STEP_COUNT,
+  hasInterests,
+  parseChoices,
+  stepValidity,
+  toPayload,
+} from '@/components/onboarding/options'
+import styles from '@/components/onboarding/Steps.module.css'
 
-const LEVEL_INFO = {
-  A1: { name: 'Complete beginner', desc: 'I know a few words' },
-  A2: { name: 'Elementary', desc: 'Simple everyday situations' },
-  B1: { name: 'Intermediate', desc: 'I can get by in most situations' },
-  B2: { name: 'Upper intermediate', desc: 'I can discuss many topics' },
-  C1: { name: 'Advanced', desc: 'Fluent, working on nuance' },
-  C2: { name: 'Mastery', desc: 'Near-native' },
-  unknown: { name: "I'm not sure", desc: 'Wael will help you find out' },
+const AUTO_ADVANCE_MS = 250
+
+function PageHead() {
+  return (
+    <Head>
+      <title>Welcome · Preply Lessons</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" key="viewport" />
+      <meta name="theme-color" content="#ffffff" />
+    </Head>
+  )
 }
 
-function ConfirmDelete({ busy, onCancel, onConfirm }) {
-  const titleId = useId()
-  const descId = useId()
-  const cancelRef = useRef(null)
-  const confirmRef = useRef(null)
-
-  useEffect(() => {
-    cancelRef.current?.focus()
-  }, [])
-
-  const onKeyDown = (e) => {
-    if (e.key === 'Escape' && !busy) {
-      e.preventDefault()
-      onCancel()
-    } else if (e.key === 'Tab') {
-      e.preventDefault()
-      const next = document.activeElement === cancelRef.current ? confirmRef.current : cancelRef.current
-      next?.focus()
-    }
+/** Answers prefilled from the profile / auth metadata, then overlaid with the session draft. */
+function initialState(userId, profile, user) {
+  const p = profile || {}
+  const meta = user?.user_metadata || {}
+  const goals = parseChoices(GOAL_OPTIONS, p.goals)
+  const interests = parseChoices(INTEREST_OPTIONS, p.interests)
+  const base = {
+    fullName: String(p.full_name || meta.full_name || meta.name || '').slice(0, NAME_MAX),
+    level: LEVELS.includes(p.level) ? p.level : '',
+    goals: goals.ids,
+    goalsText: goals.text,
+    interests: interests.ids,
+    interestsText: interests.text,
   }
-
-  return (
-    <div className="modal-overlay" onClick={() => !busy && onCancel()}>
-      <div
-        className="modal-content"
-        role="alertdialog"
-        aria-modal="true"
-        aria-labelledby={titleId}
-        aria-describedby={descId}
-        onKeyDown={onKeyDown}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 id={titleId} className="modal-title">
-          Delete your account?
-        </h2>
-        <p id={descId} className={styles.modalText}>
-          This permanently deletes your account. You can sign up again later, but this can&apos;t be undone.
-        </p>
-        <div className={styles.modalActions}>
-          <button ref={cancelRef} type="button" className="btn btn-secondary" onClick={onCancel} disabled={busy}>
-            Keep my account
-          </button>
-          <button ref={confirmRef} type="button" className="btn btn-danger" onClick={onConfirm} disabled={busy}>
-            {busy ? 'Deleting…' : 'Delete my account'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
+  const draft = loadDraft(userId)
+  const answers = draft ? { ...draft.answers, fullName: draft.answers.fullName || base.fullName } : base
+  // Never resume past a step that isn't complete
+  const firstInvalid = stepValidity(answers).findIndex((ok) => !ok)
+  let step = draft ? draft.step : STEPS.NAME
+  if (firstInvalid !== -1 && firstInvalid < step) step = firstInvalid
+  return { answers, step }
 }
 
 export default function OnboardingPage() {
@@ -76,27 +75,64 @@ export default function OnboardingPage() {
   userRef.current = user
   const userId = user?.id
 
-  const [checking, setChecking] = useState(true)
-  const [fullName, setFullName] = useState('')
-  const [level, setLevel] = useState('')
-  const [goals, setGoals] = useState('')
-  const [interests, setInterests] = useState('')
+  const [ready, setReady] = useState(false)
+  const [answers, setAnswers] = useState(EMPTY_ANSWERS)
+  // dir: 'none' (initial/restore) | 'forward' | 'back' — drives the transition + heading focus
+  const [nav, setNav] = useState({ step: STEPS.NAME, dir: 'none' })
+  // Came from the summary's "Edit": Continue goes straight back to the summary
+  const [editing, setEditing] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [done, setDone] = useState(false)
+  const [error, setError] = useState('')
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [error, setError] = useState('')
+  const [deleteError, setDeleteError] = useState('')
+  const [signingOut, setSigningOut] = useState(false)
+
+  const answersRef = useRef(answers)
+  answersRef.current = answers
+  const editingRef = useRef(editing)
+  editingRef.current = editing
+  const mountedRef = useRef(false)
+  const controllersRef = useRef(new Set())
+  const advanceTimerRef = useRef(null)
   const submittingRef = useRef(false)
+  const deletingRef = useRef(false)
+  const finishedRef = useRef(false) // stop saving the draft once submitted / deleted / signed out
   const deleteBtnRef = useRef(null)
 
-  // Who am I? Already onboarded → /student; teacher → /teacher; else prefill.
+  useEffect(() => {
+    mountedRef.current = true
+    const controllers = controllersRef.current
+    return () => {
+      mountedRef.current = false
+      clearTimeout(advanceTimerRef.current)
+      controllers.forEach((c) => c.abort())
+      controllers.clear()
+    }
+  }, [])
+
+  const newController = () => {
+    const controller = new AbortController()
+    controllersRef.current.add(controller)
+    return controller
+  }
+
+  // Who am I? Teacher → /teacher; already onboarded → /student; else prefill + restore draft.
   useEffect(() => {
     if (loading) return
-    const user = userRef.current
-    if (!userId || !user) {
+    const currentUser = userRef.current
+    if (!userId || !currentUser) {
       routerRef.current.replace('/login')
       return
     }
     const controller = new AbortController()
+    const start = (profile) => {
+      const initial = initialState(userId, profile, currentUser)
+      setAnswers(initial.answers)
+      setNav({ step: initial.step, dir: 'none' })
+      setReady(true)
+    }
     api('/api/me', { signal: controller.signal })
       .then((me) => {
         if (controller.signal.aborted) return
@@ -105,203 +141,298 @@ export default function OnboardingPage() {
           return
         }
         if (me?.profile?.onboarded_at) {
+          clearDraft(userId)
           routerRef.current.replace('/student')
           return
         }
-        const p = me?.profile || {}
-        setFullName(p.full_name || user.user_metadata?.full_name || user.user_metadata?.name || '')
-        if (p.level && LEVELS.includes(p.level)) setLevel(p.level)
-        if (p.goals) setGoals(p.goals)
-        if (p.interests) setInterests(p.interests)
-        setChecking(false)
+        start(me?.profile)
       })
       .catch((err) => {
         if (err?.name === 'AbortError' || controller.signal.aborted) return
-        // Show the form anyway; submitting will surface any real problem
-        setFullName(user.user_metadata?.full_name || user.user_metadata?.name || '')
-        setChecking(false)
+        // Show the flow anyway; submitting will surface any real problem
+        start(null)
       })
     return () => controller.abort()
-    // Only once per signed-in user (token refreshes must not reset the form)
+    // Only once per signed-in user (token refreshes must not reset the flow)
   }, [loading, userId])
 
-  const canSubmit = fullName.trim().length > 0 && Boolean(level) && !submitting && !deleting
+  // Keep in-progress answers across refreshes
+  useEffect(() => {
+    if (!ready || finishedRef.current) return
+    saveDraft(userId, answers, nav.step)
+  }, [ready, userId, answers, nav.step])
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    if (!canSubmit || submittingRef.current) return
+  // New step: start at the top (the heading takes focus with preventScroll)
+  useEffect(() => {
+    if (nav.dir === 'none') return
+    if (window.scrollY > 0) window.scrollTo(0, 0)
+  }, [nav])
+
+  const goTo = useCallback((step, dir) => {
+    clearTimeout(advanceTimerRef.current)
+    setError('')
+    setNav({ step, dir })
+  }, [])
+
+  const setField = useCallback((key, value) => {
+    setAnswers((a) => ({ ...a, [key]: value }))
+  }, [])
+
+  const toggle = useCallback((key, id) => {
+    setAnswers((a) => {
+      const list = a[key]
+      return { ...a, [key]: list.includes(id) ? list.filter((x) => x !== id) : [...list, id] }
+    })
+  }, [])
+
+  /** Step after `step`: the summary when editing from it (and everything is valid). */
+  const nextStep = (step, current) => {
+    if (editingRef.current && stepValidity(current)[STEPS.SUMMARY]) return STEPS.SUMMARY
+    return Math.min(step + 1, STEPS.SUMMARY)
+  }
+
+  const advanceFrom = (step) => {
+    const next = nextStep(step, answersRef.current)
+    if (next === STEPS.SUMMARY) setEditing(false)
+    goTo(next, 'forward')
+  }
+
+  const submit = async () => {
+    if (submittingRef.current || deletingRef.current) return
+    const current = answersRef.current
+    const validity = stepValidity(current)
+    if (!validity[STEPS.SUMMARY]) {
+      goTo(validity.findIndex((ok) => !ok), 'back')
+      return
+    }
     submittingRef.current = true
     setSubmitting(true)
     setError('')
+    const controller = newController()
     try {
       await api('/api/onboarding/complete', {
         method: 'POST',
-        body: { fullName: fullName.trim(), level, goals: goals.trim(), interests: interests.trim() },
+        body: toPayload(current),
+        signal: controller.signal,
       })
+      finishedRef.current = true
+      clearDraft(userId)
+      if (!mountedRef.current) return
+      setDone(true)
       // Full reload so every page sees the fresh profile
       window.location.href = '/student'
     } catch (err) {
+      if (err?.name === 'AbortError' || !mountedRef.current) return
       submittingRef.current = false
       setSubmitting(false)
       setError(err?.message || 'Something went wrong. Please try again.')
+    } finally {
+      controllersRef.current.delete(controller)
     }
+  }
+
+  const handleContinue = () => {
+    const step = nav.step
+    if (step === STEPS.SUMMARY) {
+      submit()
+      return
+    }
+    if (submittingRef.current || deletingRef.current) return
+    if (!stepValidity(answersRef.current)[step]) return
+    advanceFrom(step)
+  }
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    handleContinue()
+  }
+
+  // Enter on a radio / checkbox continues too (text inputs submit natively,
+  // textareas handle Enter themselves)
+  const handleFormKeyDown = (e) => {
+    if (e.key !== 'Enter' || e.defaultPrevented) return
+    const t = e.target
+    if (t?.tagName === 'INPUT' && (t.type === 'radio' || t.type === 'checkbox')) {
+      e.preventDefault()
+      handleContinue()
+    }
+  }
+
+  const handleBack = () => {
+    if (nav.step > STEPS.NAME) goTo(nav.step - 1, 'back')
+  }
+
+  const handleEdit = (step) => {
+    setEditing(true)
+    goTo(step, 'back')
+  }
+
+  // Pointer pick on a level card: select, then auto-advance shortly after
+  const handleLevelPick = (code) => {
+    setField('level', code)
+    clearTimeout(advanceTimerRef.current)
+    advanceTimerRef.current = setTimeout(() => {
+      if (!mountedRef.current || submittingRef.current || deletingRef.current) return
+      const next = nextStep(STEPS.LEVEL, { ...answersRef.current, level: code })
+      if (next === STEPS.SUMMARY) setEditing(false)
+      setError('')
+      setNav((cur) => (cur.step === STEPS.LEVEL ? { step: next, dir: 'forward' } : cur))
+    }, AUTO_ADVANCE_MS)
+  }
+
+  const handleSignOut = async () => {
+    if (signingOut) return
+    setSigningOut(true)
+    finishedRef.current = true
+    clearDraft(userId)
+    await signOut().catch(() => {})
+    window.location.href = '/login'
   }
 
   const handleDelete = async () => {
-    if (deleting) return
+    if (deletingRef.current || submittingRef.current) return
+    deletingRef.current = true
+    clearTimeout(advanceTimerRef.current)
     setDeleting(true)
-    setError('')
+    setDeleteError('')
+    const controller = newController()
     try {
-      await api('/api/student/deleteProfile', { method: 'POST' })
+      await api('/api/student/deleteProfile', { method: 'POST', signal: controller.signal })
+      finishedRef.current = true
+      clearDraft(userId)
       await signOut().catch(() => {})
       window.location.href = '/login'
     } catch (err) {
+      if (err?.name === 'AbortError' || !mountedRef.current) return
+      deletingRef.current = false
       setDeleting(false)
-      setConfirmOpen(false)
-      setError(err?.message || 'Could not delete your account. Please try again.')
-      requestAnimationFrame(() => deleteBtnRef.current?.focus())
+      setDeleteError(err?.message || 'Could not delete your account. Please try again.')
+    } finally {
+      controllersRef.current.delete(controller)
     }
   }
 
-  if (loading || !user || checking) {
+  if (loading || !ready) {
     return (
-      <div className="loading-screen" role="status">
-        <div className="spinner spinner-lg" aria-hidden="true" />
-        <span className="sr-only">Loading…</span>
-      </div>
+      <>
+        <PageHead />
+        <OnboardingSkeleton />
+      </>
     )
   }
 
+  const step = nav.step
+  const validity = stepValidity(answers)
+  const busy = submitting || done || deleting || signingOut
+  const autoFocus = nav.dir !== 'none'
+  const interestsEmpty = !hasInterests(answers)
+  const paneClass = nav.dir === 'forward' ? styles.enterForward : nav.dir === 'back' ? styles.enterBack : ''
+
+  let content = null
+  if (step === STEPS.NAME) {
+    content = (
+      <StepName value={answers.fullName} onChange={(v) => setField('fullName', v)} autoFocus={autoFocus} disabled={busy} />
+    )
+  } else if (step === STEPS.LEVEL) {
+    content = (
+      <StepLevel
+        value={answers.level}
+        onChange={(code) => setField('level', code)}
+        onPick={handleLevelPick}
+        autoFocus={autoFocus}
+        disabled={busy}
+      />
+    )
+  } else if (step === STEPS.GOALS) {
+    content = (
+      <StepGoals
+        selected={answers.goals}
+        text={answers.goalsText}
+        onToggle={(id) => toggle('goals', id)}
+        onTextChange={(v) => setField('goalsText', v)}
+        onEnter={handleContinue}
+        autoFocus={autoFocus}
+        disabled={busy}
+      />
+    )
+  } else if (step === STEPS.INTERESTS) {
+    content = (
+      <StepInterests
+        selected={answers.interests}
+        text={answers.interestsText}
+        onToggle={(id) => toggle('interests', id)}
+        onTextChange={(v) => setField('interestsText', v)}
+        onEnter={handleContinue}
+        autoFocus={autoFocus}
+        disabled={busy}
+      />
+    )
+  } else {
+    content = <StepSummary answers={answers} onEdit={handleEdit} autoFocus={autoFocus} disabled={busy} />
+  }
+
   return (
-    <div className="auth-page">
-      <Head>
-        <title>Welcome · Preply Lessons</title>
-      </Head>
-      <div className="auth-container" style={{ maxWidth: 520 }}>
-        <div className="auth-card">
-          <div className="auth-logo">
-            <div className="auth-logo-icon" aria-hidden="true">👋</div>
-            <h1>Welcome!</h1>
-            <p>Tell Wael a little about yourself so your lessons fit you.</p>
+    <>
+      <PageHead />
+      <OnboardingLayout
+        header={<ProgressHeader step={step} total={STEP_COUNT} />}
+        footer={
+          <OnboardingFooter
+            email={user?.email}
+            onSignOut={handleSignOut}
+            onDelete={() => {
+              setDeleteError('')
+              setConfirmOpen(true)
+            }}
+            deleteRef={deleteBtnRef}
+            disabled={busy}
+          />
+        }
+      >
+        <p className="sr-only" aria-live="polite" aria-atomic="true">
+          Step {step + 1} of {STEP_COUNT}
+        </p>
+        <form className={styles.form} onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} noValidate>
+          <div className={styles.navRow}>
+            {step > STEPS.NAME ? (
+              <button type="button" className={styles.backButton} onClick={handleBack} disabled={busy}>
+                <ArrowLeftIcon />
+                Back
+              </button>
+            ) : null}
           </div>
+          <div key={step} className={`${styles.pane} ${paneClass}`}>
+            {content}
+          </div>
+          <StepActions
+            step={step}
+            canContinue={step === STEPS.INTERESTS ? !interestsEmpty : validity[step]}
+            editing={editing}
+            submitting={submitting}
+            done={done}
+            error={error}
+            busy={busy}
+            showSkip={step === STEPS.INTERESTS && interestsEmpty}
+            onSkip={() => advanceFrom(STEPS.INTERESTS)}
+          />
+        </form>
+      </OnboardingLayout>
 
-          <form onSubmit={handleSubmit} className={styles.onboardForm} noValidate>
-            <div className="form-group">
-              <label htmlFor="fullName" className="label">
-                Your name
-              </label>
-              <input
-                id="fullName"
-                className={`input ${styles.bigInput}`}
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                autoComplete="name"
-                maxLength={120}
-                required
-              />
-            </div>
-
-            <fieldset className={styles.levels}>
-              <legend className="label">Your French level</legend>
-              <div className={styles.levelGrid}>
-                {LEVELS.map((code) => {
-                  const info = LEVEL_INFO[code] || { name: code, desc: '' }
-                  const checked = level === code
-                  return (
-                    <label key={code} className={`${styles.level} ${checked ? styles.levelChecked : ''}`}>
-                      <input
-                        type="radio"
-                        name="level"
-                        value={code}
-                        checked={checked}
-                        onChange={() => setLevel(code)}
-                        required
-                      />
-                      <span className={styles.levelCode} aria-hidden="true">
-                        {code === 'unknown' ? '?' : code}
-                      </span>
-                      <span className={styles.levelText}>
-                        <span className={styles.levelName}>
-                          <span className="sr-only">{code === 'unknown' ? '' : `${code} — `}</span>
-                          {info.name}
-                        </span>
-                        {info.desc && <span className={styles.levelDesc}>{info.desc}</span>}
-                      </span>
-                    </label>
-                  )
-                })}
-              </div>
-            </fieldset>
-
-            <div className="form-group">
-              <label htmlFor="goals" className="label">
-                Your goals <span className={styles.fieldHelp}>(optional)</span>
-              </label>
-              <textarea
-                id="goals"
-                className={`textarea ${styles.bigInput}`}
-                value={goals}
-                onChange={(e) => setGoals(e.target.value)}
-                placeholder="Travel, work, exams, family, moving to France…"
-                rows={3}
-                maxLength={1000}
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="interests" className="label">
-                Your interests <span className={styles.fieldHelp}>(optional)</span>
-              </label>
-              <textarea
-                id="interests"
-                className={`textarea ${styles.bigInput}`}
-                value={interests}
-                onChange={(e) => setInterests(e.target.value)}
-                placeholder="Cooking, football, films, history…"
-                rows={2}
-                maxLength={1000}
-              />
-            </div>
-
-            {error && (
-              <div className="alert alert-error" role="alert">
-                {error}
-              </div>
-            )}
-
-            <div className={styles.onboardActions}>
-              <button type="submit" disabled={!canSubmit} className={`btn btn-primary btn-lg ${styles.fullBtn}`}>
-                {submitting ? 'Saving…' : 'Start learning'}
-              </button>
-              {!level && fullName.trim() && (
-                <p className={styles.fieldHelp} style={{ textAlign: 'center' }}>
-                  Choose your level to continue.
-                </p>
-              )}
-              <button
-                ref={deleteBtnRef}
-                type="button"
-                onClick={() => setConfirmOpen(true)}
-                disabled={deleting || submitting}
-                className={`btn btn-ghost ${styles.dangerLink}`}
-              >
-                Cancel and delete my account
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-
-      {confirmOpen && (
-        <ConfirmDelete
+      {confirmOpen ? (
+        <ConfirmDialog
+          title="Delete your account?"
+          description="This permanently deletes your account and everything in it. You can sign up again later, but this can't be undone."
+          cancelLabel="Keep my account"
+          confirmLabel="Delete my account"
+          busyLabel="Deleting…"
           busy={deleting}
-          onCancel={() => {
-            setConfirmOpen(false)
-            requestAnimationFrame(() => deleteBtnRef.current?.focus())
-          }}
+          error={deleteError}
+          danger
+          onCancel={() => setConfirmOpen(false)}
           onConfirm={handleDelete}
+          returnFocusRef={deleteBtnRef}
         />
-      )}
-    </div>
+      ) : null}
+    </>
   )
 }

@@ -1,9 +1,9 @@
 // Each lesson gets a stable accent color (derived from its id), so cards,
 // headers and progress bars of the same lesson always match.
 
-export const ACCENTS = ['green', 'blue', 'orange', 'purple', 'pink', 'red']
+export const ACCENTS = ['green', 'blue', 'orange', 'purple', 'pink'] // no red: red means "needs work"
 
-/** @returns {'green'|'blue'|'orange'|'purple'|'pink'|'red'} */
+/** @returns {'green'|'blue'|'orange'|'purple'|'pink'} */
 export function accentFor(id) {
   const s = String(id || '')
   let h = 0

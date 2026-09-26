@@ -4,27 +4,10 @@ import { allowMethods, requireUser } from '@/utils/auth/server'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { scoreSession } from '@/utils/lesson/grading'
 import { fail, handleError } from '@/utils/api/errors'
-import { STUDENT_VISIBLE, bodyOf, isUuid } from '@/utils/api/validate'
+import { STUDENT_VISIBLE, bodyOf, isUuid, parseAnswers } from '@/utils/api/validate'
 import { progressByLesson, progressOf } from '@/utils/api/progress'
 
 const MAX_ANSWERS = 100
-
-// Keeps only the answer shapes the grader understands (bounded for storage)
-function cleanValue(value) {
-  if (typeof value === 'number' || typeof value === 'boolean') return value
-  if (typeof value === 'string') return value.slice(0, 200)
-  if (value && typeof value === 'object' && 'mistakes' in value) return { mistakes: Number(value.mistakes) }
-  return null
-}
-
-function parseAnswers(body) {
-  const { answers } = body
-  if (!Array.isArray(answers)) fail('answers must be an array.')
-  if (answers.length > MAX_ANSWERS) fail(`Too many answers (max ${MAX_ANSWERS}).`)
-  return answers
-    .filter((a) => a && typeof a === 'object' && typeof a.exerciseId === 'string')
-    .map((a) => ({ exerciseId: a.exerciseId.slice(0, 40), value: cleanValue(a.value) }))
-}
 
 export default async function handler(req, res) {
   if (!allowMethods(req, res, ['POST'])) return
@@ -36,7 +19,7 @@ export default async function handler(req, res) {
   if (!isUuid(id)) return res.status(404).json({ error: 'Lesson not found.' })
 
   try {
-    const answers = parseAnswers(bodyOf(req))
+    const answers = parseAnswers(bodyOf(req), { max: MAX_ANSWERS, idLength: 40 })
     const admin = createAdminClient()
 
     const { data: lesson, error } = await admin

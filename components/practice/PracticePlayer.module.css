@@ -116,6 +116,21 @@
   outline: none;
 }
 
+.fromTag {
+  align-self: flex-start;
+  max-width: 100%;
+  margin: 0 0 -0.75rem;
+  padding: 0.125rem 0.625rem;
+  border-radius: var(--radius-full);
+  background: var(--gray-100);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .retryBadge {
   align-self: flex-start;
   margin: 0 0 -0.75rem;
@@ -562,6 +577,15 @@
 .reviewPrompt {
   font-size: 0.8125rem;
   font-weight: 600;
+  color: var(--text-muted);
+}
+
+.reviewFrom {
+  margin-bottom: 0.25rem !important;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--text-muted);
 }
 

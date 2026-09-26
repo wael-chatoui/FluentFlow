@@ -28,9 +28,11 @@ function correctAnswer(exercise) {
 
 /**
  * @param {{ score: number, total: number, mistakes: Array<{ exercise: object, value: any }>,
- *   save: { status: 'idle'|'saving'|'saved'|'error', result: any, error: string }, onRetrySave: () => void }} props
+ *   save: { status: 'idle'|'saving'|'saved'|'error', result: any, error: string }, onRetrySave: () => void,
+ *   savedText?: ((result: any) => string) | null }} props
+ *   savedText: optional replacement for "Score saved · Your best: …" (e.g. review mode).
  */
-const EndScreen = forwardRef(function EndScreen({ score, total, mistakes, save, onRetrySave }, headingRef) {
+const EndScreen = forwardRef(function EndScreen({ score, total, mistakes, save, onRetrySave, savedText }, headingRef) {
   const pct = total > 0 ? Math.round((score / total) * 100) : 0
   const best = save.result && Number.isFinite(save.result.bestScore) ? save.result.bestScore : null
   const bestTotal = Number.isFinite(save.result?.bestTotal) ? save.result.bestTotal : total
@@ -81,7 +83,10 @@ const EndScreen = forwardRef(function EndScreen({ score, total, mistakes, save, 
         )}
         {save.status === 'saved' && (
           <span className={styles.saved}>
-            ✓ Score saved{best !== null && total > 0 ? ` · Your best: ${best}/${bestTotal}` : ''}
+            ✓{' '}
+            {typeof savedText === 'function'
+              ? savedText(save.result)
+              : `Score saved${best !== null && total > 0 ? ` · Your best: ${best}/${bestTotal}` : ''}`}
           </span>
         )}
         {save.status === 'error' && (
@@ -104,6 +109,9 @@ const EndScreen = forwardRef(function EndScreen({ score, total, mistakes, save, 
               const given = givenText(exercise, value)
               return (
                 <li key={exercise.id} className={styles.reviewItem}>
+                  {typeof exercise.lessonTitle === 'string' && exercise.lessonTitle && (
+                    <p className={styles.reviewFrom}>From: {exercise.lessonTitle}</p>
+                  )}
                   <p className={styles.reviewPrompt}>{exercise.prompt}</p>
                   {exercise.sentence && <p className={styles.reviewSentence}>{exercise.sentence}</p>}
                   {given && exercise.type !== 'match' && (

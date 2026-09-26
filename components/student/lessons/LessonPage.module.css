@@ -1,0 +1,294 @@
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 44px;
+  margin: -0.5rem 0 0.5rem -0.25rem;
+  padding: 0 0.5rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--st-ink-soft);
+  text-decoration: none;
+}
+
+.back span {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.back:hover {
+  color: var(--st-ink);
+  background: var(--st-surface);
+}
+
+.back:focus-visible {
+  outline: 3px solid var(--st-blue);
+  outline-offset: 2px;
+}
+
+/* ---- Colorful lesson header (accent from accentStyle(lesson.id)) ---- */
+.header {
+  position: relative;
+  /* The fade-in animation makes the header a stacking context: lift it above the
+     recap so its fixed PRACTISE dock (mobile) isn't painted under the lesson text.
+     Stays below the shell's top/tab bars (z-index 40). */
+  z-index: 31;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.25rem;
+  background: var(--accent-bg);
+  border: 2px solid var(--accent);
+  border-bottom-width: 5px;
+  border-bottom-color: var(--accent-dark);
+  border-radius: var(--st-radius-lg);
+  /* opacity only: a transform here would trap the fixed-position dock */
+  animation: fadeIn 200ms ease-out both;
+}
+
+.header::before {
+  content: '';
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  right: -80px;
+  top: -90px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+.headerSkeleton {
+  background: var(--st-surface);
+  border: 2px solid var(--st-line);
+  border-bottom-width: 5px;
+  animation: none;
+}
+
+.headerSkeleton::before {
+  display: none;
+}
+
+.headTop {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.9rem;
+}
+
+.tile,
+.headTop .tileSkel {
+  flex: none;
+  width: 60px;
+  height: 60px;
+  border-radius: 16px;
+}
+
+.tile {
+  display: grid;
+  place-items: center;
+  background: var(--st-surface);
+  border: 2px solid var(--accent);
+  border-bottom-width: 4px;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.headText {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.date {
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--st-ink-soft);
+}
+
+.title {
+  margin: 0.15rem 0 0;
+  font-size: 1.5rem;
+  font-weight: 900;
+  line-height: 1.2;
+  color: var(--st-ink);
+  overflow-wrap: anywhere;
+}
+
+.score {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 52px;
+}
+
+.scoreText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--st-ink-soft);
+}
+
+.scoreText strong {
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--st-ink);
+}
+
+.actions {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.secondary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.secondary .secondaryBtn {
+  flex: 1 1 auto;
+  min-height: 44px;
+}
+
+.dock .practise {
+  min-height: 54px;
+  font-size: 1.05rem;
+}
+
+.practiseCount {
+  font-weight: 800;
+  opacity: 0.9;
+}
+
+.actions .dockSkel {
+  display: block;
+  height: 44px; /* mobile: the real Practise button is docked, only the 44px secondary row stays */
+  border-radius: 12px;
+}
+
+.recap {
+  margin-top: 1.25rem;
+}
+
+/* ---- Mobile: the Practise button docks above the bottom tab bar ---- */
+.dockSpacer {
+  height: 76px;
+}
+
+@media (max-width: 767px) {
+  .dock {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: calc(var(--st-tabbar-h) + env(safe-area-inset-bottom) + 12px);
+    z-index: 30;
+    max-width: 728px;
+    margin: 0 auto;
+    animation: dockIn 220ms ease-out both;
+  }
+
+  .dock .practise {
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+  }
+}
+
+@media (min-width: 768px) {
+  .header {
+    padding: 1.5rem 1.75rem;
+  }
+
+  .tile,
+  .headTop .tileSkel {
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
+  }
+
+  .tile {
+    font-size: 2.4rem;
+  }
+
+  .title {
+    font-size: 2rem;
+  }
+
+  .actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .dock {
+    flex: none;
+  }
+
+  .dock .practise {
+    width: auto;
+    min-width: 240px;
+  }
+
+  .actions .dockSkel {
+    width: 240px;
+    height: 54px;
+    border-radius: 16px;
+  }
+
+  .secondary {
+    flex: 1;
+  }
+
+  .secondary .secondaryBtn {
+    flex: none;
+  }
+
+  .dockSpacer {
+    display: none;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dockIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header,
+  .dock {
+    animation: none;
+  }
+}
+
+@media print {
+  .header {
+    animation: none;
+    border-width: 2px;
+    break-inside: avoid;
+  }
+
+  .header::before {
+    display: none;
+  }
+
+  .recap {
+    margin-top: 6mm;
+  }
+}

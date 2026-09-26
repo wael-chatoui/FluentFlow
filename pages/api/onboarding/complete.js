@@ -1,18 +1,13 @@
 // POST /api/onboarding/complete { fullName, level, goals, interests } → { profile }
 import { allowMethods, requireUser } from '@/utils/auth/server'
 import { createAdminClient } from '@/utils/supabase/admin'
-import { fail, handleError } from '@/utils/api/errors'
-import { LIMITS, bodyOf, optionalLevel, optionalText } from '@/utils/api/validate'
+import { handleError } from '@/utils/api/errors'
+import { bodyOf, parseProfileInput } from '@/utils/api/validate'
 
 const PROFILE_FIELDS = 'id, email, full_name, level, goals, interests, drive_folder_url, onboarded_at, created_at, updated_at'
 
 function parse(body) {
-  const fullName = optionalText(body.fullName, LIMITS.fullName, `Your name must be at most ${LIMITS.fullName} characters.`)
-  if (!fullName) fail('Please enter your name.')
-  const level = optionalLevel(body.level, 'Please choose your level.')
-  if (!level) fail('Please choose your level.')
-  const goals = optionalText(body.goals, LIMITS.profileText, `Goals must be at most ${LIMITS.profileText} characters.`)
-  const interests = optionalText(body.interests, LIMITS.profileText, `Interests must be at most ${LIMITS.profileText} characters.`)
+  const { fullName, level, goals, interests } = parseProfileInput(body)
   return { fullName, level, goals: goals || null, interests: interests || null }
 }
 

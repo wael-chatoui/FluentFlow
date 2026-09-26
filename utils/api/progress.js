@@ -34,3 +34,20 @@ export function progressOf(map, lessonId) {
 }
 
 export const exerciseCount = (exercises) => (Array.isArray(exercises) ? exercises.length : 0)
+
+/**
+ * @param {{ lesson_id: string, completed_at: string }[]} sessions
+ * @returns {Map<string, string>} lesson id → completed_at of its latest practice session
+ */
+export function lastPracticedByLesson(sessions) {
+  const map = new Map()
+  for (const s of sessions || []) {
+    const current = map.get(s.lesson_id)
+    if (!current || Date.parse(s.completed_at) > Date.parse(current)) map.set(s.lesson_id, s.completed_at)
+  }
+  return map
+}
+
+/** Number of vocabulary words + expressions in a lesson's content. */
+export const vocabCount = (vocabulary, expressions) =>
+  (Array.isArray(vocabulary) ? vocabulary.length : 0) + (Array.isArray(expressions) ? expressions.length : 0)

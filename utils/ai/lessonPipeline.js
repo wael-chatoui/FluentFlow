@@ -66,7 +66,15 @@ export async function runLessonGeneration(admin, lesson, { title } = {}) {
       canva: lesson.canva,
       lessonDate: lesson.lesson_date,
     })
-    update = { status: 'published', error: null, content, exercises, ai_model: model, title: title || content.title }
+    update = {
+      status: 'published',
+      error: null,
+      content,
+      exercises,
+      ai_model: model,
+      title: title || content.title,
+      generated_at: new Date().toISOString(),
+    }
   } catch (err) {
     console.error(`[ai] generation failed for lesson ${lesson.id}:`, err)
     const message = err instanceof AiError ? err.message : GENERIC_ERROR

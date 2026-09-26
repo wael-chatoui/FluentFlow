@@ -19,14 +19,16 @@ compatible OpenAI (par défaut Qwen `qwen-flash`). Détails techniques :
 ### 1. Base de données (Supabase → SQL Editor)
 
 1. Exécute `supabase/migrations/0001_lesson_pipeline.sql` (idempotent, peut être relancé).
-2. Connecte-toi une fois sur le site avec ton compte prof.
-3. Ouvre `supabase/migrations/0002_set_teacher.sql`, remplace l'email par le tien,
+2. Exécute `supabase/migrations/0003_student_review.sql` (révision des erreurs côté élève).
+3. Connecte-toi une fois sur le site avec ton compte prof.
+4. Ouvre `supabase/migrations/0002_set_teacher.sql`, remplace l'email par le tien,
    exécute-le, puis déconnecte-toi / reconnecte-toi.
 
 ### 2. Authentification (Supabase → Authentication)
 
 - **URL Configuration** : Site URL = ton domaine Vercel ; Redirect URLs =
-  `https://<ton-domaine>/auth/callback` et `http://localhost:3000/auth/callback`.
+  `https://<ton-domaine>/**` et `http://localhost:3000/**`. Sans l'entrée localhost,
+  la connexion Google en local renvoie vers la version Vercel.
 - **Providers → Google** activé (client OAuth Google Cloud avec l'URL de callback Supabase).
 
 ### 3. Clé IA (Qwen, le moins cher)

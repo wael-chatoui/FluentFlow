@@ -13,6 +13,7 @@ const AuthContext = createContext({
   role: null,
   loading: true,
   signOut: async () => {},
+  refreshUser: async () => {},
 })
 
 export function useAuth() {
@@ -48,6 +49,12 @@ export default function AuthProvider({ children }) {
     return () => subscription.unsubscribe()
   }, [supabase])
 
+  // Re-reads the user (e.g. after the server changed user_metadata.full_name)
+  const refreshUser = async () => {
+    const { data } = await supabase.auth.refreshSession()
+    if (data?.user) setUser(data.user)
+  }
+
   const signOut = async () => {
     await supabase.auth.signOut()
     setUser(null)
@@ -56,7 +63,7 @@ export default function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, session, role, loading, signOut }}>
+    <AuthContext.Provider value={{ user, session, role, loading, signOut, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

@@ -58,3 +58,39 @@ export function hasEnoughText(value, min = 20) {
 // Lesson statuses a student may see. 'generating' only counts when the row
 // already has content (a regeneration in progress keeps the previous version).
 export const STUDENT_VISIBLE = ['published', 'generating']
+
+/**
+ * Profile fields sent by the student (onboarding / profile page), English messages.
+ * Each field is `undefined` when not sent. `partial: false` (onboarding) also
+ * requires fullName and level; otherwise fullName only has to be non-empty when sent.
+ */
+export function parseProfileInput(body, { partial = false } = {}) {
+  const fullName = optionalText(body.fullName, LIMITS.fullName, `Your name must be at most ${LIMITS.fullName} characters.`)
+  if (partial ? fullName === '' : !fullName) fail('Please enter your name.')
+  const level = optionalLevel(body.level, 'Please choose your level.')
+  if (!partial && !level) fail('Please choose your level.')
+  const goals = optionalText(body.goals, LIMITS.profileText, `Goals must be at most ${LIMITS.profileText} characters.`)
+  const interests = optionalText(body.interests, LIMITS.profileText, `Interests must be at most ${LIMITS.profileText} characters.`)
+  return { fullName, level, goals, interests }
+}
+
+// Keeps only the answer shapes the grader understands (bounded for storage)
+export function cleanAnswerValue(value) {
+  if (typeof value === 'number' || typeof value === 'boolean') return value
+  if (typeof value === 'string') return value.slice(0, 200)
+  if (value && typeof value === 'object' && 'mistakes' in value) return { mistakes: Number(value.mistakes) }
+  return null
+}
+
+/**
+ * `body.answers` as [{ exerciseId, value }]: must be an array of at most `max`
+ * items; entries without a string exerciseId are dropped, ids cut to `idLength`.
+ */
+export function parseAnswers(body, { max, idLength }) {
+  const { answers } = body
+  if (!Array.isArray(answers)) fail('answers must be an array.')
+  if (answers.length > max) fail(`Too many answers (max ${max}).`)
+  return answers
+    .filter((a) => a && typeof a === 'object' && typeof a.exerciseId === 'string')
+    .map((a) => ({ exerciseId: a.exerciseId.slice(0, idLength), value: cleanAnswerValue(a.value) }))
+}

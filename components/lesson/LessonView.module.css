@@ -1,45 +1,79 @@
+/* Lesson recap — playful student style.
+   Uses the student tokens (--st-*) when rendered inside StudentShell and falls
+   back to literal colors elsewhere (teacher page, /dev/preview). */
+
 .root {
-  --lv-blue: #1a73e8;
-  --lv-blue-soft: #f1f6fe;
-  --lv-highlight: #fff3cd;
-  --lv-rule-bg: #fbf8e6;
-  --lv-rule-border: #f4b400;
+  --lv-ink: var(--st-ink, #3c3c3c);
+  --lv-soft: var(--st-ink-soft, #6b6b6b);
+  --lv-line: var(--st-line, #e5e5e5);
+  --lv-surface: var(--st-surface, #ffffff);
+  --lv-tint: #fafafa;
+  --lv-radius: var(--st-radius-lg, 20px);
+  --lv-radius-sm: var(--st-radius, 16px);
+  /* Darker text shades for readability on white */
+  --lv-good-text: #2b7a0b;
+  --lv-bad-text: #c62828;
+  --lv-link: #0a6fa3;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  color: var(--text-primary);
+  gap: 1rem;
+  color: var(--lv-ink);
   font-size: 1rem;
   line-height: 1.65;
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
+/* ---- Section cards ---- */
 .section {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-lg);
+  --c: var(--st-blue, #1cb0f6);
+  --c-dark: var(--st-blue-dark, #1899d6);
+  --c-bg: var(--st-blue-bg, #ddf4ff);
+  background: var(--lv-surface);
+  border: 2px solid var(--lv-line);
+  border-bottom-width: 4px;
+  border-radius: var(--lv-radius);
   padding: 1.25rem;
   min-width: 0;
+  animation: lvRise 220ms ease-out both;
 }
+
+.blue { --c: var(--st-blue, #1cb0f6); --c-dark: var(--st-blue-dark, #1899d6); --c-bg: var(--st-blue-bg, #ddf4ff); }
+.green { --c: var(--st-green, #58cc02); --c-dark: var(--st-green-dark, #46a302); --c-bg: var(--st-green-bg, #e9f9dc); }
+.red { --c: var(--st-red, #ff4b4b); --c-dark: var(--st-red-dark, #ea2b2b); --c-bg: var(--st-red-bg, #ffe5e5); }
+.yellow { --c: var(--st-yellow, #ffc800); --c-dark: var(--st-yellow-dark, #e5b400); --c-bg: var(--st-yellow-bg, #fff7d6); }
+.purple { --c: var(--st-purple, #ce82ff); --c-dark: var(--st-purple-dark, #a568cc); --c-bg: var(--st-purple-bg, #f6e9ff); }
+.orange { --c: var(--st-orange, #ff9600); --c-dark: var(--st-orange-dark, #e08600); --c-bg: var(--st-orange-bg, #fff1dc); }
 
 .sectionTitle {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0 0 0.875rem;
+  gap: 0.65rem;
+  font-size: 1.2rem;
+  font-weight: 900;
+  line-height: 1.25;
+  color: var(--lv-ink);
+  margin: 0 0 1rem;
 }
 
 .sectionIcon {
-  font-size: 1.125rem;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--c-bg);
+  border: 2px solid var(--c);
+  border-bottom-width: 4px;
+  font-size: 1.25rem;
   line-height: 1;
 }
 
 /* ---- Summary ---- */
 .summary {
-  color: var(--gray-700);
+  color: var(--lv-ink);
+  font-size: 1.02rem;
 }
 
 .topics {
@@ -52,13 +86,13 @@
 }
 
 .topic {
-  background: var(--lv-blue-soft);
-  color: #174ea6;
-  border: 1px solid #d2e3fc;
-  border-radius: var(--radius-full);
-  padding: 0.25rem 0.75rem;
+  background: var(--c-bg);
+  color: var(--lv-ink);
+  border: 2px solid var(--c);
+  border-radius: 999px;
+  padding: 0.2rem 0.8rem;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 800;
 }
 
 /* ---- Word tables (vocabulary, expressions) ---- */
@@ -66,31 +100,32 @@
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  border: 1px solid #d2e3fc;
-  border-radius: var(--radius-md);
+  border: 2px solid var(--c);
+  border-radius: var(--lv-radius-sm);
   overflow: hidden;
 }
 
 .table th {
-  background: var(--lv-blue);
-  color: #fff;
-  text-transform: none;
-  letter-spacing: 0;
-  font-size: 0.875rem;
-  font-weight: 600;
-  padding: 0.625rem 0.875rem;
-  border-bottom: none;
+  background: var(--c-bg);
+  color: var(--lv-ink);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.78rem;
+  font-weight: 900;
+  padding: 0.65rem 0.9rem;
+  border-bottom: 2px solid var(--c);
 }
 
 .table td {
-  padding: 0.625rem 0.875rem;
-  font-size: 0.9375rem;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.95rem;
   vertical-align: top;
-  border-bottom: 1px solid #e8eefb;
+  color: var(--lv-ink);
+  border-bottom: 2px solid var(--lv-line);
 }
 
 .table tbody tr:nth-child(even) {
-  background: var(--lv-blue-soft);
+  background: var(--lv-tint);
 }
 
 .table tbody tr:hover td {
@@ -102,22 +137,22 @@
 }
 
 .fr {
-  font-weight: 600;
+  font-weight: 800;
   width: 28%;
 }
 
 .en {
-  color: var(--gray-700);
+  color: var(--lv-ink);
   width: 28%;
 }
 
 .example {
-  color: var(--gray-600);
+  color: var(--lv-soft);
   font-style: italic;
 }
 
 .none {
-  color: var(--text-muted);
+  color: var(--lv-soft);
   font-style: normal;
 }
 
@@ -147,37 +182,38 @@
   .table tbody {
     display: flex;
     flex-direction: column;
-    gap: 0.625rem;
+    gap: 0.6rem;
   }
 
   .table tbody tr,
   .table tbody tr:nth-child(even) {
-    background: var(--bg-elevated);
-    border: 1px solid #d2e3fc;
-    border-left: 4px solid var(--lv-blue);
-    border-radius: var(--radius-md);
-    padding: 0.625rem 0.875rem;
+    background: var(--lv-surface);
+    border: 2px solid var(--lv-line);
+    border-left: 6px solid var(--c);
+    border-radius: 14px;
+    padding: 0.65rem 0.9rem;
   }
 
   .table td,
   .table tbody tr:last-child td {
     border: none;
-    padding: 0.125rem 0;
+    padding: 0.1rem 0;
   }
 
   .table td.fr {
-    font-size: 1.0625rem;
+    font-size: 1.08rem;
   }
 
   .table td.example {
     margin-top: 0.25rem;
-    font-size: 0.875rem;
+    font-size: 0.9rem;
   }
 
   .table td.example::before {
     content: 'e.g. ';
     font-style: normal;
-    color: var(--text-muted);
+    font-weight: 800;
+    color: var(--lv-soft);
   }
 }
 
@@ -192,21 +228,22 @@
 }
 
 .correction {
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 0.75rem 0.875rem;
-  background: var(--gray-50);
+  border: 2px solid var(--lv-line);
+  border-radius: var(--lv-radius-sm);
+  padding: 0.8rem 0.95rem;
+  background: var(--lv-tint);
 }
 
 .correctionPair {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.25rem 0.5rem;
+  gap: 0.3rem 0.5rem;
 }
 
 .wrong {
-  color: #d93025;
+  color: var(--lv-bad-text);
+  font-weight: 700;
 }
 
 .wrong s {
@@ -214,18 +251,24 @@
 }
 
 .arrow {
-  color: var(--text-muted);
+  color: var(--lv-soft);
+  font-weight: 900;
 }
 
 .right {
-  color: #188038;
-  font-weight: 600;
+  color: var(--lv-good-text);
+  font-weight: 800;
+  background: var(--st-green-bg, #e9f9dc);
+  border-radius: 8px;
+  padding: 0 0.4rem;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 
 .correctionWhy {
-  margin: 0.375rem 0 0;
-  font-size: 0.875rem;
-  color: var(--text-secondary);
+  margin: 0.4rem 0 0;
+  font-size: 0.9rem;
+  color: var(--lv-soft);
 }
 
 /* ---- Grammar: "golden rule" blocks ---- */
@@ -236,21 +279,23 @@
 }
 
 .rule {
-  background: var(--lv-rule-bg);
-  border-left: 5px solid var(--lv-rule-border);
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
-  padding: 0.875rem 1rem;
+  background: var(--c-bg);
+  border: 2px solid var(--c);
+  border-left-width: 6px;
+  border-radius: var(--lv-radius-sm);
+  padding: 0.9rem 1rem;
 }
 
 .ruleTitle {
-  font-size: 1rem;
-  font-weight: 700;
-  margin: 0 0 0.5rem;
-  color: var(--gray-800);
+  font-size: 1.02rem;
+  font-weight: 900;
+  line-height: 1.35;
+  margin: 0 0 0.45rem;
+  color: var(--lv-ink);
 }
 
 .ruleText {
-  color: var(--gray-700);
+  color: var(--lv-ink);
 }
 
 .examples {
@@ -259,14 +304,14 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.3rem;
 }
 
 .examples li {
   position: relative;
-  padding-left: 1.25rem;
+  padding-left: 1.4rem;
   font-style: italic;
-  color: var(--gray-800);
+  color: var(--lv-ink);
 }
 
 .examples li::before {
@@ -274,21 +319,45 @@
   position: absolute;
   left: 0;
   font-style: normal;
-  color: #b08000;
+  font-weight: 900;
+  color: #9a6b00;
 }
 
-/* ---- Homework ---- */
+/* ---- Homework (numbered bubbles) ---- */
 .homework {
+  list-style: none;
+  counter-reset: hw;
   margin: 0;
-  padding-left: 1.25rem;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.625rem;
+  gap: 0.7rem;
 }
 
 .homeworkItem {
-  padding-bottom: 0.625rem;
-  border-bottom: 2px dotted #ccc;
+  counter-increment: hw;
+  position: relative;
+  padding: 0.1rem 0 0.7rem 2.6rem;
+  border-bottom: 2px dashed var(--lv-line);
+  min-height: 2rem;
+}
+
+.homeworkItem::before {
+  content: counter(hw);
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 50%;
+  background: var(--c);
+  box-shadow: inset 0 -3px 0 var(--c-dark);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 900;
+  font-style: normal;
 }
 
 .homeworkItem:last-child {
@@ -301,14 +370,20 @@
   align-items: center;
   min-height: 44px;
   padding: 0 0.25rem;
-  font-weight: 600;
-  color: var(--lv-blue);
+  font-weight: 800;
+  color: var(--lv-link);
   text-decoration: underline;
-  text-underline-offset: 2px;
+  text-underline-offset: 3px;
 }
 
 .link:hover {
-  color: #174ea6;
+  color: var(--lv-ink);
+}
+
+.link:focus-visible {
+  outline: 3px solid var(--st-blue, #1cb0f6);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
 /* ---- Now I can… ---- */
@@ -318,13 +393,14 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.55rem;
 }
 
 .canDoItem {
   display: flex;
   align-items: flex-start;
-  gap: 0.625rem;
+  gap: 0.7rem;
+  font-weight: 700;
 }
 
 .check {
@@ -332,18 +408,47 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  margin-top: 0.1rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  margin-top: 0.05rem;
   border-radius: 50%;
-  background: rgba(16, 185, 129, 0.12);
-  color: #059669;
-  font-size: 0.8125rem;
-  font-weight: 800;
+  background: var(--c);
+  box-shadow: inset 0 -3px 0 var(--c-dark);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 900;
+}
+
+@keyframes lvRise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
 }
 
 @media (max-width: 640px) {
   .section {
     padding: 1rem;
+  }
+
+  .sectionTitle {
+    font-size: 1.12rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section {
+    animation: none;
+  }
+}
+
+@media print {
+  .section {
+    animation: none;
+  }
+
+  .sectionIcon {
+    width: auto;
+    height: auto;
+    border: none;
+    background: none;
   }
 }

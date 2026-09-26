@@ -77,6 +77,15 @@
   filter: brightness(1.04);
 }
 
+/* Beat the global a / a:hover colors when a link is styled as a button */
+.btn:link,
+.btn:visited,
+.btn:hover,
+.btn:focus-visible {
+  color: var(--btn-fg);
+  text-decoration: none;
+}
+
 .btn:active {
   transform: translateY(2px);
   border-bottom-width: 2px;

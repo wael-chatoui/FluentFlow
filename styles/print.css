@@ -19,6 +19,12 @@
     background: #fff !important;
   }
 
+  /* Page roots (StudentShell's themed wrapper has a gray background + 100vh) */
+  #__next > div {
+    background: #fff !important;
+    min-height: 0 !important;
+  }
+
   body {
     font-size: 11pt;
     line-height: 1.5;

@@ -7,9 +7,9 @@ import styles from '@/components/lesson/LessonView.module.css'
 // `content` is lessons.content (see utils/lesson/schema.js); it is re-normalized
 // here so null / partial / legacy content never crashes the page.
 
-function Section({ id, icon, title, children, className }) {
+function Section({ id, icon, title, tone = 'blue', children, className }) {
   return (
-    <section className={[styles.section, className].filter(Boolean).join(' ')} aria-labelledby={id}>
+    <section className={[styles.section, styles[tone], className].filter(Boolean).join(' ')} aria-labelledby={id}>
       <h2 id={id} className={styles.sectionTitle}>
         <span className={styles.sectionIcon} aria-hidden="true">{icon}</span>
         {title}
@@ -83,7 +83,7 @@ export default function LessonView({ content }) {
   return (
     <article className={`lesson-view ${styles.root}`}>
       {(c.summary || c.topics.length > 0) && (
-        <Section id={`${uid}-summary`} icon="💬" title="Summary">
+        <Section id={`${uid}-summary`} icon="💬" title="Summary" tone="blue">
           {c.summary && <RichText text={c.summary} className={styles.summary} />}
           {c.topics.length > 0 && (
             <ul className={styles.topics} aria-label="Topics">
@@ -96,13 +96,13 @@ export default function LessonView({ content }) {
       )}
 
       {c.vocabulary.length > 0 && (
-        <Section id={`${uid}-vocabulary`} icon="📚" title="Vocabulary">
+        <Section id={`${uid}-vocabulary`} icon="📚" title="Vocabulary" tone="green">
           <WordTable rows={c.vocabulary} caption="Vocabulary: French, English, example" />
         </Section>
       )}
 
       {c.corrections.length > 0 && (
-        <Section id={`${uid}-corrections`} icon="✏️" title="Corrections">
+        <Section id={`${uid}-corrections`} icon="✏️" title="Corrections" tone="red">
           <ul className={styles.corrections}>
             {c.corrections.map((item, i) => (
               <li key={i} className={styles.correction}>
@@ -129,7 +129,7 @@ export default function LessonView({ content }) {
       )}
 
       {c.grammar.length > 0 && (
-        <Section id={`${uid}-grammar`} icon="🧩" title="Grammar">
+        <Section id={`${uid}-grammar`} icon="🧩" title="Grammar" tone="yellow">
           <div className={styles.rules}>
             {c.grammar.map((g, i) => (
               <div key={i} className={styles.rule}>
@@ -154,13 +154,13 @@ export default function LessonView({ content }) {
       )}
 
       {c.expressions.length > 0 && (
-        <Section id={`${uid}-expressions`} icon="🗣️" title="Useful expressions">
+        <Section id={`${uid}-expressions`} icon="🗣️" title="Useful expressions" tone="purple">
           <WordTable rows={c.expressions} caption="Useful expressions: French, English, example" />
         </Section>
       )}
 
       {c.homework.length > 0 && (
-        <Section id={`${uid}-homework`} icon="🏠" title="Homework">
+        <Section id={`${uid}-homework`} icon="🏠" title="Homework" tone="orange">
           <ol className={styles.homework}>
             {c.homework.map((h, i) => (
               <li key={i} className={styles.homeworkItem}>
@@ -186,7 +186,7 @@ export default function LessonView({ content }) {
       )}
 
       {c.can_do.length > 0 && (
-        <Section id={`${uid}-can-do`} icon="🎯" title="Now I can…">
+        <Section id={`${uid}-can-do`} icon="🎯" title="Now I can…" tone="green">
           <ul className={styles.canDo}>
             {c.can_do.map((item, i) => (
               <li key={i} className={styles.canDoItem}>
