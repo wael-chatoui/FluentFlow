@@ -591,6 +591,8 @@
   border-bottom: 1px solid #efefef;
   font-weight: 600;
   vertical-align: middle;
+  /* Never squeeze text letter by letter: the scroll box scrolls sideways instead */
+  white-space: nowrap;
 }
 
 .dtTable tbody tr:last-child td {
