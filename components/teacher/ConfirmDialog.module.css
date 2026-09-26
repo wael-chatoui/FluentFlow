@@ -1,0 +1,56 @@
+.overlay {
+  padding: 1rem;
+}
+
+.dialog {
+  width: 100%;
+  max-width: 440px;
+  padding: 1.5rem;
+}
+
+.title {
+  font-size: 1.125rem;
+  margin-bottom: 0.75rem;
+  overflow-wrap: anywhere;
+}
+
+.message {
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.actions :global(.btn) {
+  min-height: 44px;
+}
+
+.actions :global(.btn):focus-visible {
+  outline: 2px solid var(--preply-pink);
+  outline-offset: 2px;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border-color: rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+}
+
+@media (max-width: 480px) {
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .actions :global(.btn) {
+    width: 100%;
+  }
+}

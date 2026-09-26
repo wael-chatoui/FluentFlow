@@ -1,0 +1,118 @@
+/* ============================================
+   Print / "Save as PDF" — clean A4 lesson recap
+   ============================================ */
+
+@media print {
+  @page {
+    size: A4;
+    margin: 15mm 14mm;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  html,
+  body,
+  .dashboard {
+    background: #fff !important;
+  }
+
+  body {
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+
+  /* Chrome that makes no sense on paper */
+  .no-print,
+  .dashboard-header,
+  .app-shell-back,
+  .app-shell-actions,
+  button {
+    display: none !important;
+  }
+
+  .dashboard-main {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .app-shell-titlebar {
+    margin-bottom: 4mm !important;
+  }
+
+  .dashboard-title {
+    font-size: 20pt !important;
+  }
+
+  /* Entry animations start at opacity 0 */
+  .animate-fade-in,
+  .animate-fade-in-up,
+  .delay-1,
+  .delay-2,
+  .delay-3,
+  .delay-4 {
+    opacity: 1 !important;
+    animation: none !important;
+    transform: none !important;
+  }
+
+  /* ---- LessonView ---- */
+  .lesson-view {
+    gap: 5mm !important;
+  }
+
+  .lesson-view section {
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .lesson-view h2,
+  .lesson-view h3 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .lesson-view table {
+    break-inside: auto;
+  }
+
+  .lesson-view thead {
+    display: table-header-group;
+  }
+
+  .lesson-view tr,
+  .lesson-view li,
+  .lesson-view p {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Grammar "golden rule" blocks and corrections stay in one piece */
+  .lesson-view section > div > div,
+  .lesson-view section ul > li {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .lesson-view a {
+    color: #1a73e8 !important;
+    text-decoration: underline;
+  }
+
+  .lesson-homework-link::after {
+    content: ' (' attr(href) ')';
+    font-size: 9pt;
+    font-weight: 400;
+    color: #555;
+    word-break: break-all;
+  }
+
+  .lesson-view .sr-only {
+    display: none !important;
+  }
+}

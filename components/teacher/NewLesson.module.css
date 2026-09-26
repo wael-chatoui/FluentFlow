@@ -1,0 +1,267 @@
+.card {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.fieldset {
+  border: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.125rem;
+  transition: opacity var(--transition-base);
+}
+
+.fieldset:disabled {
+  opacity: 0.6;
+}
+
+.formLoading {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 420px;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 0.9375rem;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.125rem;
+}
+
+@media (min-width: 640px) {
+  .row {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+.labelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.labelRow :global(.label) {
+  margin-bottom: 0;
+}
+
+.counter {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.optional {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.card .bigTextarea {
+  min-height: 280px;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.card .midTextarea {
+  min-height: 180px;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+
+.card .invalid,
+.card .invalid:focus {
+  border-color: var(--color-error);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.hint {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.fieldError {
+  font-size: 0.8125rem;
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.linkButton {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--preply-pink-dark);
+  text-decoration: underline;
+  cursor: pointer;
+  min-height: 32px;
+}
+
+.linkButton:focus-visible {
+  outline: 2px solid var(--preply-pink);
+  outline-offset: 2px;
+}
+
+.infoAlert {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  background: rgba(59, 130, 246, 0.06);
+  color: #1d4ed8;
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  overflow-wrap: anywhere;
+}
+
+.inlineButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.submitAlert {
+  margin: 0;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--gray-100);
+}
+
+.saveState {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  min-height: 1.2em;
+}
+
+.footerButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.submit {
+  min-width: 220px;
+}
+
+.btnSpinner {
+  width: 18px;
+  height: 18px;
+  border-color: rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+}
+
+.statusAnchor {
+  scroll-margin-top: 80px;
+}
+
+.bigAlert {
+  padding: 1.125rem 1.25rem;
+  font-size: 0.9375rem;
+}
+
+/* Failed / connection-lost panel */
+.outcome {
+  display: flex;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: var(--radius-lg);
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.outcomeWarning {
+  background: rgba(245, 158, 11, 0.06);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.outcomeIcon {
+  font-size: 1.75rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.outcomeBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.outcomeTitle {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.outcomeError {
+  margin-top: 0.375rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #b91c1c;
+  overflow-wrap: anywhere;
+}
+
+.outcomeWarning .outcomeError {
+  color: #b45309;
+}
+
+.outcomeText {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.outcomeActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 480px) {
+  .card {
+    padding: 1rem;
+  }
+
+  .footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .footerButtons {
+    margin-left: 0;
+    flex-direction: column-reverse;
+  }
+
+  .footerButtons :global(.btn),
+  .outcomeActions :global(.btn) {
+    width: 100%;
+  }
+
+  .submit {
+    min-width: 0;
+  }
+
+  .saveState {
+    text-align: center;
+  }
+
+  .outcome {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+  }
+}

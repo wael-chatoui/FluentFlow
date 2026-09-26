@@ -1,264 +1,176 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import Head from 'next/head'
 import { useRouter } from 'next/router'
+import AppShell from '@/components/AppShell'
 import { useAuth } from '@/components/AuthProvider'
-import { createClient } from '@/utils/supabase/client'
+import LessonCard, { LessonCardSkeleton } from '@/components/lesson/LessonCard'
+import { percent } from '@/components/lesson/format'
+import { api } from '@/utils/apiClient'
+import { safeHttpsUrl } from '@/utils/lesson/schema'
+import styles from '@/components/lesson/StudentPages.module.css'
 
-export default function StudentDashboard() {
+function firstName(name) {
+  return (name || '').trim().split(/\s+/)[0] || ''
+}
+
+export default function StudentHome() {
   const router = useRouter()
-  const { user, role, loading, signOut } = useAuth()
-  const [supabase] = useState(() => createClient())
-
-  // Generate lesson form
-  const [instruction, setInstruction] = useState('')
-  const [generating, setGenerating] = useState(false)
-  const [genResult, setGenResult] = useState(null)
-  const [genError, setGenError] = useState(null)
-
-  // Lesson history
-  const [lessons, setLessons] = useState([])
-  const [loadingLessons, setLoadingLessons] = useState(true)
-
-  const fetchLessons = useCallback(async () => {
-    if (!user) return
-    setLoadingLessons(true)
-    try {
-      const res = await fetch('/api/lessons')
-      if (res.ok) {
-        const data = await res.json()
-        setLessons(data.lessons || [])
-      }
-    } catch (err) {
-      console.error('Failed to fetch lessons:', err)
-    }
-    setLoadingLessons(false)
-  }, [user])
+  const { user } = useAuth()
+  const [state, setState] = useState({ status: 'loading', me: null, data: null, error: '' })
+  const [reloadKey, setReloadKey] = useState(0)
+  const routerRef = useRef(router)
+  routerRef.current = router
 
   useEffect(() => {
-    if (!loading && user) {
-      if (!user.user_metadata?.onboarding_completed) {
-        router.replace('/onboarding')
-      } else {
-        fetchLessons()
-      }
-    }
-  }, [loading, user, fetchLessons, router])
+    const controller = new AbortController()
+    const { signal } = controller
+    setState((s) => ({ ...s, status: 'loading', error: '' }))
 
-  const handleGenerate = async (e) => {
-    e.preventDefault()
-    setGenerating(true)
-    setGenResult(null)
-    setGenError(null)
-    try {
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentId: user.id, instruction }),
+    Promise.all([api('/api/me', { signal }), api('/api/student/lessons', { signal })])
+      .then(([me, data]) => {
+        if (signal.aborted) return
+        if (me?.role === 'teacher') {
+          routerRef.current.replace('/teacher')
+          return
+        }
+        if (!me?.profile?.onboarded_at) {
+          routerRef.current.replace('/onboarding')
+          return
+        }
+        setState({ status: 'ready', me, data, error: '' })
       })
-      const data = await res.json()
-      if (res.ok) {
-        setGenResult(data.pdfUrl)
-        setInstruction('')
-        fetchLessons() // Refresh the list
-      } else {
-        setGenError(data.error || 'Une erreur est survenue')
-      }
-    } catch (err) {
-      setGenError(err.message)
-    }
-    setGenerating(false)
-  }
+      .catch((err) => {
+        if (err?.name === 'AbortError' || signal.aborted) return
+        setState({ status: 'error', me: null, data: null, error: err?.message || 'Something went wrong.' })
+      })
 
-  const handleSignOut = async () => {
-    await signOut()
-    router.replace('/login')
-  }
+    return () => controller.abort()
+  }, [reloadKey])
 
-  if (loading) {
-    return (
-      <div className="loading-screen">
-        <div className="spinner spinner-lg" />
-      </div>
-    )
-  }
+  const lessons = useMemo(() => {
+    const list = Array.isArray(state.data?.lessons) ? [...state.data.lessons] : []
+    // Newest first (the API already sorts; stable sort keeps its order on ties)
+    return list.sort((a, b) => String(b.lesson_date || '').localeCompare(String(a.lesson_date || '')))
+  }, [state.data])
 
-  if (!user || !user.user_metadata?.onboarding_completed) return null
+  const stats = useMemo(() => {
+    const practised = lessons.filter((l) => Number(l.attempts) > 0 && Number(l.best_total) > 0)
+    const pcts = practised.map((l) => percent(Number(l.best_score), Number(l.best_total))).filter((p) => p !== null)
+    const avg = pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : null
+    return { total: lessons.length, practised: practised.length, avg }
+  }, [lessons])
 
-  const initials = (user.user_metadata?.full_name || user.email || '?')
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
-
-  const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Étudiant'
+  const name =
+    state.me?.profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || ''
+  const first = firstName(name)
+  const driveUrl = safeHttpsUrl(state.data?.driveFolderUrl)
+  const loading = state.status === 'loading'
 
   return (
-    <div className="dashboard">
-      {/* Header */}
-      <header className="dashboard-header">
-        <div className="dashboard-header-inner">
-          <div className="dashboard-brand">
-            <span className="dashboard-brand-icon">🇫🇷</span>
-            <h2>Preply Lessons</h2>
-          </div>
-          <div className="dashboard-user">
-            <div className="dashboard-user-info">
-              <div className="dashboard-user-name">{displayName}</div>
-              <div className="dashboard-user-role">
-                <span className="badge badge-pink">Étudiant</span>
-              </div>
-            </div>
-            <div className="dashboard-avatar">{initials}</div>
-            <button onClick={handleSignOut} className="btn btn-ghost btn-sm">
-              Déconnexion
+    <>
+      <Head>
+        <title>My lessons · Preply Lessons</title>
+      </Head>
+      <AppShell
+        title={first ? `Hi, ${first} 👋` : 'Hi 👋'}
+        actions={
+          driveUrl ? (
+            <a
+              href={driveUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`btn btn-secondary ${styles.driveBtn}`}
+            >
+              <span aria-hidden="true">📁</span> My Google Drive folder
+            </a>
+          ) : null
+        }
+      >
+        <p className={styles.subtitle}>Your lesson recaps and exercises from your classes with Wael.</p>
+
+        {state.status === 'error' ? (
+          <div className={`alert alert-error ${styles.errorBox}`} role="alert">
+            <span>Couldn&apos;t load your lessons. {state.error}</span>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setReloadKey((k) => k + 1)}>
+              Try again
             </button>
           </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="dashboard-main">
-        <h1 className="dashboard-title animate-fade-in">
-          Bonjour, {displayName.split(' ')[0]} 👋
-        </h1>
-        <p className="dashboard-subtitle animate-fade-in delay-1">
-          Prêt pour ta prochaine leçon de français ?
-        </p>
-
-        {/* Stats */}
-        <div className="stats-row animate-fade-in delay-2">
-          <div className="stat-card">
-            <div className="stat-value">{lessons.length}</div>
-            <div className="stat-label">Leçons générées</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value">
-              {lessons.length > 0
-                ? new Date(lessons[0]?.lastModified || Date.now()).toLocaleDateString('fr-FR', {
-                    day: 'numeric',
-                    month: 'short',
-                  })
-                : '—'}
-            </div>
-            <div className="stat-label">Dernière leçon</div>
-          </div>
-        </div>
-
-        <div className="dashboard-grid">
-          {/* Generate Form */}
-          <div className="dashboard-section animate-fade-in delay-2">
-            <div className="dashboard-section-header">
-              <h3 className="dashboard-section-title">📝 Générer une leçon</h3>
-            </div>
-            <div className="dashboard-section-body">
-              <form onSubmit={handleGenerate} className="dashboard-form">
-                <div className="form-group">
-                  <label htmlFor="instruction" className="label">
-                    Instructions pour le cours
-                  </label>
-                  <textarea
-                    id="instruction"
-                    className="textarea"
-                    value={instruction}
-                    onChange={(e) => setInstruction(e.target.value)}
-                    placeholder="Ex : Prépare un bilan de la leçon d'aujourd'hui sur les expressions idiomatiques…"
-                    required
-                    rows={4}
-                  />
-                </div>
-                <div className="form-actions">
-                  <button
-                    type="submit"
-                    disabled={generating || !instruction.trim()}
-                    className="btn btn-primary btn-lg"
-                    style={{ width: '100%' }}
-                  >
-                    {generating ? (
-                      <>
-                        <span className="spinner" /> Génération en cours…
-                      </>
-                    ) : (
-                      '✨ Générer le PDF'
-                    )}
-                  </button>
-                </div>
-              </form>
-
-              {genError && (
-                <div className="alert alert-error" style={{ marginTop: '1rem' }}>
-                  ⚠️ {genError}
-                </div>
-              )}
-
-              {genResult && (
-                <div className="alert alert-success" style={{ marginTop: '1rem' }}>
-                  ✅ PDF généré !{' '}
-                  <a href={genResult} target="_blank" rel="noopener noreferrer">
-                    Télécharger
-                  </a>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Lesson History */}
-          <div className="dashboard-section animate-fade-in delay-3">
-            <div className="dashboard-section-header">
-              <h3 className="dashboard-section-title">📚 Historique des leçons</h3>
-              <button onClick={fetchLessons} className="btn btn-ghost btn-sm">
-                ↻ Rafraîchir
-              </button>
-            </div>
-
-            {loadingLessons ? (
-              <div className="dashboard-section-body" style={{ textAlign: 'center', padding: '2rem' }}>
-                <div className="spinner" style={{ margin: '0 auto' }} />
+        ) : (
+          <>
+            <div className="stats-row" aria-busy={loading}>
+              <div className="stat-card">
+                {loading ? (
+                  <StatSkeleton />
+                ) : (
+                  <>
+                    <div className="stat-value">{stats.total}</div>
+                    <div className="stat-label">{stats.total === 1 ? 'Lesson' : 'Lessons'}</div>
+                  </>
+                )}
               </div>
+              <div className="stat-card">
+                {loading ? (
+                  <StatSkeleton />
+                ) : (
+                  <>
+                    <div className="stat-value">{stats.practised}</div>
+                    <div className="stat-label">Practised</div>
+                  </>
+                )}
+              </div>
+              <div className="stat-card">
+                {loading ? (
+                  <StatSkeleton />
+                ) : (
+                  <>
+                    <div className={`stat-value ${stats.avg === null ? styles.statValueMuted : ''}`}>
+                      {stats.avg === null ? '—' : `${stats.avg}%`}
+                    </div>
+                    <div className="stat-label">Average best score</div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className={styles.listHeader}>
+              <h2 className={styles.listTitle}>My lessons</h2>
+            </div>
+
+            {loading ? (
+              <ul className={styles.lessonList} aria-label="Loading lessons">
+                <LessonCardSkeleton />
+                <LessonCardSkeleton />
+                <LessonCardSkeleton />
+              </ul>
             ) : lessons.length === 0 ? (
-              <div className="dashboard-section-body">
+              <div className="dashboard-section">
                 <div className="empty-state">
-                  <div className="empty-state-icon">📄</div>
-                  <div className="empty-state-title">Pas encore de leçon</div>
+                  <div className="empty-state-icon" aria-hidden="true">📚</div>
+                  <div className="empty-state-title">No lessons yet</div>
                   <div className="empty-state-text">
-                    Génère ta première leçon avec le formulaire ci-dessus !
+                    Your first lesson recap will appear here after your next class with Wael.
                   </div>
                 </div>
               </div>
             ) : (
-              <ul className="lesson-list">
-                {lessons.map((lesson, i) => (
-                  <li key={lesson.name || i} className="lesson-item">
-                    <div className="lesson-item-info">
-                      <span className="lesson-item-name">
-                        📄 {lesson.name?.replace('.pdf', '') || `Leçon ${i + 1}`}
-                      </span>
-                      {lesson.lastModified && (
-                        <span className="lesson-item-date">
-                          {new Date(lesson.lastModified).toLocaleDateString('fr-FR', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric',
-                          })}
-                        </span>
-                      )}
-                    </div>
-                    <div className="lesson-item-actions">
-                      <a
-                        href={lesson.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="btn btn-secondary btn-sm"
-                      >
-                        Ouvrir
-                      </a>
-                    </div>
-                  </li>
+              <ul className={styles.lessonList}>
+                {lessons.map((lesson) => (
+                  <LessonCard key={lesson.id} lesson={lesson} />
                 ))}
               </ul>
             )}
-          </div>
-        </div>
-      </main>
+          </>
+        )}
+      </AppShell>
+    </>
+  )
+}
+
+function StatSkeleton() {
+  return (
+    <div className={styles.statSkeleton} aria-hidden="true">
+      <span className={styles.skel} style={{ width: 40, height: 28 }} />
+      <span className={styles.skel} style={{ width: 70, height: 12 }} />
     </div>
   )
 }

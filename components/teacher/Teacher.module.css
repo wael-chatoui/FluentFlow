@@ -1,0 +1,117 @@
+/* Shared styles for the teacher pages. Global primitives (btn, input, badge…)
+   come from styles/globals.css; this file only adds teacher-specific layout. */
+
+/* Page root: bigger tap targets and visible keyboard focus for every control. */
+.page :global(.btn) {
+  min-height: 44px;
+}
+
+.page :global(.input),
+.page :global(.select) {
+  min-height: 44px;
+}
+
+.page :global(.btn):focus-visible,
+.page a:focus-visible,
+.page summary:focus-visible,
+.page [role='tab']:focus-visible {
+  outline: 2px solid var(--preply-pink);
+  outline-offset: 2px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Red "failed" badge (globals only ship pink/green/blue/gray) */
+.badgeRed {
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+}
+
+.badgeAmber {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+}
+
+/* Skeletons */
+.skeleton {
+  display: block;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 37%, var(--gray-100) 63%);
+  background-size: 400% 100%;
+  animation: skeletonShimmer 1.4s ease infinite;
+}
+
+@keyframes skeletonShimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
+
+/* Error / not-found state */
+.state {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 2.5rem 1.25rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stateIcon {
+  font-size: 2.25rem;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.stateTitle {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stateText {
+  font-size: 0.9375rem;
+  color: var(--text-secondary);
+  max-width: 420px;
+  overflow-wrap: anywhere;
+}
+
+.stateActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.sectionHeader {
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.inlineAlert {
+  align-items: flex-start;
+  overflow-wrap: anywhere;
+}
+
+.alertWarning {
+  background: rgba(245, 158, 11, 0.08);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}

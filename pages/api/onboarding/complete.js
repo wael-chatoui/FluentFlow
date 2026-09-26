@@ -1,50 +1,58 @@
-import { createClient } from '@supabase/supabase-js'
+// POST /api/onboarding/complete { fullName, level, goals, interests } → { profile }
+import { allowMethods, requireUser } from '@/utils/auth/server'
+import { createAdminClient } from '@/utils/supabase/admin'
+import { fail, handleError } from '@/utils/api/errors'
+import { LIMITS, bodyOf, optionalLevel, optionalText } from '@/utils/api/validate'
+
+const PROFILE_FIELDS = 'id, email, full_name, level, goals, interests, drive_folder_url, onboarded_at, created_at, updated_at'
+
+function parse(body) {
+  const fullName = optionalText(body.fullName, LIMITS.fullName, `Your name must be at most ${LIMITS.fullName} characters.`)
+  if (!fullName) fail('Please enter your name.')
+  const level = optionalLevel(body.level, 'Please choose your level.')
+  if (!level) fail('Please choose your level.')
+  const goals = optionalText(body.goals, LIMITS.profileText, `Goals must be at most ${LIMITS.profileText} characters.`)
+  const interests = optionalText(body.interests, LIMITS.profileText, `Interests must be at most ${LIMITS.profileText} characters.`)
+  return { fullName, level, goals: goals || null, interests: interests || null }
+}
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' })
+  if (!allowMethods(req, res, ['POST'])) return
+  const auth = await requireUser(req, res)
+  if (!auth) return
+  const { user, role } = auth
+  if (role === 'teacher') return res.status(403).json({ error: 'Onboarding is for students only.' })
+
+  try {
+    const input = parse(bodyOf(req))
+    const admin = createAdminClient()
+
+    const { data: profile, error } = await admin
+      .from('profiles')
+      .upsert(
+        {
+          id: user.id,
+          email: user.email,
+          full_name: input.fullName,
+          level: input.level,
+          goals: input.goals,
+          interests: input.interests,
+          onboarded_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' }
+      )
+      .select(PROFILE_FIELDS)
+      .single()
+    if (error) throw error
+
+    // Keep the auth display name in sync (shown in the header). Not critical.
+    const { error: metaError } = await admin.auth.admin.updateUserById(user.id, {
+      user_metadata: { ...(user.user_metadata || {}), full_name: input.fullName },
+    })
+    if (metaError) console.error('[api] onboarding/complete metadata:', metaError)
+
+    return res.status(200).json({ profile })
+  } catch (err) {
+    return handleError(res, err, 'onboarding/complete')
   }
-
-  const { subjectId, teacherId } = req.body
-  const token = req.headers.authorization?.replace('Bearer ', '')
-
-  if (!token) {
-    return res.status(401).json({ error: 'Unauthorized' })
-  }
-
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  )
-
-  // Verify the user making the request
-  const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-
-  if (authError || !user) {
-    return res.status(401).json({ error: 'Invalid token' })
-  }
-
-  // 1. Insert into student_teacher_relations
-  const { error: insertError } = await supabase
-    .from('student_teacher_relations')
-    .upsert({
-      student_id: user.id,
-      teacher_id: teacherId,
-      subject_id: subjectId
-    }, { onConflict: 'student_id' }) // in case they somehow resubmit
-
-  if (insertError) {
-    return res.status(500).json({ error: insertError.message })
-  }
-
-  // 2. Update user_metadata to set onboarding_completed = true
-  const { error: updateError } = await supabase.auth.admin.updateUserById(user.id, {
-    user_metadata: { ...user.user_metadata, onboarding_completed: true }
-  })
-
-  if (updateError) {
-    return res.status(500).json({ error: updateError.message })
-  }
-
-  res.status(200).json({ success: true })
 }
