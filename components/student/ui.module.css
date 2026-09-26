@@ -1,0 +1,158 @@
+/* ============================================
+   Student area — design tokens + shared UI primitives
+   Playful, Duolingo-like: bright colors, chunky "3D" buttons, rounded cards.
+   Tokens are defined on .theme (set by StudentShell) and inherited by every
+   student page/component, so modules can use var(--st-*) directly.
+   ============================================ */
+
+.theme {
+  --st-green: #58cc02;
+  --st-green-dark: #46a302;
+  --st-green-bg: #e9f9dc;
+  --st-blue: #1cb0f6;
+  --st-blue-dark: #1899d6;
+  --st-blue-bg: #ddf4ff;
+  --st-orange: #ff9600;
+  --st-orange-dark: #e08600;
+  --st-orange-bg: #fff1dc;
+  --st-red: #ff4b4b;
+  --st-red-dark: #ea2b2b;
+  --st-red-bg: #ffe5e5;
+  --st-purple: #ce82ff;
+  --st-purple-dark: #a568cc;
+  --st-purple-bg: #f6e9ff;
+  --st-yellow: #ffc800;
+  --st-yellow-dark: #e5b400;
+  --st-yellow-bg: #fff7d6;
+  --st-pink: #ff69b4;
+  --st-pink-dark: #e0559e;
+  --st-pink-bg: #ffe6f3;
+
+  --st-ink: #3c3c3c;
+  --st-ink-soft: #777777;
+  --st-line: #e5e5e5;
+  --st-surface: #ffffff;
+  --st-bg: #f7f7f7;
+
+  --st-radius: 16px;
+  --st-radius-lg: 20px;
+  --st-tabbar-h: 64px;
+
+  color: var(--st-ink);
+  background: var(--st-bg);
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* ---- Chunky 3D button ----
+   Usage: className={`${ui.btn} ${ui.green}`}; add ui.block for full width, ui.small for compact. */
+.btn {
+  --btn-bg: var(--st-surface);
+  --btn-edge: var(--st-line);
+  --btn-fg: var(--st-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0.75rem 1.25rem;
+  border: 2px solid var(--btn-edge);
+  border-bottom-width: 4px;
+  border-radius: var(--st-radius);
+  background: var(--btn-bg);
+  color: var(--btn-fg);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 80ms ease, border-bottom-width 80ms ease, filter 150ms ease;
+}
+
+.btn:hover {
+  filter: brightness(1.04);
+}
+
+.btn:active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+}
+
+.btn:focus-visible {
+  outline: 3px solid var(--st-blue);
+  outline-offset: 2px;
+}
+
+.btn:disabled,
+.btn[aria-disabled='true'] {
+  --btn-bg: var(--st-line);
+  --btn-edge: #d0d0d0;
+  --btn-fg: #afafaf;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+}
+
+.green { --btn-bg: var(--st-green); --btn-edge: var(--st-green-dark); --btn-fg: #fff; }
+.blue { --btn-bg: var(--st-blue); --btn-edge: var(--st-blue-dark); --btn-fg: #fff; }
+.orange { --btn-bg: var(--st-orange); --btn-edge: var(--st-orange-dark); --btn-fg: #fff; }
+.red { --btn-bg: var(--st-red); --btn-edge: var(--st-red-dark); --btn-fg: #fff; }
+.purple { --btn-bg: var(--st-purple); --btn-edge: var(--st-purple-dark); --btn-fg: #fff; }
+.pink { --btn-bg: var(--st-pink); --btn-edge: var(--st-pink-dark); --btn-fg: #fff; }
+/* Outlined: white with colored text */
+.ghost { --btn-bg: var(--st-surface); --btn-edge: var(--st-line); --btn-fg: var(--st-blue); }
+
+.block { width: 100%; }
+.small { min-height: 40px; padding: 0.5rem 0.9rem; font-size: 0.8rem; border-radius: 12px; }
+
+/* ---- Card ---- */
+.card {
+  background: var(--st-surface);
+  border: 2px solid var(--st-line);
+  border-radius: var(--st-radius-lg);
+  padding: 1.25rem;
+}
+
+/* ---- Section heading ---- */
+.sectionTitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--st-ink);
+  margin: 0 0 0.75rem;
+}
+
+/* ---- Pill / chip ---- */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: var(--st-bg);
+  color: var(--st-ink-soft);
+}
+
+/* ---- Skeleton shimmer ---- */
+.skel {
+  display: block;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #ececec 25%, #f5f5f5 37%, #ececec 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn { transition: none; }
+  .skel { animation: none; }
+}
