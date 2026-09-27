@@ -11,7 +11,7 @@ grammaire, devoirs), l'exporte en PDF, et s'entraîne avec des exercices façon 
 (QCM à 3 choix, phrases à trous, associer mot ↔ traduction).
 
 Stack : Next.js 16 (Pages Router) · Supabase (auth + Postgres) · n'importe quel LLM
-compatible OpenAI (par défaut Qwen `qwen-flash`). Détails techniques :
+compatible OpenAI (par défaut Qwen via OpenRouter). Détails techniques :
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Mise en place
@@ -32,17 +32,19 @@ compatible OpenAI (par défaut Qwen `qwen-flash`). Détails techniques :
   la connexion Google en local renvoie vers la version Vercel.
 - **Providers → Google** activé (client OAuth Google Cloud avec l'URL de callback Supabase).
 
-### 3. Clé IA (Qwen, le moins cher)
+### 3. Clé IA (OpenRouter + Qwen, le moins cher)
 
-1. Crée un compte sur Alibaba Cloud Model Studio (site international) :
-   <https://bailian.console.alibabacloud.com/> — un numéro de téléphone européen suffit.
-2. Crée une clé API (API Keys), région Singapour/international.
-3. Renseigne `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL` (voir `.env.example`).
+1. Crée un compte sur <https://openrouter.ai> (email ou Google — pas de pièce d'identité).
+2. **Credits** : ajoute quelques dollars ; **Keys** : crée une clé (`sk-or-…`), avec une
+   limite de dépense si tu veux.
+3. Renseigne `AI_BASE_URL=https://openrouter.ai/api/v1`, `AI_MODEL=qwen/qwen3.7-flash`,
+   `AI_API_KEY` (voir `.env.example`), en local et sur Vercel (Production + Preview).
 
-Coût estimé : < 1 $/mois pour ~60 leçons. Sans clé en local, un **mode démo**
-renvoie une leçon d'exemple pour tester l'interface.
+Coût mesuré : ~0,001 $ par leçon (≈ 9 000 tokens, ~75 s). Sans clé en local, un
+**mode démo** renvoie une leçon d'exemple pour tester l'interface.
 
-Alternative : DeepSeek (`AI_BASE_URL=https://api.deepseek.com`, `AI_MODEL=deepseek-flash`).
+Alternatives compatibles (voir `.env.example`) : Alibaba Model Studio en direct (demande
+une vérification d'identité), DeepSeek.
 
 ### 4. Variables d'environnement
 
