@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { formatLessonDate, plural } from '@/components/lesson/format'
 import { accentStyle } from '@/components/ui/accents'
-import { bestPct, exerciseCount, lessonEmoji, vocabCount } from '@/components/student/lessons/progress'
+import { bestPct, exerciseCount, isUpdated, lessonEmoji, timeAgo, vocabCount } from '@/components/student/lessons/progress'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/lessons/LessonCard.module.css'
 
@@ -9,16 +9,20 @@ const DATE_OPTS = { month: 'short', day: 'numeric', year: 'numeric' }
 
 /**
  * One lesson in a student list. The whole card opens the lesson (stretched link);
- * the Practise button sits above it.
- * @param {{ lesson: object, index?: number }} props  lesson = item of GET /api/student/lessons
+ * the Practice button sits above it.
+ * @param {{ lesson: object, index?: number, headingLevel?: 2|3 }} props
+ *   lesson = item of GET /api/student/lessons; headingLevel follows the page outline
  */
-export default function LessonCard({ lesson, index = 0 }) {
+export default function LessonCard({ lesson, index = 0, headingLevel = 3 }) {
+  const Heading = `h${headingLevel}`
   const href = `/student/lessons/${encodeURIComponent(lesson.id)}`
   const title = lesson.title || 'Lesson recap'
   const count = exerciseCount(lesson)
   const words = vocabCount(lesson)
   const pct = bestPct(lesson)
+  const updated = isUpdated(lesson)
   const date = formatLessonDate(lesson.lesson_date, DATE_OPTS)
+  const practiced = lesson.last_practiced_at ? timeAgo(lesson.last_practiced_at) : ''
 
   const btnColor = pct === null ? ui.green : pct === 100 ? ui.ghost : ui.blue
 
@@ -32,15 +36,16 @@ export default function LessonCard({ lesson, index = 0 }) {
             {date}
           </time>
         )}
-        <h3 className={styles.title}>
+        <Heading className={styles.title}>
           <Link href={href} className={styles.link}>
             {title}
           </Link>
-        </h3>
+        </Heading>
         <p className={styles.meta}>
           {count > 0 ? plural(count, 'exercise') : 'Recap only'}
           {words > 0 && <> · {plural(words, 'word')}</>}
         </p>
+        {practiced && <p className={styles.when}>Practiced {practiced}</p>}
       </div>
 
       <div className={styles.footer}>
@@ -59,6 +64,10 @@ export default function LessonCard({ lesson, index = 0 }) {
               )}
             </span>
           </div>
+        ) : updated ? (
+          <span className={`${styles.badge} ${styles.badgeUpdated}`}>
+            <span aria-hidden="true">🔄</span> Updated
+          </span>
         ) : count > 0 ? (
           <span className={`${styles.badge} ${styles.badgeNew}`}>
             <span aria-hidden="true">✨</span> New
@@ -72,10 +81,10 @@ export default function LessonCard({ lesson, index = 0 }) {
         {count > 0 && (
           <Link
             href={`${href}/practice`}
-            className={`${ui.btn} ${ui.small} ${btnColor} ${styles.practise}`}
-            aria-label={`Practise: ${title}`}
+            className={`${ui.btn} ${ui.small} ${btnColor} ${styles.practice}`}
+            aria-label={`Practice: ${title}`}
           >
-            Practise
+            Practice
           </Link>
         )}
       </div>

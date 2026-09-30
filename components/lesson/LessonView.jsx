@@ -1,17 +1,30 @@
 import { useId, useMemo } from 'react'
 import { normalizeLessonContent } from '@/utils/lesson/schema'
 import RichText, { RichTextInline } from '@/components/lesson/RichText'
+import { formatLessonDate } from '@/components/lesson/format'
 import styles from '@/components/lesson/LessonView.module.css'
 
-// Lesson recap renderer, shared by the student and teacher pages.
+// Lesson recap renderer, shared by the student, teacher and admin pages.
 // `content` is lessons.content (see utils/lesson/schema.js); it is re-normalized
 // here so null / partial / legacy content never crashes the page.
+//
+// The recap's own labels are English (student UI) even on the French teacher and
+// admin pages, hence lang="en" on the root. French content (words, examples,
+// corrections) carries lang="fr" so screen readers switch voice; explanations
+// follow the student's level (English or French) and keep the root's language.
+//
+// Printing ("Save as PDF"): styles/print.css prints only `.lesson-view` on a page
+// that has one, and the print-only header below brands it.
 
-function Section({ id, icon, title, tone = 'blue', children, className }) {
+const PRINT_DATE = { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }
+
+function Section({ id, anchor, icon, title, tone = 'blue', children }) {
   return (
-    <section className={[styles.section, styles[tone], className].filter(Boolean).join(' ')} aria-labelledby={id}>
+    <section id={anchor} className={[styles.section, styles[tone]].join(' ')} aria-labelledby={id}>
       <h2 id={id} className={styles.sectionTitle}>
-        <span className={styles.sectionIcon} aria-hidden="true">{icon}</span>
+        <span className={styles.sectionIcon} aria-hidden="true">
+          {icon}
+        </span>
         {title}
       </h2>
       {children}
@@ -19,28 +32,44 @@ function Section({ id, icon, title, tone = 'blue', children, className }) {
   )
 }
 
+// Below 640px the table is laid out as cards: the explicit roles keep the table
+// semantics (WebKit drops them for display:block tables) and data-label shows
+// which line is French / English.
 function WordTable({ rows, caption }) {
   return (
-    <table className={styles.table}>
+    <table className={styles.table} role="table">
       <caption className="sr-only">{caption}</caption>
-      <thead>
-        <tr>
-          <th scope="col">French</th>
-          <th scope="col">English</th>
-          <th scope="col">Example</th>
+      <thead role="rowgroup">
+        <tr role="row">
+          <th scope="col" role="columnheader">
+            French
+          </th>
+          <th scope="col" role="columnheader">
+            English
+          </th>
+          <th scope="col" role="columnheader">
+            Example
+          </th>
         </tr>
       </thead>
-      <tbody>
+      <tbody role="rowgroup">
         {rows.map((row, i) => (
-          <tr key={i}>
-            <td data-label="French" className={styles.fr}>
+          <tr key={i} role="row">
+            <td role="cell" data-label="FR" className={styles.fr} lang="fr">
               <RichTextInline text={row.fr} />
             </td>
-            <td data-label="English" className={styles.en}>
+            <td role="cell" data-label="EN" className={styles.en}>
               <RichTextInline text={row.en} />
             </td>
-            <td data-label="Example" className={styles.example}>
-              {row.example ? <RichTextInline text={row.example} /> : <span className={styles.none}>—</span>}
+            <td role="cell" data-label="e.g." className={`${styles.example} ${row.example ? '' : styles.noExample}`}>
+              {row.example ? (
+                <RichTextInline text={row.example} lang="fr" />
+              ) : (
+                <span className={styles.none}>
+                  <span aria-hidden="true">—</span>
+                  <span className="sr-only">No example</span>
+                </span>
+              )}
             </td>
           </tr>
         ))}
@@ -55,7 +84,26 @@ function stripNowICan(item) {
   return rest || item
 }
 
-export default function LessonView({ content }) {
+function PrintHeader({ title, lessonDate, studentName, teacherName }) {
+  const date = formatLessonDate(lessonDate, PRINT_DATE)
+  const meta = [date, studentName].filter(Boolean).join(' · ')
+  return (
+    <div className={styles.printHeader}>
+      <p className={styles.printBrand} lang="fr">
+        {teacherName} — cours de français
+      </p>
+      <p className={styles.printTitle}>{title}</p>
+      {meta && <p className={styles.printMeta}>{meta}</p>}
+    </div>
+  )
+}
+
+/**
+ * @param {{ content: object, title?: string, lessonDate?: string, studentName?: string, teacherName?: string }} props
+ *   title / lessonDate ('YYYY-MM-DD') / studentName / teacherName (default "Wael") only
+ *   appear in the printed recap's header; title defaults to content.title.
+ */
+export default function LessonView({ content, title, lessonDate, studentName, teacherName }) {
   const uid = useId()
   const c = useMemo(() => normalizeLessonContent(content), [content])
 
@@ -71,9 +119,11 @@ export default function LessonView({ content }) {
 
   if (isEmpty) {
     return (
-      <div className={`lesson-view ${styles.root}`}>
-        <p style={{ margin: 0, padding: '2rem 1rem', textAlign: 'center', fontWeight: 800, color: 'var(--st-ink-soft, #777)' }}>
-          <span aria-hidden="true" style={{ display: 'block', fontSize: '2.5rem' }}>📄</span>
+      <div className={`lesson-view ${styles.root}`} lang="en">
+        <p className={styles.empty}>
+          <span className={styles.emptyIcon} aria-hidden="true">
+            📄
+          </span>
           This recap is empty
         </p>
       </div>
@@ -81,14 +131,23 @@ export default function LessonView({ content }) {
   }
 
   return (
-    <article className={`lesson-view ${styles.root}`}>
+    <article className={`lesson-view ${styles.root}`} lang="en">
+      <PrintHeader
+        title={(typeof title === 'string' && title.trim()) || c.title}
+        lessonDate={lessonDate}
+        studentName={typeof studentName === 'string' ? studentName.trim() : ''}
+        teacherName={(typeof teacherName === 'string' && teacherName.trim()) || 'Wael'}
+      />
+
       {(c.summary || c.topics.length > 0) && (
-        <Section id={`${uid}-summary`} icon="💬" title="Summary" tone="blue">
+        <Section id={`${uid}-summary`} anchor="recap-summary" icon="💬" title="Summary" tone="blue">
           {c.summary && <RichText text={c.summary} className={styles.summary} />}
           {c.topics.length > 0 && (
-            <ul className={styles.topics} aria-label="Topics">
+            <ul className={styles.topics} aria-label="Topics" role="list">
               {c.topics.map((t, i) => (
-                <li key={i} className={styles.topic}>{t}</li>
+                <li key={i} className={styles.topic}>
+                  <RichTextInline text={t} />
+                </li>
               ))}
             </ul>
           )}
@@ -96,25 +155,29 @@ export default function LessonView({ content }) {
       )}
 
       {c.vocabulary.length > 0 && (
-        <Section id={`${uid}-vocabulary`} icon="📚" title="Vocabulary" tone="green">
+        <Section id={`${uid}-vocabulary`} anchor="recap-vocabulary" icon="📚" title="Vocabulary" tone="green">
           <WordTable rows={c.vocabulary} caption="Vocabulary: French, English, example" />
         </Section>
       )}
 
       {c.corrections.length > 0 && (
-        <Section id={`${uid}-corrections`} icon="✏️" title="Corrections" tone="red">
-          <ul className={styles.corrections}>
+        <Section id={`${uid}-corrections`} anchor="recap-corrections" icon="✏️" title="Corrections" tone="red">
+          <ul className={styles.corrections} role="list">
             {c.corrections.map((item, i) => (
               <li key={i} className={styles.correction}>
                 <div className={styles.correctionPair}>
                   <span className={styles.wrong}>
                     <span className="sr-only">You said: </span>
-                    <s>{item.wrong}</s>
+                    <s lang="fr">
+                      <RichTextInline text={item.wrong} />
+                    </s>
                   </span>
-                  <span className={styles.arrow} aria-hidden="true">→</span>
+                  <span className={styles.arrow} aria-hidden="true">
+                    →
+                  </span>
                   <span className={styles.right}>
                     <span className="sr-only">Better: </span>
-                    <RichTextInline text={item.right} />
+                    <RichTextInline text={item.right} lang="fr" />
                   </span>
                 </div>
                 {item.explanation && (
@@ -129,17 +192,19 @@ export default function LessonView({ content }) {
       )}
 
       {c.grammar.length > 0 && (
-        <Section id={`${uid}-grammar`} icon="🧩" title="Grammar" tone="yellow">
+        <Section id={`${uid}-grammar`} anchor="recap-grammar" icon="🧩" title="Grammar" tone="yellow">
           <div className={styles.rules}>
             {c.grammar.map((g, i) => (
               <div key={i} className={styles.rule}>
                 <h3 className={styles.ruleTitle}>
-                  <span aria-hidden="true">⭐ </span>
+                  <span className={styles.deco} aria-hidden="true">
+                    ⭐{' '}
+                  </span>
                   <RichTextInline text={g.title} />
                 </h3>
                 <RichText text={g.explanation} className={styles.ruleText} />
                 {g.examples.length > 0 && (
-                  <ul className={styles.examples} aria-label="Examples">
+                  <ul className={styles.examples} aria-label="Examples" role="list" lang="fr">
                     {g.examples.map((ex, j) => (
                       <li key={j}>
                         <RichTextInline text={ex} />
@@ -154,27 +219,22 @@ export default function LessonView({ content }) {
       )}
 
       {c.expressions.length > 0 && (
-        <Section id={`${uid}-expressions`} icon="🗣️" title="Useful expressions" tone="purple">
+        <Section id={`${uid}-expressions`} anchor="recap-expressions" icon="🗣️" title="Useful expressions" tone="purple">
           <WordTable rows={c.expressions} caption="Useful expressions: French, English, example" />
         </Section>
       )}
 
       {c.homework.length > 0 && (
-        <Section id={`${uid}-homework`} icon="🏠" title="Homework" tone="orange">
-          <ol className={styles.homework}>
+        <Section id={`${uid}-homework`} anchor="recap-homework" icon="🏠" title="Homework" tone="orange">
+          <ol className={styles.homework} role="list">
             {c.homework.map((h, i) => (
               <li key={i} className={styles.homeworkItem}>
                 <RichTextInline text={h.task} />
                 {h.link && (
                   <>
                     {' '}
-                    <a
-                      href={h.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={`lesson-homework-link ${styles.link}`}
-                    >
-                      Open link<span aria-hidden="true"> ↗</span>
+                    <a href={h.link} target="_blank" rel="noopener noreferrer" className={styles.link}>
+                      Open link<span className={styles.deco} aria-hidden="true"> ↗</span>
                       <span className="sr-only"> (opens in a new tab)</span>
                     </a>
                   </>
@@ -186,12 +246,14 @@ export default function LessonView({ content }) {
       )}
 
       {c.can_do.length > 0 && (
-        <Section id={`${uid}-can-do`} icon="🎯" title="Now I can…" tone="green">
-          <ul className={styles.canDo}>
+        <Section id={`${uid}-can-do`} anchor="recap-can-do" icon="🎯" title="Now I can…" tone="green">
+          <ul className={styles.canDo} role="list">
             {c.can_do.map((item, i) => (
               <li key={i} className={styles.canDoItem}>
-                <span className={styles.check} aria-hidden="true">✓</span>
-                <span>{stripNowICan(item)}</span>
+                <span className={styles.check} aria-hidden="true">
+                  ✓
+                </span>
+                <RichTextInline text={stripNowICan(item)} />
               </li>
             ))}
           </ul>

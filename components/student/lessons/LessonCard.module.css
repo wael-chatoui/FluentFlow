@@ -91,13 +91,20 @@
 }
 
 .link:focus-visible::after {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
 }
 
 .meta {
   margin: 0.2rem 0 0;
   font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--st-ink-soft);
+}
+
+.when {
+  margin: 0.1rem 0 0;
+  font-size: 0.8rem;
   font-weight: 700;
   color: var(--st-ink-soft);
 }
@@ -163,15 +170,20 @@
 
 .badgeNew {
   background: var(--st-green-bg);
-  color: #2b7a0b;
+  color: var(--st-green-ink);
 }
 
-.badge + .practise {
+.badgeUpdated {
+  background: var(--st-blue-bg);
+  color: var(--st-blue-ink);
+}
+
+.badge + .practice {
   margin-left: auto;
 }
 
 /* Above the stretched link (.footer prefix: must beat ui.small) */
-.footer .practise {
+.footer .practice {
   position: relative;
   z-index: 1;
   flex: none;

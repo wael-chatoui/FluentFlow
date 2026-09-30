@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { shuffle, cx } from '@/components/practice/utils'
+import { shuffle, cx, plainText } from '@/components/practice/utils'
+import { RichTextInline } from '@/components/lesson/RichText'
 import SpeakButton from '@/components/student/vocabulary/SpeakButton'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/vocabulary/Flashcards.module.css'
@@ -11,7 +12,7 @@ const AGAIN_GAP = 3 // an "Again" card comes back after this many other cards
 const NO_DRAG = { dx: 0, active: false, returning: false }
 
 function sizeClass(text) {
-  const n = (text || '').length
+  const n = plainText(text).length
   if (n > 70) return styles.textXs
   if (n > 34) return styles.textSm
   return ''
@@ -22,9 +23,12 @@ function isTyping(target) {
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || Boolean(target?.isContentEditable)
 }
 
+// `text` may highlight a word with **…** (rendered with RichTextInline); `plain` is for
+// screen readers and speech
 function sides(item, direction) {
-  const fr = { label: 'French', flag: '🇫🇷', text: item.fr, lang: 'fr' }
-  const en = { label: 'English', flag: '🇬🇧', text: item.en || '(no translation)', lang: 'en' }
+  const face = (label, flag, text, lang) => ({ label, flag, text, plain: plainText(text), lang })
+  const fr = face('French', '🇫🇷', item.fr, 'fr')
+  const en = face('English', '🇬🇧', item.en || '(no translation)', 'en')
   return direction === 'en-fr' ? { front: en, back: fr } : { front: fr, back: en }
 }
 
@@ -67,8 +71,11 @@ export default function Flashcards({ items, speech, direction, onDirectionChange
   // Shuffle once when the deck mounts (effect → Math.random never runs during SSR)
   useEffect(() => {
     start(items.map((i) => i.key))
-    // Keyboard users can flip with Space right away
-    requestAnimationFrame(() => cardRef.current?.focus({ preventScroll: true }))
+    // Keyboard users can flip with Space right away (unless they are using a field,
+    // e.g. the deck picker, which rebuilds the deck on every change)
+    requestAnimationFrame(() => {
+      if (!isTyping(document.activeElement)) cardRef.current?.focus({ preventScroll: true })
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -86,7 +93,7 @@ export default function Flashcards({ items, speech, direction, onDirectionChange
     const next = !flipped
     setFlipped(next)
     playSound('flip')
-    setLive(next ? `${back.label}: ${back.text}` : `${front.label}: ${front.text}`)
+    setLive(next ? `${back.label}: ${back.plain}` : `${front.label}: ${front.plain}`)
   }
 
   const rate = (gotIt) => {
@@ -216,7 +223,7 @@ export default function Flashcards({ items, speech, direction, onDirectionChange
         <div className={styles.endActions}>
           {missedCount > 0 && (
             <button type="button" className={`${ui.btn} ${ui.orange} ${ui.block}`} onClick={() => start([...missed])}>
-              Practise only the ones I missed ({missedCount})
+              Practice only the ones I missed ({missedCount})
             </button>
           )}
           <button
@@ -288,8 +295,8 @@ export default function Flashcards({ items, speech, direction, onDirectionChange
             aria-pressed={flipped}
             aria-label={
               flipped
-                ? `${back.label}: ${back.text}${current.example ? `. Example: ${current.example}` : ''}. Press to see the ${front.label} side again.`
-                : `${front.label}: ${front.text}. Press to reveal the ${back.label}.`
+                ? `${back.label}: ${back.plain}${current.example ? `. Example: ${plainText(current.example)}` : ''}. Press to see the ${front.label} side again.`
+                : `${front.label}: ${front.plain}. Press to reveal the ${back.label}.`
             }
             onClick={onCardClick}
             onPointerDown={onPointerDown}
@@ -303,7 +310,7 @@ export default function Flashcards({ items, speech, direction, onDirectionChange
                   {front.flag} {front.label}
                 </span>
                 <span className={cx(styles.faceText, sizeClass(front.text))} lang={front.lang}>
-                  {front.text}
+                  <RichTextInline text={front.text} />
                 </span>
                 <span className={styles.faceHint}>Tap to flip</span>
               </span>
@@ -312,11 +319,11 @@ export default function Flashcards({ items, speech, direction, onDirectionChange
                   {back.flag} {back.label}
                 </span>
                 <span className={cx(styles.faceText, sizeClass(back.text))} lang={back.lang}>
-                  {back.text}
+                  <RichTextInline text={back.text} />
                 </span>
                 {current.example && (
                   <span className={styles.faceExample} lang="fr">
-                    {current.example}
+                    <RichTextInline text={current.example} />
                   </span>
                 )}
               </span>
@@ -337,7 +344,7 @@ export default function Flashcards({ items, speech, direction, onDirectionChange
       </div>
 
       <div className={styles.under}>
-        {showSpeak && <SpeakButton speech={speech} text={current.fr} speakKey={`card:${current.key}`} />}
+        {showSpeak && <SpeakButton speech={speech} text={plainText(current.fr)} speakKey={`card:${current.key}`} />}
         <p className={styles.hint}>
           <span className={styles.hintTouch}>Swipe ← again · → got it</span>
           <span className={styles.hintKeys}>

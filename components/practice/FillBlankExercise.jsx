@@ -1,5 +1,7 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
-import { splitBlank, cx } from '@/components/practice/utils'
+import { RichTextInline } from '@/components/lesson/RichText'
+import BlankSentence from '@/components/practice/BlankSentence'
+import { splitBlank, speakable, plainText, cx } from '@/components/practice/utils'
 import styles from '@/components/practice/Exercises.module.css'
 
 const ACCENTS = ['é', 'è', 'ê', 'à', 'ç', 'ù', 'â', 'î', 'ô', 'ë', 'ï', 'œ']
@@ -9,6 +11,7 @@ const useIsoLayoutEffect = typeof window === 'undefined' ? useEffect : useLayout
 
 /**
  * Fill in the blank: an inline input replaces ___ in the sentence.
+ * (After "Check", the feedback sheet shows and reads the completed sentence.)
  * @param {{ exercise: object, value: string, onChange: (v: string) => void, onSubmit: () => void, feedback: object|null }} props
  */
 export default function FillBlankExercise({ exercise, value, onChange, onSubmit, feedback }) {
@@ -21,7 +24,7 @@ export default function FillBlankExercise({ exercise, value, onChange, onSubmit,
   const text = typeof value === 'string' ? value : ''
   const parts = splitBlank(exercise.sentence) || [exercise.sentence ? `${exercise.sentence} ` : '', '']
 
-  const longest = Math.max(...exercise.answers.map((a) => a.length), 4)
+  const longest = Math.max(...exercise.answers.map((a) => plainText(a).length), 4)
   const width = `${Math.min(Math.max(longest + 3, 7), 24)}ch`
 
   // Focus the input when the exercise appears, without scrolling the page
@@ -61,8 +64,7 @@ export default function FillBlankExercise({ exercise, value, onChange, onSubmit,
 
   return (
     <div className={styles.exercise}>
-      <p className={cx(styles.sentence, styles.sentenceFill)}>
-        {parts[0]}
+      <BlankSentence parts={parts} className={cx(styles.sentence, styles.sentenceFill)}>
         <input
           ref={inputRef}
           type="text"
@@ -84,7 +86,7 @@ export default function FillBlankExercise({ exercise, value, onChange, onSubmit,
             }
           }}
           disabled={graded}
-          aria-label={`Missing word in: ${exercise.sentence.replace('___', '…')}`}
+          aria-label={`Missing word in: ${speakable(exercise.sentence)}`}
           aria-describedby={showHint && exercise.hint ? hintId : undefined}
           autoComplete="off"
           autoCorrect="off"
@@ -94,8 +96,7 @@ export default function FillBlankExercise({ exercise, value, onChange, onSubmit,
           maxLength={120}
           lang="fr"
         />
-        {parts[1]}
-      </p>
+      </BlankSentence>
 
       {exercise.hint && (
         <div className={styles.hintRow}>
@@ -110,7 +111,7 @@ export default function FillBlankExercise({ exercise, value, onChange, onSubmit,
             {showHint ? 'Hide hint' : 'Show hint'}
           </button>
           <p id={hintId} className={styles.hint} hidden={!showHint}>
-            {exercise.hint}
+            <RichTextInline text={exercise.hint} />
           </p>
         </div>
       )}

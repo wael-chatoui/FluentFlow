@@ -3,10 +3,11 @@ import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import StudentShell from '@/components/student/StudentShell'
+import useMe from '@/components/student/useMe'
 import LessonView from '@/components/lesson/LessonView'
 import MasteryRing from '@/components/student/lessons/MasteryRing'
 import { EmptyState, ErrorCard } from '@/components/student/lessons/StatusViews'
-import { lessonEmoji } from '@/components/student/lessons/progress'
+import { lessonEmoji, timeAgo } from '@/components/student/lessons/progress'
 import { accentStyle } from '@/components/ui/accents'
 import { formatLessonDate, percent, plural } from '@/components/lesson/format'
 import { api } from '@/utils/apiClient'
@@ -15,11 +16,14 @@ import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/lessons/LessonPage.module.css'
 
 const DATE_OPTS = { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }
+const HEADER_OFFSET = 80 // sticky top bar + breathing room, for #section links
+
+const hasItems = (value) => Array.isArray(value) && value.length > 0
 
 function BackLink() {
   return (
     <Link href="/student/lessons" className={`${styles.back} no-print`}>
-      <span aria-hidden="true">‹</span> All lessons
+      <span aria-hidden="true">‹</span> My lessons
     </Link>
   )
 }
@@ -54,6 +58,7 @@ export default function StudentLessonPage() {
   const id = router.isReady && typeof router.query.id === 'string' ? router.query.id : null
   const [state, setState] = useState({ status: 'loading', lesson: null, progress: null, error: '' })
   const [reloadKey, setReloadKey] = useState(0)
+  const { me } = useMe() // shared with the shell (cached): the student's name for the printed header
 
   useEffect(() => {
     if (!id) return
@@ -78,6 +83,15 @@ export default function StudentLessonPage() {
 
     return () => controller.abort()
   }, [id, reloadKey])
+
+  // Links like /student/lessons/<id>#recap-vocabulary (from the Words page): scroll once the recap is shown
+  useEffect(() => {
+    if (state.status !== 'ready') return
+    const hash = window.location.hash.slice(1)
+    const target = hash ? document.getElementById(hash) : null
+    if (!target) return
+    window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET })
+  }, [state.status])
 
   if (state.status === 'notfound') {
     return (
@@ -126,6 +140,7 @@ export default function StudentLessonPage() {
           <title>Lesson · Preply Lessons</title>
         </Head>
         <BackLink />
+        <h1 className="sr-only">Lesson</h1>
         <span className="sr-only" role="status">
           Loading the lesson…
         </span>
@@ -142,7 +157,12 @@ export default function StudentLessonPage() {
   const bestTotal = progress?.best_total == null ? null : Number(progress.best_total)
   const pct = bestScore === null ? null : percent(bestScore, bestTotal)
   const attempts = Number(progress?.attempts) || 0
-  const practiceHref = `/student/lessons/${encodeURIComponent(lesson.id)}/practice`
+  const lastPracticed = progress?.last_practiced_at ? timeAgo(progress.last_practiced_at) : ''
+  const updated = Boolean(lesson.updated_since_practice) && pct === null
+  // ?from=lesson: the practice page goes back here with history.back() (no duplicate entry)
+  const practiceHref = `/student/lessons/${encodeURIComponent(lesson.id)}/practice?from=lesson`
+  const cardsHref = `/student/vocabulary?lesson=${encodeURIComponent(lesson.id)}&mode=cards`
+  const hasWords = hasItems(lesson.content?.vocabulary) || hasItems(lesson.content?.expressions)
   const title = lesson.title || lesson.content?.title || 'Lesson recap'
 
   return (
@@ -165,6 +185,11 @@ export default function StudentLessonPage() {
               </time>
             )}
             <h1 className={styles.title}>{title}</h1>
+            {updated && (
+              <span className={`${styles.updated} no-print`}>
+                <span aria-hidden="true">🔄</span> Updated by your teacher
+              </span>
+            )}
           </div>
         </div>
 
@@ -182,16 +207,21 @@ export default function StudentLessonPage() {
                 <strong>{pct === 100 ? 'Mastered! 👑' : `Best score ${bestScore}/${bestTotal}`}</strong>
                 <span>
                   {plural(exerciseCount, 'exercise')}
-                  {attempts > 0 && ` · practised ${plural(attempts, 'time')}`}
+                  {attempts > 0 && ` · practiced ${plural(attempts, 'time')}`}
+                  {lastPracticed && ` · last ${lastPracticed}`}
                 </span>
               </span>
             </>
           ) : exerciseCount > 0 ? (
             <span className={styles.scoreText}>
               <strong>
-                <span aria-hidden="true">✨ </span>Not practised yet
+                <span aria-hidden="true">✨ </span>
+                {updated ? 'New exercises to practice' : 'Not practiced yet'}
               </strong>
-              <span>{plural(exerciseCount, 'exercise')} waiting for you</span>
+              <span>
+                {plural(exerciseCount, 'exercise')} waiting for you
+                {updated && lastPracticed && ` · you last practiced ${lastPracticed}`}
+              </span>
             </span>
           ) : (
             <span className={styles.scoreText}>
@@ -206,9 +236,9 @@ export default function StudentLessonPage() {
         <div className={`${styles.actions} no-print`}>
           {exerciseCount > 0 && (
             <div className={styles.dock}>
-              <Link href={practiceHref} className={`${ui.btn} ${ui.green} ${ui.block} ${styles.practise}`}>
-                {pct === null ? 'Practise' : 'Practise again'}
-                <span className={styles.practiseCount}>
+              <Link href={practiceHref} className={`${ui.btn} ${ui.green} ${ui.block} ${styles.practice}`}>
+                {pct === null ? 'Practice' : 'Practice again'}
+                <span className={styles.practiceCount}>
                   {' '}
                   · {plural(exerciseCount, 'exercise')}
                 </span>
@@ -219,6 +249,11 @@ export default function StudentLessonPage() {
             <button type="button" className={`${ui.btn} ${ui.small} ${ui.ghost} ${styles.secondaryBtn}`} onClick={() => window.print()}>
               <span aria-hidden="true">🖨️</span> Save as PDF
             </button>
+            {hasWords && (
+              <Link href={cardsHref} className={`${ui.btn} ${ui.small} ${ui.ghost} ${styles.secondaryBtn}`}>
+                <span aria-hidden="true">🃏</span> Word flashcards
+              </Link>
+            )}
             {driveUrl && (
               <a
                 href={driveUrl}
@@ -235,7 +270,12 @@ export default function StudentLessonPage() {
       </header>
 
       <div className={styles.recap}>
-        <LessonView content={lesson.content} />
+        <LessonView
+          content={lesson.content}
+          title={title}
+          lessonDate={lesson.lesson_date}
+          studentName={me?.profile?.full_name || ''}
+        />
       </div>
 
       {exerciseCount > 0 && <div className={`${styles.dockSpacer} no-print`} aria-hidden="true" />}

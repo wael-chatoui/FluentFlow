@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import StudentShell from '@/components/student/StudentShell'
 import WordList, { WordListSkeleton } from '@/components/student/vocabulary/WordList'
 import Flashcards from '@/components/student/vocabulary/Flashcards'
 import useFrenchSpeech from '@/components/student/vocabulary/useFrenchSpeech'
 import { cx } from '@/components/practice/utils'
-import { stripAccents } from '@/utils/lesson/grading'
+import { formatLessonDate } from '@/components/lesson/format'
+import { foldFrench } from '@/utils/api/studentLessons'
 import { api } from '@/utils/apiClient'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/vocabulary/Vocabulary.module.css'
@@ -22,14 +24,6 @@ const MODES = [
   { value: 'cards', label: 'Flashcards', icon: '🃏' },
 ]
 
-/** Case-, accent- and apostrophe-insensitive form used for search. */
-function fold(value) {
-  return stripAccents(String(value || '').toLowerCase())
-    .replace(/[‘’ʼ`´]/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-
 function normalizeItems(raw) {
   if (!Array.isArray(raw)) return []
   const out = []
@@ -38,19 +32,35 @@ function normalizeItems(raw) {
     if (!fr) return
     const en = typeof it.en === 'string' ? it.en.trim() : ''
     const example = typeof it.example === 'string' ? it.example.trim() : ''
+    const lessonId = it.lessonId ? String(it.lessonId) : ''
     out.push({
       key: `v${i}`,
       fr,
       en,
       example,
       kind: it.kind === 'expression' ? 'expression' : 'word',
-      lessonId: it.lessonId ? String(it.lessonId) : '',
+      lessonId,
       lessonTitle: typeof it.lessonTitle === 'string' ? it.lessonTitle : '',
       lesson_date: typeof it.lesson_date === 'string' ? it.lesson_date : '',
-      haystack: fold(`${fr} ${en} ${example}`),
+      // Every lesson the word appears in (a lesson's deck also has its repeated words)
+      lessonIds: Array.isArray(it.lessonIds) ? it.lessonIds.map(String) : lessonId ? [lessonId] : [],
+      // Same folding as the server's dedupe: case, accents, apostrophes, punctuation
+      haystack: foldFrench(`${fr} ${en} ${example}`),
     })
   })
   return out
+}
+
+/** Lessons with words (API order, newest first), for the flashcards deck picker. */
+function normalizeLessons(raw) {
+  if (!Array.isArray(raw)) return []
+  return raw
+    .filter((l) => l?.id)
+    .map((l) => ({
+      id: String(l.id),
+      title: typeof l.title === 'string' && l.title ? l.title : 'Lesson',
+      date: typeof l.lesson_date === 'string' ? l.lesson_date : '',
+    }))
 }
 
 function PageSkeleton() {
@@ -68,12 +78,11 @@ function PageSkeleton() {
 }
 
 export default function StudentVocabularyPage() {
-  const [state, setState] = useState({ status: 'loading', items: [], error: '' })
+  const router = useRouter()
+  const [state, setState] = useState({ status: 'loading', items: [], lessons: [], error: '' })
   const [reloadKey, setReloadKey] = useState(0)
-  const [mode, setMode] = useState('list')
   const [kind, setKind] = useState('all')
   const [query, setQuery] = useState('')
-  const [deckId, setDeckId] = useState(0)
   const [direction, setDirection] = useState('fr-en')
   const speech = useFrenchSpeech()
 
@@ -85,35 +94,55 @@ export default function StudentVocabularyPage() {
     api('/api/student/vocabulary', { signal })
       .then((data) => {
         if (signal.aborted) return
-        setState({ status: 'ready', items: normalizeItems(data?.items), error: '' })
+        setState({
+          status: 'ready',
+          items: normalizeItems(data?.items),
+          lessons: normalizeLessons(data?.lessons),
+          error: '',
+        })
       })
       .catch((err) => {
         if (err?.name === 'AbortError' || signal.aborted) return
-        setState({ status: 'error', items: [], error: err?.message || 'Something went wrong.' })
+        setState({ status: 'error', items: [], lessons: [], error: err?.message || 'Something went wrong.' })
       })
 
     return () => controller.abort()
   }, [reloadKey])
 
-  const items = state.items
-  const needle = fold(query)
+  const { items, lessons } = state
 
-  const counts = useMemo(() => {
-    const c = { all: items.length, word: 0, expression: 0 }
-    for (const it of items) c[it.kind] += 1
-    return c
-  }, [items])
+  // View in the URL (?mode=cards&lesson=<id>) so the lesson page can link to a deck
+  // and Back from a lesson keeps it
+  const mode = router.isReady && router.query.mode === 'cards' ? 'cards' : 'list'
+  const lessonParam = router.isReady && typeof router.query.lesson === 'string' ? router.query.lesson : ''
+  const deckLesson = lessons.find((l) => l.id === lessonParam) || null
 
-  const filtered = useMemo(
-    () => items.filter((it) => (kind === 'all' || it.kind === kind) && (!needle || it.haystack.includes(needle))),
-    [items, kind, needle]
+  const setView = (next) => {
+    const view = { mode, lesson: deckLesson?.id || '', ...next }
+    const q = {}
+    if (view.mode === 'cards') q.mode = 'cards'
+    if (view.lesson) q.lesson = view.lesson
+    router.replace({ pathname: '/student/vocabulary', query: q }, undefined, { shallow: true, scroll: false })
+  }
+
+  const needle = foldFrench(query)
+
+  // The deck (lesson) only narrows the flashcards; the list is already grouped by lesson
+  const scoped = useMemo(
+    () => (mode === 'cards' && deckLesson ? items.filter((it) => it.lessonIds.includes(deckLesson.id)) : items),
+    [items, mode, deckLesson]
   )
 
-  const switchMode = (next) => {
-    if (next === mode) return
-    if (next === 'cards') setDeckId((d) => d + 1) // fresh shuffle every time the mode is entered
-    setMode(next)
-  }
+  const counts = useMemo(() => {
+    const c = { all: scoped.length, word: 0, expression: 0 }
+    for (const it of scoped) c[it.kind] += 1
+    return c
+  }, [scoped])
+
+  const filtered = useMemo(
+    () => scoped.filter((it) => (kind === 'all' || it.kind === kind) && (!needle || it.haystack.includes(needle))),
+    [scoped, kind, needle]
+  )
 
   const kindLabel = FILTERS.find((f) => f.value === kind)?.label.toLowerCase() || 'words'
 
@@ -184,10 +213,45 @@ export default function StudentVocabularyPage() {
           <p className={needle ? styles.resultCount : 'sr-only'} aria-live="polite">
             {needle ? `${filtered.length} ${filtered.length === 1 ? 'result' : 'results'}` : ''}
           </p>
-          {filtered.length > 0 ? <WordList items={filtered} flat={Boolean(needle)} speech={speech} /> : noMatch}
+          {filtered.length > 0 ? (
+            <WordList
+              items={filtered}
+              flat={Boolean(needle)}
+              speech={speech}
+              onPracticeLesson={(lessonId) => {
+                setView({ mode: 'cards', lesson: lessonId })
+                window.scrollTo(0, 0) // the deck is at the top, the button may be far down the list
+              }}
+            />
+          ) : (
+            noMatch
+          )}
         </>
       ) : (
         <>
+          {lessons.length > 1 && (
+            <div className={styles.deck}>
+              <label htmlFor="vocab-deck" className={styles.deckLabel}>
+                Deck
+              </label>
+              <select
+                id="vocab-deck"
+                className={styles.deckSelect}
+                value={deckLesson?.id || ''}
+                onChange={(e) => setView({ lesson: e.target.value })}
+              >
+                <option value="">All lessons ({items.length})</option>
+                {lessons.map((l) => {
+                  const date = formatLessonDate(l.date, { month: 'short', day: 'numeric' })
+                  return (
+                    <option key={l.id} value={l.id}>
+                      {date ? `${l.title} · ${date}` : l.title}
+                    </option>
+                  )
+                })}
+              </select>
+            </div>
+          )}
           {chips}
           {needle && (
             <div className={styles.searchPill}>
@@ -201,7 +265,7 @@ export default function StudentVocabularyPage() {
           )}
           {filtered.length > 0 ? (
             <Flashcards
-              key={`${deckId}|${kind}|${needle}`}
+              key={`${deckLesson?.id || 'all'}|${kind}|${needle}`}
               items={filtered}
               speech={speech}
               direction={direction}
@@ -221,10 +285,13 @@ export default function StudentVocabularyPage() {
       </Head>
 
       {state.status === 'loading' && (
-        <div role="status" aria-busy="true">
-          <span className="sr-only">Loading your words…</span>
-          <PageSkeleton />
-        </div>
+        <>
+          <h1 className="sr-only">Words</h1>
+          <div role="status" aria-busy="true">
+            <span className="sr-only">Loading your words…</span>
+            <PageSkeleton />
+          </div>
+        </>
       )}
 
       {state.status === 'error' && (
@@ -232,7 +299,7 @@ export default function StudentVocabularyPage() {
           <h1 className={styles.title}>Words</h1>
           <div className={`${ui.card} ${styles.state}`} role="alert">
             <div className={styles.stateEmoji} aria-hidden="true">😵‍💫</div>
-            <h2 className={styles.stateTitle}>Couldn&apos;t load your words</h2>
+            <h2 className={styles.stateTitle}>Couldn’t load your words</h2>
             <p className={styles.stateText}>{state.error}</p>
             <button type="button" className={`${ui.btn} ${ui.blue}`} onClick={() => setReloadKey((k) => k + 1)}>
               Try again
@@ -273,7 +340,7 @@ export default function StudentVocabularyPage() {
                   type="button"
                   className={cx(styles.segBtn, mode === m.value && styles.segActive)}
                   aria-pressed={mode === m.value}
-                  onClick={() => switchMode(m.value)}
+                  onClick={() => mode !== m.value && setView({ mode: m.value })}
                 >
                   <span aria-hidden="true">{m.icon}</span> {m.label}
                 </button>

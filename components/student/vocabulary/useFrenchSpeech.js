@@ -6,10 +6,17 @@ function getSynth() {
   return window.speechSynthesis
 }
 
+function findFrenchVoice(synth) {
+  const voices = synth.getVoices?.() || []
+  return voices.find((v) => /^fr[-_]fr/i.test(v.lang)) || voices.find((v) => /^fr([-_]|$)/i.test(v.lang)) || null
+}
+
 /**
  * French text-to-speech with the Web Speech API.
- * `supported` is false during SSR and the first client render (hydration-safe),
- * then true if the browser can speak. Speech is cancelled on unmount.
+ * `supported` is true only once a French voice is installed: without one, browsers read
+ * French with an English voice, which is worse than nothing for a pronunciation aid.
+ * It is false during SSR and the first client render (hydration-safe), and can turn true
+ * later (voices load asynchronously). Speech is cancelled on unmount.
  * @returns {{ supported: boolean, speak: (text: string, key?: string) => void, speakingKey: string | null }}
  */
 export default function useFrenchSpeech() {
@@ -26,12 +33,10 @@ export default function useFrenchSpeech() {
         mountedRef.current = false
       }
     }
-    setSupported(true)
 
     const pickVoice = () => {
-      const voices = synth.getVoices?.() || []
-      voiceRef.current =
-        voices.find((v) => /^fr[-_]fr/i.test(v.lang)) || voices.find((v) => /^fr/i.test(v.lang)) || null
+      voiceRef.current = findFrenchVoice(synth)
+      if (mountedRef.current) setSupported(Boolean(voiceRef.current))
     }
     pickVoice()
     synth.addEventListener?.('voiceschanged', pickVoice)
@@ -45,13 +50,13 @@ export default function useFrenchSpeech() {
 
   const speak = useCallback((text, key = text) => {
     const synth = getSynth()
-    const value = typeof text === 'string' ? text.trim() : ''
-    if (!synth || !value) return
+    const value = typeof text === 'string' ? text.replace(/\*\*/g, '').trim() : ''
+    if (!synth || !value || !voiceRef.current) return
     synth.cancel()
     const utterance = new window.SpeechSynthesisUtterance(value)
-    utterance.lang = 'fr-FR'
+    utterance.lang = voiceRef.current.lang || 'fr-FR'
+    utterance.voice = voiceRef.current
     utterance.rate = 0.9
-    if (voiceRef.current) utterance.voice = voiceRef.current
     const done = () => {
       if (mountedRef.current) setSpeakingKey((k) => (k === key ? null : k))
     }

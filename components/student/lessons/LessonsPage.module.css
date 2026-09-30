@@ -17,6 +17,73 @@
   color: var(--st-ink-soft);
 }
 
+/* ---- Search (long lists only) ---- */
+.search {
+  position: relative;
+  margin-bottom: 0.85rem;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.05rem;
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  min-height: 50px;
+  padding: 0.7rem 3rem 0.7rem 2.75rem;
+  border: 2px solid var(--st-line);
+  border-radius: var(--st-radius);
+  background: var(--st-surface);
+  color: var(--st-ink);
+  font: inherit;
+  font-size: 1rem; /* ≥ 16px: no zoom on iOS */
+  font-weight: 700;
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color 150ms ease;
+}
+
+.searchInput::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+}
+
+.searchInput::placeholder {
+  color: var(--st-ink-soft);
+  font-weight: 600;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--st-focus);
+}
+
+.searchClear {
+  position: absolute;
+  right: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--st-ink-soft);
+  font-size: 1.1rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.searchClear:focus-visible {
+  outline: 3px solid var(--st-focus);
+}
+
 /* ---- Filter chips ---- */
 .chips {
   display: flex;
@@ -29,6 +96,7 @@
   --chip: var(--st-blue);
   --chip-dark: var(--st-blue-dark);
   --chip-bg: var(--st-blue-bg);
+  --chip-strong: var(--st-blue-strong); /* fill behind the active count's white text */
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
@@ -47,9 +115,9 @@
   transition: background 150ms ease, border-color 150ms ease, color 150ms ease, transform 80ms ease;
 }
 
-.chip_todo { --chip: var(--st-green); --chip-dark: var(--st-green-dark); --chip-bg: var(--st-green-bg); }
-.chip_work { --chip: var(--st-orange); --chip-dark: var(--st-orange-dark); --chip-bg: var(--st-orange-bg); }
-.chip_mastered { --chip: var(--st-purple); --chip-dark: var(--st-purple-dark); --chip-bg: var(--st-purple-bg); }
+.chip_todo { --chip: var(--st-green); --chip-dark: var(--st-green-dark); --chip-bg: var(--st-green-bg); --chip-strong: var(--st-green-strong); }
+.chip_work { --chip: var(--st-orange); --chip-dark: var(--st-orange-dark); --chip-bg: var(--st-orange-bg); --chip-strong: var(--st-orange-strong); }
+.chip_mastered { --chip: var(--st-purple); --chip-dark: var(--st-purple-dark); --chip-bg: var(--st-purple-bg); --chip-strong: var(--st-purple-strong); }
 
 .chip:hover:not(:disabled) {
   border-color: var(--chip);
@@ -61,7 +129,7 @@
 }
 
 .chip:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
 }
 
@@ -90,8 +158,8 @@
 }
 
 .chipActive .chipCount {
-  background: var(--chip);
-  color: #fff;
+  background: var(--chip-strong);
+  color: var(--st-on-color);
 }
 
 /* ---- List ---- */

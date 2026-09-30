@@ -12,15 +12,15 @@ const lessonHref = (lesson) => `/student/lessons/${encodeURIComponent(lesson.id)
 function content(upNext) {
   switch (upNext.kind) {
     case 'new': {
-      const { lesson } = upNext
+      const { lesson, updated } = upNext
       const date = formatLessonDate(lesson.lesson_date, DATE_OPTS)
       return {
         tone: 'green',
-        emoji: '🎁',
-        eyebrow: 'New lesson ready',
+        emoji: updated ? '✨' : '🎁',
+        eyebrow: updated ? 'Updated by your teacher' : 'New lesson ready',
         title: lesson.title || 'Your latest lesson',
-        text: [date, plural(exerciseCount(lesson), 'exercise')].filter(Boolean).join(' · '),
-        primary: { href: `${lessonHref(lesson)}/practice`, label: 'Practise', color: ui.green },
+        text: [date, plural(exerciseCount(lesson), updated ? 'new exercise' : 'exercise')].filter(Boolean).join(' · '),
+        primary: { href: `${lessonHref(lesson)}/practice`, label: 'Practice', color: ui.green },
         secondary: { href: lessonHref(lesson), label: 'Read recap' },
       }
     }
@@ -30,7 +30,7 @@ function content(upNext) {
         emoji: '🎯',
         eyebrow: 'Up next',
         title: `${plural(upNext.count, 'mistake')} to fix`,
-        text: 'Practise them again so the right answer sticks.',
+        text: 'Practice them again so the right answer sticks.',
         primary: { href: '/student/review', label: 'Fix my mistakes', color: ui.orange },
       }
     case 'improve': {
@@ -41,7 +41,7 @@ function content(upNext) {
         eyebrow: 'Improve your score',
         title: lesson.title || 'Lesson recap',
         text: `Your best is ${pct}%. Can you beat it?`,
-        primary: { href: `${lessonHref(lesson)}/practice`, label: 'Practise again', color: ui.blue },
+        primary: { href: `${lessonHref(lesson)}/practice`, label: 'Practice again', color: ui.blue },
         secondary: { href: lessonHref(lesson), label: 'Read recap' },
       }
     }
