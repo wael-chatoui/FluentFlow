@@ -3,11 +3,15 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/components/AuthProvider'
 import AdminShell from '@/components/admin/AdminShell'
+import CopyLink from '@/components/admin/common/CopyLink'
 import DataTable from '@/components/admin/common/DataTable'
 import ConfirmDialog from '@/components/admin/common/ConfirmDialog'
-import StatusPill, { UserRolePills } from '@/components/admin/common/StatusPill'
+import Modal from '@/components/admin/common/Modal'
+import StatusPill, { LessonStatusPills, UserRolePills } from '@/components/admin/common/StatusPill'
 import { ToastViewport, useToast } from '@/components/admin/common/Toast'
 import useAdminQuery from '@/components/admin/common/useAdminQuery'
+import HistorySection from '@/components/admin/audit/HistorySection'
+import useUnsavedGuard from '@/components/ui/useUnsavedGuard'
 import {
   LEVEL_LABELS,
   cx,
@@ -26,8 +30,9 @@ import ui from '@/components/ui/ui.module.css'
 import s from '@/components/admin/common/admin.module.css'
 import u from '@/components/admin/common/users.module.css'
 
-const PROVIDER_LABELS = { email: 'Email', google: 'Google', apple: 'Apple', github: 'GitHub', azure: 'Microsoft' }
-const PROFILE_FIELDS = ['fullName', 'level', 'goals', 'interests', 'driveFolderUrl', 'notes']
+const PROVIDER_LABELS = { email: 'E-mail', google: 'Google', apple: 'Apple', github: 'GitHub', azure: 'Microsoft' }
+const PROFILE_FIELDS = ['fullName', 'level', 'goals', 'interests', 'driveFolderUrl', 'notes', 'aiContext']
+const AI_CONTEXT_MAX = 4000
 
 function useMountedRef() {
   const mounted = useRef(false)
@@ -40,27 +45,15 @@ function useMountedRef() {
   return mounted
 }
 
-function useBeforeUnload(active) {
-  useEffect(() => {
-    if (!active) return undefined
-    const handler = (e) => {
-      e.preventDefault()
-      e.returnValue = ''
-      return ''
-    }
-    window.addEventListener('beforeunload', handler)
-    return () => window.removeEventListener('beforeunload', handler)
-  }, [active])
-}
-
-function profileValues(profile, notes) {
+function profileValues(profile, notes, aiContext) {
   return {
     fullName: profile?.full_name || '',
     level: LEVELS.includes(profile?.level) ? profile.level : 'unknown',
     goals: profile?.goals || '',
     interests: profile?.interests || '',
     driveFolderUrl: profile?.drive_folder_url || '',
-    notes: typeof notes === 'string' ? notes : notes?.notes || '',
+    notes: typeof notes === 'string' ? notes : '',
+    aiContext: typeof aiContext === 'string' ? aiContext : '',
   }
 }
 
@@ -131,10 +124,36 @@ function UserHeader({ user, profile, isSelf }) {
   )
 }
 
+/** Self sign-up waiting for approval: approve, or delete the account to refuse it. */
+function PendingBanner({ user, busy, onApprove }) {
+  return (
+    <div className={cx(s.alert, s.alertWarn)} role="status">
+      <span aria-hidden="true">⏳</span>
+      <span className={s.alertText}>
+        <strong>En attente d’approbation.</strong> Ce compte s’est inscrit seul
+        {user.providers?.includes('google') ? ' (Google)' : ''} : tant qu’il n’est pas approuvé, il ne voit qu’une page
+        d’attente. Pour le refuser, supprime le compte (zone dangereuse, en bas).
+      </span>
+      <button type="button" className={cx(ui.btn, ui.green, ui.small, s.tap)} onClick={onApprove} disabled={busy} aria-busy={busy || undefined}>
+        {busy && <span className={s.spinner} aria-hidden="true" />}
+        Approuver
+      </button>
+    </div>
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Compte
 // ---------------------------------------------------------------------------
-function AccountSection({ user, profile, isSelf, busyKey, onPatch, askConfirm }) {
+function signInLinkBlocker(user, isSelf) {
+  if (isSelf) return 'Pour ton propre compte, utilise la page de connexion.'
+  if (user.is_admin) return 'Pas de lien pour un compte administrateur : il se connecte lui-même.'
+  if (user.approved === false) return 'Approuve d’abord ce compte.'
+  if (user.banned) return 'Débannis d’abord ce compte.'
+  return null
+}
+
+function AccountSection({ user, profile, isSelf, busyKey, onSignInLink, askConfirm }) {
   const uid = useId()
   const currentRole = user.role === 'teacher' ? 'teacher' : 'student'
   const [role, setRole] = useState(currentRole)
@@ -142,7 +161,44 @@ function AccountSection({ user, profile, isSelf, busyKey, onPatch, askConfirm })
   useEffect(() => setRole(currentRole), [currentRole])
 
   const busy = Boolean(busyKey)
-  const selfHint = 'Tu ne peux pas modifier ton propre compte ici.'
+  const linkBlocker = signInLinkBlocker(user, isSelf)
+
+  const confirmRole = () =>
+    askConfirm(
+      role === 'teacher'
+        ? {
+            title: 'Donner le rôle prof ?',
+            message: (
+              <>
+                <strong>{user.email}</strong> aura accès à l’espace prof : les leçons, les profils et les notes privées de
+                tous les élèves. Ses propres leçons d’élève n’apparaîtront plus dans les listes du prof.
+              </>
+            ),
+            confirmLabel: 'Donner le rôle prof',
+            tone: 'primary',
+            icon: '🧑‍🏫',
+            key: 'role',
+            body: { role },
+            success: 'Rôle mis à jour : Prof',
+            onCancel: () => setRole(currentRole),
+          }
+        : {
+            title: 'Repasser en élève ?',
+            message: (
+              <>
+                <strong>{user.email}</strong> perdra l’accès à l’espace prof et verra l’espace élève à sa prochaine
+                visite.
+              </>
+            ),
+            confirmLabel: 'Repasser en élève',
+            tone: 'danger',
+            icon: '🎓',
+            key: 'role',
+            body: { role },
+            success: 'Rôle mis à jour : Élève',
+            onCancel: () => setRole(currentRole),
+          }
+    )
 
   return (
     <section className={s.section} aria-labelledby={`${uid}-title`}>
@@ -179,11 +235,7 @@ function AccountSection({ user, profile, isSelf, busyKey, onPatch, askConfirm })
                 className={cx(ui.btn, ui.blue, ui.small, s.tap)}
                 disabled={busy}
                 aria-busy={busyKey === 'role' || undefined}
-                onClick={() =>
-                  onPatch('role', { role }, `Rôle mis à jour : ${role === 'teacher' ? 'Prof' : 'Élève'}`).catch(() =>
-                    setRole(currentRole)
-                  )
-                }
+                onClick={confirmRole}
               >
                 {busyKey === 'role' && <span className={s.spinner} aria-hidden="true" />}
                 Appliquer
@@ -229,6 +281,30 @@ function AccountSection({ user, profile, isSelf, busyKey, onPatch, askConfirm })
               <span className={u.track} aria-hidden="true" />
               <span>{user.is_admin ? 'Oui' : 'Non'}</span>
             </label>
+          </div>
+        </div>
+
+        <div className={u.accountRow}>
+          <div className={u.accountText}>
+            <span className={u.accountTitle}>Lien de connexion</span>
+            <p className={s.hint}>
+              {linkBlocker ||
+                (user.invite_pending
+                  ? 'Invitation pas encore utilisée : génère un nouveau lien si elle a expiré.'
+                  : 'Lien à usage unique pour se connecter sans mot de passe, à envoyer toi-même.')}
+            </p>
+          </div>
+          <div className={u.accountControl}>
+            <button
+              type="button"
+              className={cx(ui.btn, ui.small, s.tap, s.blueGhost)}
+              disabled={Boolean(linkBlocker) || busy}
+              aria-busy={busyKey === 'link' || undefined}
+              onClick={onSignInLink}
+            >
+              {busyKey === 'link' && <span className={s.spinner} aria-hidden="true" />}
+              <span aria-hidden="true">🔗</span> Copier un lien de connexion
+            </button>
           </div>
         </div>
 
@@ -327,12 +403,12 @@ function AccountSection({ user, profile, isSelf, busyKey, onPatch, askConfirm })
 // ---------------------------------------------------------------------------
 // Profil
 // ---------------------------------------------------------------------------
-function ProfileSection({ userId, profile, notes, onSaved }) {
+function ProfileSection({ userId, profile, notes, aiContext, onSaved, onDirtyChange }) {
   const mounted = useMountedRef()
   const uid = useId()
   const controllerRef = useRef(null)
   const savedTimer = useRef(null)
-  const [initial, setInitial] = useState(() => profileValues(profile, notes))
+  const [initial, setInitial] = useState(() => profileValues(profile, notes, aiContext))
   const [values, setValues] = useState(initial)
   const [driveTouched, setDriveTouched] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -342,15 +418,17 @@ function ProfileSection({ userId, profile, notes, onSaved }) {
   const changed = PROFILE_FIELDS.filter((k) => values[k] !== initial[k])
   const dirty = changed.length > 0
 
+  useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange])
+
   // Server data changed elsewhere (e.g. role PATCH) → refresh the form if untouched
   useEffect(() => {
-    const next = profileValues(profile, notes)
+    const next = profileValues(profile, notes, aiContext)
     if (sameValues(next, initial)) return
     if (sameValues(values, initial)) setValues(next)
     setInitial(next)
     // Only react to server data changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile, notes])
+  }, [profile, notes, aiContext])
 
   useEffect(
     () => () => {
@@ -359,8 +437,6 @@ function ProfileSection({ userId, profile, notes, onSaved }) {
     },
     []
   )
-
-  useBeforeUnload(dirty)
 
   const driveError = driveUrlError(values.driveFolderUrl)
   const showDriveError = Boolean(driveError) && driveTouched
@@ -392,7 +468,7 @@ function ProfileSection({ userId, profile, notes, onSaved }) {
     try {
       const data = await api(`/api/admin/users/${userId}`, { method: 'PATCH', body, signal: controller.signal })
       if (!mounted.current) return
-      const next = data?.user ? profileValues(data.profile, data.notes) : { ...values }
+      const next = data?.user ? profileValues(data.profile, data.notes, data.ai_context) : { ...values }
       setInitial(next)
       setValues(next)
       setDriveTouched(false)
@@ -459,6 +535,7 @@ function ProfileSection({ userId, profile, notes, onSaved }) {
               id={id('goals')}
               className={cx(s.input, s.textarea)}
               rows={3}
+              maxLength={1000}
               value={values.goals}
               onChange={set('goals')}
             />
@@ -472,6 +549,7 @@ function ProfileSection({ userId, profile, notes, onSaved }) {
               id={id('interests')}
               className={cx(s.input, s.textarea)}
               rows={3}
+              maxLength={1000}
               value={values.interests}
               onChange={set('interests')}
             />
@@ -513,6 +591,25 @@ function ProfileSection({ userId, profile, notes, onSaved }) {
             )}
           </div>
 
+          <div className={s.field}>
+            <label htmlFor={id('ai')} className={s.label}>
+              <span aria-hidden="true">🤖 </span>Contexte pour l&apos;IA
+            </label>
+            <textarea
+              id={id('ai')}
+              className={cx(s.input, s.textarea)}
+              rows={4}
+              maxLength={AI_CONTEXT_MAX}
+              value={values.aiContext}
+              onChange={set('aiContext')}
+              aria-describedby={id('ai-hint')}
+            />
+            <p id={id('ai-hint')} className={s.hint}>
+              Envoyé à l&apos;IA à chaque génération (niveau réel, points à retravailler…). N&apos;y mets rien de
+              confidentiel. {values.aiContext.length}/{AI_CONTEXT_MAX}
+            </p>
+          </div>
+
           <div className={cx(s.field, u.private)}>
             <label htmlFor={id('notes')} className={s.label}>
               <span aria-hidden="true">🔒 </span>Notes privées
@@ -521,12 +618,13 @@ function ProfileSection({ userId, profile, notes, onSaved }) {
               id={id('notes')}
               className={cx(s.input, s.textarea)}
               rows={5}
+              maxLength={10000}
               value={values.notes}
               onChange={set('notes')}
               aria-describedby={id('notes-hint')}
             />
             <p id={id('notes-hint')} className={cx(s.hint, u.hint)}>
-              Visibles uniquement par le prof et utilisées par l&apos;IA pour personnaliser les leçons.
+              Visibles uniquement par le prof, jamais envoyées à l&apos;IA.
             </p>
           </div>
         </fieldset>
@@ -592,7 +690,11 @@ const LESSON_COLUMNS = [
       </>
     ),
   },
-  { key: 'status', label: 'Statut', render: (l) => <StatusPill status={l.status} /> },
+  {
+    key: 'status',
+    label: 'Statut',
+    render: (l) => <LessonStatusPills lesson={l} />,
+  },
   { key: 'exercise_count', label: 'Exercices', align: 'right', render: (l) => <span className={s.num}>{formatNumber(l.exercise_count || 0)}</span> },
   {
     key: 'best',
@@ -603,8 +705,10 @@ const LESSON_COLUMNS = [
   { key: 'attempts', label: 'Tentatives', align: 'right', render: (l) => <span className={s.num}>{formatNumber(l.attempts || 0)}</span> },
 ]
 
+const lessonTitleCell = (r) => <span className={s.cellStrong}>{r.lesson_title || 'Leçon supprimée'}</span>
+
 const SESSION_COLUMNS = [
-  { key: 'lesson_title', label: 'Leçon', render: (r) => <span className={s.cellStrong}>{r.lesson_title || 'Leçon supprimée'}</span> },
+  { key: 'lesson_title', label: 'Leçon', render: lessonTitleCell },
   { key: 'score', label: 'Score', align: 'right', render: (r) => <span className={cx(s.num, s.nowrap)}>{formatScore(r.score, r.total)}</span> },
   {
     key: 'completed_at',
@@ -618,6 +722,7 @@ const SESSION_COLUMNS = [
 ]
 
 const REVIEW_COLUMNS = [
+  { key: 'lesson_title', label: 'Leçon', render: lessonTitleCell },
   { key: 'exercise_id', label: 'Exercice', render: (r) => <span className={s.mono}>{r.exercise_id || '—'}</span> },
   {
     key: 'correct',
@@ -636,7 +741,7 @@ const REVIEW_COLUMNS = [
   },
 ]
 
-function ListSection({ icon, title, count, sub, children }) {
+function ListSection({ icon, title, count, sub, action, children }) {
   const uid = useId()
   return (
     <section className={s.section} aria-labelledby={uid}>
@@ -646,6 +751,7 @@ function ListSection({ icon, title, count, sub, children }) {
           {typeof count === 'number' && <StatusPill tone="gray">{formatNumber(count)}</StatusPill>}
         </h2>
         {sub && <p className={s.sectionSub}>{sub}</p>}
+        {action}
       </div>
       {children}
     </section>
@@ -688,43 +794,57 @@ export default function AdminUserDetail() {
   const { user: me } = useAuth()
   const rawId = router.isReady ? (Array.isArray(router.query.id) ? router.query.id[0] : router.query.id) : null
   const idOk = isValidId(rawId)
+  const userId = idOk ? rawId.toLowerCase() : null
 
-  const { data, error, loading, reload, setData } = useAdminQuery(idOk ? `/api/admin/users/${rawId}` : null)
+  const { data, error, loading, reload, setData } = useAdminQuery(userId ? `/api/admin/users/${userId}` : null)
 
   const controllerRef = useRef(null)
   const [busyKey, setBusyKey] = useState(null)
   const [confirm, setConfirm] = useState(null)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [signInLink, setSignInLink] = useState(null) // { link, copied }
+  // The link dialog opens once the button is disabled (busy): focus must still return to it
+  const linkTriggerRef = useRef(null)
+  const [profileDirty, setProfileDirty] = useState(false)
+  const [historyKey, setHistoryKey] = useState(0)
+  const bypassGuard = useUnsavedGuard(profileDirty)
 
   useEffect(() => () => controllerRef.current?.abort(), [])
 
   const user = data?.user
-  const isSelf = Boolean(me?.id && user?.id && me.id === user.id)
+  const isSelf = Boolean(me?.id && user?.id && me.id.toLowerCase() === user.id.toLowerCase())
+  const refreshHistory = useCallback(() => setHistoryKey((k) => k + 1), [])
 
-  /** PATCH the user; resolves with the new data, rejects (after a toast) on error. */
-  const patch = useCallback(
-    async (key, body, successMessage) => {
-      if (!idOk) throw new Error('Identifiant invalide')
+  /** Runs one account action (`key` drives the busy state); resolves with its response, rejects after a toast. */
+  const run = useCallback(
+    async (key, request) => {
       controllerRef.current?.abort()
       const controller = new AbortController()
       controllerRef.current = controller
       setBusyKey(key)
       try {
-        const next = await api(`/api/admin/users/${rawId}`, { method: 'PATCH', body, signal: controller.signal })
-        if (!mounted.current) return next
-        if (next?.user) setData(next)
-        else reload()
-        if (successMessage) toast.success(successMessage)
-        return next
+        return await request(controller.signal)
       } catch (err) {
-        if (!isAbortError(err) && mounted.current) toast.error(err.message || 'La modification a échoué.')
+        if (!isAbortError(err) && mounted.current) toast.error(err.message || 'L’action a échoué.')
         throw err
       } finally {
         if (mounted.current && controllerRef.current === controller) setBusyKey(null)
       }
     },
-    [idOk, rawId, mounted, setData, reload, toast]
+    [mounted, toast]
+  )
+
+  const patch = useCallback(
+    async (key, body, successMessage) => {
+      const next = await run(key, (signal) => api(`/api/admin/users/${userId}`, { method: 'PATCH', body, signal }))
+      if (!mounted.current) return
+      if (next?.user) setData(next)
+      else reload()
+      refreshHistory()
+      if (successMessage) toast.success(successMessage)
+    },
+    [run, userId, mounted, setData, reload, refreshHistory, toast]
   )
 
   const handleConfirm = async () => {
@@ -732,9 +852,49 @@ export default function AdminUserDetail() {
     try {
       await patch(confirm.key, confirm.body, confirm.success)
     } catch {
-      // error already surfaced by patch()
+      confirm.onCancel?.()
     }
     if (mounted.current) setConfirm(null)
+  }
+
+  const cancelConfirm = () => {
+    if (busyKey) return
+    confirm?.onCancel?.()
+    setConfirm(null)
+  }
+
+  const approve = async () => {
+    try {
+      await run('approve', (signal) => api(`/api/admin/users/${userId}/approve`, { method: 'POST', body: {}, signal }))
+      if (!mounted.current) return
+      toast.success('Compte approuvé : la personne a maintenant accès à son espace.')
+      reload()
+      refreshHistory()
+    } catch {
+      // error already surfaced by run()
+    }
+  }
+
+  const createSignInLink = async (e) => {
+    linkTriggerRef.current = e?.currentTarget || null
+    try {
+      const res = await run('link', (signal) => api(`/api/admin/users/${userId}/sign-in-link`, { method: 'POST', body: {}, signal }))
+      if (!mounted.current) return
+      // Copied right away, like in the teacher area; the dialog keeps a « Copier » button for
+      // browsers that refuse it outside the click itself (Safari)
+      let copied = false
+      try {
+        await navigator.clipboard.writeText(res.link)
+        copied = true
+      } catch {
+        // Permission refused: copy from the dialog
+      }
+      if (!mounted.current) return
+      setSignInLink({ link: res.link, copied })
+      refreshHistory()
+    } catch {
+      // error already surfaced by run()
+    }
   }
 
   const handleDelete = async () => {
@@ -750,6 +910,7 @@ export default function AdminUserDetail() {
         signal: controller.signal,
       })
       toast.success(`Compte ${user.email} supprimé`)
+      bypassGuard.current = true
       if (mounted.current) setDeleteOpen(false)
       router.push('/admin/users')
     } catch (err) {
@@ -807,6 +968,8 @@ export default function AdminUserDetail() {
           </div>
         )}
 
+        {user.approved === false && <PendingBanner user={user} busy={busyKey === 'approve'} onApprove={approve} />}
+
         <UserHeader user={user} profile={data.profile} isSelf={isSelf} />
 
         <div className={u.columns}>
@@ -815,13 +978,35 @@ export default function AdminUserDetail() {
             profile={data.profile}
             isSelf={isSelf}
             busyKey={busyKey}
-            onPatch={patch}
+            onSignInLink={createSignInLink}
             askConfirm={setConfirm}
           />
-          <ProfileSection key={user.id} userId={user.id} profile={data.profile} notes={data.notes} onSaved={setData} />
+          <ProfileSection
+            key={user.id}
+            userId={user.id}
+            profile={data.profile}
+            notes={data.notes}
+            aiContext={data.ai_context}
+            onSaved={(next) => {
+              setData(next)
+              refreshHistory()
+            }}
+            onDirtyChange={setProfileDirty}
+          />
         </div>
 
-        <ListSection icon="📚" title="Leçons" count={lessons.length}>
+        <ListSection
+          icon="📚"
+          title="Leçons"
+          count={lessons.length}
+          action={
+            lessons.length > 0 && (
+              <Link href={`/admin/lessons?studentId=${user.id}`} className={s.link}>
+                Voir dans Leçons →
+              </Link>
+            )
+          }
+        >
           <DataTable
             columns={LESSON_COLUMNS}
             rows={lessons}
@@ -837,7 +1022,7 @@ export default function AdminUserDetail() {
             <DataTable
               columns={SESSION_COLUMNS}
               rows={sessions}
-              rowHref={(r) => (r.lesson_id ? `/admin/lessons/${r.lesson_id}` : null)}
+              rowHref={(r) => (r.lesson_id && r.lesson_title !== null ? `/admin/lessons/${r.lesson_id}` : null)}
               caption="Sessions d'exercices récentes"
               maxHeight="420px"
               empty="Aucune session d'exercices."
@@ -852,13 +1037,15 @@ export default function AdminUserDetail() {
             <DataTable
               columns={REVIEW_COLUMNS}
               rows={reviews}
-              rowHref={(r) => (r.lesson_id ? `/admin/lessons/${r.lesson_id}` : null)}
+              rowHref={(r) => (r.lesson_id && r.lesson_title !== null ? `/admin/lessons/${r.lesson_id}` : null)}
               caption="Révisions récentes"
               maxHeight="420px"
               empty="Aucune révision."
             />
           </ListSection>
         </div>
+
+        <HistorySection entity="user" entityId={user.id} refreshKey={historyKey} />
 
         <section className={cx(s.section, u.dangerZone)} aria-labelledby="danger-title">
           <div className={s.sectionHead}>
@@ -870,7 +1057,9 @@ export default function AdminUserDetail() {
             <p>
               {isSelf
                 ? 'Tu ne peux pas supprimer ton propre compte.'
-                : 'Supprime définitivement le compte et toutes ses données (profil, leçons, sessions, révisions). Action irréversible.'}
+                : user.approved === false
+                  ? 'Refuse cette inscription : le compte est supprimé définitivement (la personne ne pourra plus se connecter).'
+                  : 'Supprime définitivement le compte et toutes ses données (profil, leçons, sessions, révisions). Action irréversible.'}
             </p>
             <button
               type="button"
@@ -878,7 +1067,7 @@ export default function AdminUserDetail() {
               disabled={isSelf || deleting || Boolean(busyKey)}
               onClick={() => setDeleteOpen(true)}
             >
-              <span aria-hidden="true">🗑️</span> Supprimer le compte
+              <span aria-hidden="true">🗑️</span> {user.approved === false ? 'Refuser et supprimer' : 'Supprimer le compte'}
             </button>
           </div>
         </section>
@@ -907,15 +1096,48 @@ export default function AdminUserDetail() {
         icon={confirm?.icon}
         busy={Boolean(busyKey)}
         onConfirm={handleConfirm}
-        onCancel={() => {
-          if (!busyKey) setConfirm(null)
-        }}
+        onCancel={cancelConfirm}
       />
+
+      <Modal
+        open={Boolean(signInLink)}
+        title="Lien de connexion"
+        icon="🔗"
+        onClose={() => setSignInLink(null)}
+        returnFocusRef={linkTriggerRef}
+        actions={
+          <button type="button" className={cx(ui.btn, ui.green, s.tap)} onClick={() => setSignInLink(null)}>
+            Terminé
+          </button>
+        }
+      >
+        {signInLink && (
+          <>
+            <p style={{ margin: 0 }}>
+              {signInLink.copied ? (
+                <>
+                  <span aria-hidden="true">✅</span> Lien copié. Colle-le à <strong>{user?.email}</strong> (par exemple
+                  dans le chat Preply) : il ouvre son compte sans mot de passe.
+                </>
+              ) : (
+                <>
+                  Copie ce lien et envoie-le à <strong>{user?.email}</strong> (par exemple dans le chat Preply) : il ouvre
+                  son compte sans mot de passe.
+                </>
+              )}
+            </p>
+            <CopyLink
+              link={signInLink.link}
+              hint="Lien personnel à usage unique et à durée limitée : ne le partage qu’avec cette personne."
+            />
+          </>
+        )}
+      </Modal>
 
       {user && (
         <ConfirmDialog
           open={deleteOpen}
-          title="Supprimer ce compte ?"
+          title={user.approved === false ? 'Refuser cette inscription ?' : 'Supprimer ce compte ?'}
           message={
             <>
               Le compte <strong>{user.email}</strong> et toutes ses données seront supprimés définitivement. Cette action

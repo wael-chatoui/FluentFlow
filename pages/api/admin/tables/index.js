@@ -1,4 +1,5 @@
-// GET /api/admin/tables → { tables: [{ name, label, count }] } (read-only explorer, registry in utils/api/admin/tables.js)
+// GET /api/admin/tables → { tables: [{ name, label, count, unavailable? }] } (read-only explorer, registry in
+// utils/api/admin/tables.js; unavailable = 'missing' | 'forbidden' for a 0006 table, count null)
 import { allowMethods, requireAdmin } from '@/utils/auth/server'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { handleError } from '@/utils/api/errors'

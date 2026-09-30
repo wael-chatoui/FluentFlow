@@ -101,14 +101,14 @@
 /* Plain text link that doesn't inherit the global pink link color */
 .link:link,
 .link:visited {
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
   font-weight: 800;
   text-decoration: none;
 }
 
 .link:hover,
 .link:focus-visible {
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
   text-decoration: underline;
 }
 
@@ -121,23 +121,23 @@
 .redGhost:not(:disabled) {
   --btn-bg: var(--st-surface);
   --btn-edge: var(--st-line);
-  --btn-fg: var(--st-red-dark);
+  --btn-fg: var(--st-red-ink);
 }
 
 .redGhost:not(:disabled):hover {
   --btn-bg: var(--st-red-bg);
-  --btn-edge: #ffc1c1;
+  --btn-edge: var(--st-red-line);
 }
 
 .blueGhost:not(:disabled) {
   --btn-bg: var(--st-surface);
   --btn-edge: var(--st-line);
-  --btn-fg: var(--st-blue-dark);
+  --btn-fg: var(--st-blue-ink);
 }
 
 .blueGhost:not(:disabled):hover {
   --btn-bg: var(--st-blue-bg);
-  --btn-edge: #b3e5fc;
+  --btn-edge: var(--st-blue-line);
 }
 
 .spinner {
@@ -158,10 +158,10 @@
   align-items: center;
   gap: 0.5rem 0.75rem;
   padding: 0.8rem 1rem;
-  border: 2px solid #ffc1c1;
+  border: 2px solid var(--st-red-line);
   border-radius: var(--st-radius);
   background: var(--st-red-bg);
-  color: var(--st-red-dark);
+  color: var(--st-red-ink);
   font-size: 0.92rem;
   font-weight: 800;
   line-height: 1.45;
@@ -174,9 +174,38 @@
 }
 
 .alertInfo {
-  border-color: #b3e5fc;
+  border-color: var(--st-blue-line);
   background: var(--st-blue-bg);
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
+}
+
+.alertWarn {
+  border-color: var(--st-yellow-line);
+  background: var(--st-yellow-bg);
+  color: var(--st-yellow-ink);
+}
+
+.alertActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* ---------- Copyable secret link ---------- */
+.copyRow {
+  display: flex;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.copyInput {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 0.85rem;
+}
+
+.copyRow > button {
+  flex: none;
 }
 
 .errorState {
@@ -245,7 +274,7 @@
 }
 
 .input::placeholder {
-  color: #afafaf;
+  color: var(--st-ink-soft);
   font-weight: 600;
 }
 
@@ -255,7 +284,7 @@
 
 .input:focus {
   outline: none;
-  border-color: var(--st-blue);
+  border-color: var(--st-focus); /* ≥ 3:1 on white, the bright blue is not */
   box-shadow: 0 0 0 4px var(--st-blue-bg);
 }
 
@@ -304,7 +333,7 @@
   font-size: 0.84rem;
   font-weight: 800;
   line-height: 1.45;
-  color: var(--st-red-dark);
+  color: var(--st-red-ink);
 }
 
 .check {
@@ -381,7 +410,7 @@
 }
 
 .searchClear:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: -4px;
 }
 
@@ -421,16 +450,16 @@
 }
 
 .chip:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
 }
 
 .chipActive,
 .chipActive:hover {
   background: var(--st-blue-bg);
-  border-color: #84d8ff;
+  border-color: var(--st-blue-line-strong);
   border-bottom-color: var(--st-blue-dark);
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
 }
 
 .chipCount {
@@ -497,7 +526,7 @@
 }
 
 .dtCardClickable:hover {
-  border-color: #b3e5fc;
+  border-color: var(--st-blue-line);
 }
 
 .dtCardClickable:active {
@@ -505,9 +534,38 @@
   border-bottom-width: 2px;
 }
 
-.dtCardClickable:focus-visible {
-  outline: 3px solid var(--st-blue);
+/* Linked card: the title link stretches over the whole card; other links stay on top */
+.dtCardLinked {
+  position: relative;
+}
+
+.dtCardLink,
+.dtCardLink:link,
+.dtCardLink:visited {
+  color: inherit;
+  text-decoration: none;
+}
+
+.dtCardLink::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--st-radius);
+}
+
+.dtCardLink:focus {
+  outline: none;
+}
+
+.dtCardLink:focus-visible::after {
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
+}
+
+.dtCardLinked a:not(.dtCardLink),
+.dtCardLinked button {
+  position: relative;
+  z-index: 1;
 }
 
 .dtCardTop {
@@ -625,21 +683,22 @@
   background: #f3fbff;
 }
 
-.dtRowClickable:focus {
-  outline: none;
+/* Row link: the keyboard / screen-reader path of a clickable row (the row click is a mouse shortcut) */
+.rowLink,
+.rowLink:link,
+.rowLink:visited {
+  color: inherit;
+  text-decoration: none;
 }
 
-.dtRowClickable:focus-visible td {
-  background: var(--st-blue-bg);
-  box-shadow: inset 0 3px 0 var(--st-blue), inset 0 -3px 0 var(--st-blue);
+.rowLink:hover {
+  text-decoration: underline;
 }
 
-.dtRowClickable:focus-visible td:first-child {
-  box-shadow: inset 3px 3px 0 var(--st-blue), inset 0 -3px 0 var(--st-blue);
-}
-
-.dtRowClickable:focus-visible td:last-child {
-  box-shadow: inset -3px 3px 0 var(--st-blue), inset 0 -3px 0 var(--st-blue);
+.rowLink:focus-visible {
+  outline: 3px solid var(--st-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .sortBtn {
@@ -663,7 +722,7 @@
 }
 
 .sortBtn:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
   border-radius: 6px;
 }
@@ -677,7 +736,7 @@
 
 .sortActive .sortArrow {
   opacity: 1;
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
 }
 
 .dtEmpty {
@@ -765,12 +824,12 @@
   background: currentColor;
 }
 
-.pillGreen { --pill-fg: #2b7a0b; --pill-bg: var(--st-green-bg); --pill-edge: #b8eb8f; }
-.pillBlue { --pill-fg: var(--st-blue-dark); --pill-bg: var(--st-blue-bg); --pill-edge: #b3e5fc; }
-.pillRed { --pill-fg: var(--st-red-dark); --pill-bg: var(--st-red-bg); --pill-edge: #ffc1c1; }
-.pillPurple { --pill-fg: #8a4fb3; --pill-bg: var(--st-purple-bg); --pill-edge: #e6c6ff; }
-.pillOrange { --pill-fg: #b25e00; --pill-bg: var(--st-orange-bg); --pill-edge: #ffd49a; }
-.pillYellow { --pill-fg: #8a6d00; --pill-bg: var(--st-yellow-bg); --pill-edge: #ffe27a; }
+.pillGreen { --pill-fg: var(--st-green-ink); --pill-bg: var(--st-green-bg); --pill-edge: var(--st-green-line); }
+.pillBlue { --pill-fg: var(--st-blue-ink); --pill-bg: var(--st-blue-bg); --pill-edge: var(--st-blue-line); }
+.pillRed { --pill-fg: var(--st-red-ink); --pill-bg: var(--st-red-bg); --pill-edge: var(--st-red-line); }
+.pillPurple { --pill-fg: var(--st-purple-ink); --pill-bg: var(--st-purple-bg); --pill-edge: var(--st-purple-line); }
+.pillOrange { --pill-fg: var(--st-orange-ink); --pill-bg: var(--st-orange-bg); --pill-edge: var(--st-orange-line); }
+.pillYellow { --pill-fg: var(--st-yellow-ink); --pill-bg: var(--st-yellow-bg); --pill-edge: var(--st-yellow-line); }
 .pillGray { --pill-fg: var(--st-ink-soft); --pill-bg: var(--st-bg); --pill-edge: var(--st-line); }
 
 .pillPulse .pillDot {
@@ -783,38 +842,37 @@
   gap: 0.3rem;
 }
 
-/* ---------- Modal / ConfirmDialog (bottom sheet on mobile) ---------- */
-.overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  background: rgba(30, 30, 30, 0.45);
-  animation: fade 160ms ease-out both;
-}
-
+/* ---------- Modal / ConfirmDialog (native <dialog>: bottom sheet on mobile) ---------- */
 .dialog {
-  position: relative;
-  display: flex;
   flex-direction: column;
   gap: 0.75rem;
   width: 100%;
   max-height: calc(100dvh - 1.5rem);
+  margin: auto 0 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 0.75rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom));
   background: var(--st-surface);
   border-top: 2px solid var(--st-line);
   border-radius: 24px 24px 0 0;
-  box-shadow: 0 -12px 32px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--st-shadow-sheet);
   color: var(--st-ink);
-  animation: sheetUp 220ms cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+  /* backwards, not both: a transform left filling would pin the toasts inside to the box */
+  animation: sheetUp 220ms cubic-bezier(0.2, 0.9, 0.3, 1.1) backwards;
 }
 
-.dialog:focus {
-  outline: none;
+/* Only while open: a closed <dialog> must keep its display: none */
+.dialog[open] {
+  display: flex;
+}
+
+.dialog::backdrop {
+  animation: fade 160ms ease-out both;
+}
+
+/* Toasts rendered inside an open modal (Toast.jsx) stay fixed to the viewport */
+.toastHost {
+  display: contents;
 }
 
 .grabber {
@@ -839,7 +897,7 @@
   height: 48px;
   flex: none;
   border-radius: 14px;
-  border: 2px solid #b3e5fc;
+  border: 2px solid var(--st-blue-line);
   border-bottom-width: 4px;
   background: var(--st-blue-bg);
   font-size: 1.5rem;
@@ -847,7 +905,7 @@
 }
 
 .danger .dialogIcon {
-  border-color: #ffc1c1;
+  border-color: var(--st-red-line);
   background: var(--st-red-bg);
 }
 
@@ -886,19 +944,15 @@
 }
 
 @media (min-width: 768px) {
-  .overlay {
-    align-items: center;
-    padding: 1.5rem;
-  }
-
   .dialog {
     max-width: 480px;
     max-height: calc(100vh - 3rem);
+    margin: auto;
     padding: 1.5rem;
     border: 2px solid var(--st-line);
     border-bottom-width: 5px;
     border-radius: var(--st-radius-lg);
-    box-shadow: 0 20px 48px rgba(0, 0, 0, 0.18);
+    box-shadow: var(--st-shadow-modal);
     animation-name: pop;
   }
 
@@ -961,17 +1015,17 @@
 }
 
 .toastSuccess {
-  border-color: #b8eb8f;
+  border-color: var(--st-green-line);
   border-bottom-color: var(--st-green-dark);
   background: var(--st-green-bg);
-  color: #2b7a0b;
+  color: var(--st-green-ink);
 }
 
 .toastError {
-  border-color: #ffc1c1;
+  border-color: var(--st-red-line);
   border-bottom-color: var(--st-red-dark);
   background: var(--st-red-bg);
-  color: var(--st-red-dark);
+  color: var(--st-red-ink);
 }
 
 .toastMsg {
@@ -998,8 +1052,21 @@
 }
 
 .toastClose:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: -3px;
+}
+
+/* In a mobile bottom sheet the actions sit at the bottom of the screen, where the toasts
+   would cover them (and catch the taps): toasts go to the top instead */
+@media (max-width: 767px) {
+  .toastHost .toasts {
+    top: calc(0.75rem + env(safe-area-inset-top));
+    bottom: auto;
+  }
+
+  .toastHost .toast {
+    animation-name: toastDown;
+  }
 }
 
 @media (min-width: 768px) {
@@ -1045,9 +1112,14 @@
   to { transform: none; opacity: 1; }
 }
 
+@keyframes toastDown {
+  from { transform: translateY(-12px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .overlay,
   .dialog,
+  .dialog::backdrop,
   .toast,
   .pillPulse .pillDot {
     animation: none;

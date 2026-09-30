@@ -1,18 +1,21 @@
-// GET    /api/admin/users/[id] → { user, profile, notes, lessons, sessions, reviews }
-// PATCH  /api/admin/users/[id] any of { role, isAdmin, fullName, level, goals, interests, driveFolderUrl, notes, resetOnboarding, banned } → same shape
+// GET    /api/admin/users/[id] → { user, profile, notes, ai_context, lessons, sessions, reviews }
+// PATCH  /api/admin/users/[id] any of { role, isAdmin, fullName, level, goals, interests, driveFolderUrl,
+//        notes, aiContext, resetOnboarding, banned } → same shape as GET
 // DELETE /api/admin/users/[id] { confirmEmail } → { success: true }
-// An admin cannot change their own role, remove their own admin flag, ban or delete themselves.
-import { allowMethods, getRole, isAdmin, requireAdmin } from '@/utils/auth/server'
+// An admin cannot change their own role, remove their own admin flag, ban or delete
+// themselves, and nobody can remove the last active admin or the last active teacher.
+import { allowMethods, getRole, isAdmin, isBanned, normalizeUuid, requireAdmin } from '@/utils/auth/server'
 import { createAdminClient } from '@/utils/supabase/admin'
+import { PROFILE_FIELDS } from '@/utils/supabase/profiles'
 import { fail, handleError } from '@/utils/api/errors'
 import { LIMITS, bodyOf, isUuid, optionalDriveUrl, optionalLevel, optionalText } from '@/utils/api/validate'
 import { logAdminAction } from '@/utils/api/audit'
 import { exerciseCount, progressByLesson, progressOf } from '@/utils/api/progress'
 import { diffFields, selectAll } from '@/utils/api/admin/query'
-import { authSummary, getAuthUser, isBanned } from '@/utils/api/admin/users'
+import { assertJsonBody } from '@/utils/api/admin/guard'
+import { assertPrivilegesRemain, authSummary, getAuthUser, listAllAuthUsers, losesPrivileges } from '@/utils/api/admin/users'
 
 const NOT_FOUND = 'Utilisateur introuvable.'
-const PROFILE_FIELDS = 'id, email, full_name, level, goals, interests, drive_folder_url, onboarded_at, created_at, updated_at'
 const RECENT = 50
 const BAN_FOREVER = '876000h'
 
@@ -20,17 +23,17 @@ async function loadUser(admin, user) {
   const id = user.id
   const [profile, notes, lessons, progressRows, sessions, reviews] = await Promise.all([
     admin.from('profiles').select(PROFILE_FIELDS).eq('id', id).maybeSingle(),
-    admin.from('student_notes').select('notes').eq('student_id', id).maybeSingle(),
+    admin.from('student_notes').select('notes, ai_context').eq('student_id', id).maybeSingle(),
     selectAll(() =>
       admin
         .from('lessons')
-        .select('id, title, lesson_date, status, exercises, created_at')
+        .select('id, title, lesson_date, status, hidden, exercises, generated_at, created_at')
         .eq('student_id', id)
         .order('lesson_date', { ascending: false })
         .order('created_at', { ascending: false })
         .order('id')
     ),
-    selectAll(() => admin.from('practice_sessions').select('lesson_id, score, total').eq('student_id', id).order('id')),
+    selectAll(() => admin.from('practice_sessions').select('lesson_id, score, total, completed_at').eq('student_id', id).order('id')),
     admin
       .from('practice_sessions')
       .select('id, lesson_id, score, total, completed_at')
@@ -46,17 +49,30 @@ async function loadUser(admin, user) {
   ])
   for (const r of [profile, notes, sessions, reviews]) if (r.error) throw r.error
 
-  const progress = progressByLesson(progressRows)
+  // Progress of the current version of each lesson (like the student sees it)
+  const progress = progressByLesson(progressRows, lessons)
   const titles = new Map(lessons.map((l) => [l.id, l.title]))
+  // Results on lessons that are not (or no longer) this student's: look the titles up by id
+  const otherIds = [...new Set([...(sessions.data || []), ...(reviews.data || [])].map((r) => r.lesson_id))].filter(
+    (lessonId) => lessonId && !titles.has(lessonId)
+  )
+  if (otherIds.length) {
+    const { data, error } = await admin.from('lessons').select('id, title').in('id', otherIds)
+    if (error) throw error
+    for (const l of data || []) titles.set(l.id, l.title)
+  }
+
   return {
     user: authSummary(user),
     profile: profile.data || null,
     notes: notes.data?.notes || '',
+    ai_context: notes.data?.ai_context || '',
     lessons: lessons.map((l) => ({
       id: l.id,
       title: l.title,
       lesson_date: l.lesson_date,
       status: l.status,
+      hidden: Boolean(l.hidden),
       exercise_count: exerciseCount(l.exercises),
       ...progressOf(progress, l.id),
     })),
@@ -68,7 +84,7 @@ async function loadUser(admin, user) {
       total: s.total,
       completed_at: s.completed_at,
     })),
-    reviews: reviews.data || [],
+    reviews: (reviews.data || []).map((r) => ({ ...r, lesson_title: titles.get(r.lesson_id) ?? null })),
   }
 }
 
@@ -88,6 +104,7 @@ function parsePatch(body, { self }) {
       'Le lien du dossier doit être un lien Google Drive en https (https://drive.google.com/…).'
     ),
     notes: optionalText(body.notes, LIMITS.notes, `Les notes doivent faire au plus ${LIMITS.notes} caractères.`),
+    aiContext: optionalText(body.aiContext, LIMITS.aiContext, `Le contexte pour l'IA doit faire au plus ${LIMITS.aiContext} caractères.`),
   }
   if (patch.role !== undefined && !['student', 'teacher'].includes(patch.role)) fail('Rôle invalide (student ou teacher).')
   if (patch.isAdmin !== undefined && typeof patch.isAdmin !== 'boolean') fail('isAdmin doit être un booléen.')
@@ -98,7 +115,7 @@ function parsePatch(body, { self }) {
   if (patch.resetOnboarding === false) patch.resetOnboarding = undefined
   if (Object.values(patch).every((v) => v === undefined)) fail('Aucune modification à enregistrer.')
 
-  if (self.id) {
+  if (self) {
     if (patch.role !== undefined && patch.role !== self.role) fail('Tu ne peux pas modifier ton propre rôle.')
     if (patch.isAdmin === false) fail('Tu ne peux pas retirer ton propre accès administrateur.')
     if (patch.banned === true) fail('Tu ne peux pas bloquer ton propre compte.')
@@ -106,31 +123,37 @@ function parsePatch(body, { self }) {
   return patch
 }
 
-async function applyPatch(admin, user, patch) {
+/**
+ * Applies the patch step by step (auth, profile, notes) and records each applied
+ * change in `changes`, so a failure half-way still leaves an accurate audit entry.
+ */
+async function applyPatch(admin, user, patch, changes) {
   const id = user.id
-  const details = {}
 
   // Auth: role / admin flag / ban / display name, in one call
   const authUpdate = {}
+  const authChanges = {}
   const appMeta = { ...(user.app_metadata || {}) }
   let appChanged = false
   if (patch.role !== undefined && patch.role !== getRole(user)) {
-    details.role = { from: getRole(user), to: patch.role }
+    authChanges.role = { from: getRole(user), to: patch.role }
     appMeta.role = patch.role
     appChanged = true
   }
   if (patch.isAdmin !== undefined && patch.isAdmin !== isAdmin(user)) {
-    details.is_admin = { from: isAdmin(user), to: patch.isAdmin }
+    authChanges.is_admin = { from: isAdmin(user), to: patch.isAdmin }
     appMeta.is_admin = patch.isAdmin
     appChanged = true
   }
   if (appChanged) authUpdate.app_metadata = appMeta
   if (patch.banned !== undefined && patch.banned !== isBanned(user)) {
-    details.banned = { from: isBanned(user), to: patch.banned }
+    authChanges.banned = { from: isBanned(user), to: patch.banned }
     authUpdate.ban_duration = patch.banned ? BAN_FOREVER : 'none'
   }
-  if (patch.fullName && patch.fullName !== user.user_metadata?.full_name) {
-    authUpdate.user_metadata = { ...(user.user_metadata || {}), full_name: patch.fullName }
+  // The sign-up name stays in sync (also when cleared), so no list shows a stale one
+  const metaName = user.user_metadata?.full_name || null
+  if (patch.fullName !== undefined && (patch.fullName || null) !== metaName) {
+    authUpdate.user_metadata = { ...(user.user_metadata || {}), full_name: patch.fullName || null }
   }
 
   // Profile fields (row normally created by the DB trigger; upsert in case it is missing)
@@ -148,59 +171,72 @@ async function applyPatch(admin, user, patch) {
     if (error) throw error
     before = data
   }
-  let notesBefore = null
-  if (patch.notes !== undefined) {
-    const { data, error } = await admin.from('student_notes').select('notes').eq('student_id', id).maybeSingle()
+  const notesUpdate = {}
+  if (patch.notes !== undefined || patch.aiContext !== undefined) {
+    const { data, error } = await admin.from('student_notes').select('notes, ai_context').eq('student_id', id).maybeSingle()
     if (error) throw error
-    notesBefore = data?.notes || null
+    if (patch.notes !== undefined && (patch.notes || null) !== (data?.notes || null)) notesUpdate.notes = patch.notes || null
+    if (patch.aiContext !== undefined && (patch.aiContext || null) !== (data?.ai_context || null)) {
+      notesUpdate.ai_context = patch.aiContext || null
+    }
   }
 
   if (Object.keys(authUpdate).length) {
     const { error } = await admin.auth.admin.updateUserById(id, authUpdate)
     if (error) throw error
+    Object.assign(changes, authChanges)
   }
   if (Object.keys(profileUpdate).length) {
     const { error } = before
       ? await admin.from('profiles').update(profileUpdate).eq('id', id)
       : await admin.from('profiles').upsert({ id, email: user.email || null, ...profileUpdate }, { onConflict: 'id' })
     if (error) throw error
-    Object.assign(details, diffFields(before, profileUpdate, { summaryOnly: ['goals', 'interests'] }))
+    Object.assign(changes, diffFields(before, profileUpdate, { summaryOnly: ['goals', 'interests'] }))
   }
-  if (patch.notes !== undefined && (patch.notes || null) !== notesBefore) {
-    const { error } = await admin
-      .from('student_notes')
-      .upsert({ student_id: id, notes: patch.notes || null }, { onConflict: 'student_id' })
+  if (Object.keys(notesUpdate).length) {
+    const { error } = await admin.from('student_notes').upsert({ student_id: id, ...notesUpdate }, { onConflict: 'student_id' })
     if (error) throw error
-    details.notes = { changed: true, length: patch.notes.length }
+    // Private text: only that it changed and its length
+    for (const [key, value] of Object.entries(notesUpdate)) changes[key] = { changed: true, length: value?.length || 0 }
   }
-  return details
 }
 
-function confirmEmailOf(req) {
-  const body = bodyOf(req)
-  const value = body.confirmEmail !== undefined ? body.confirmEmail : req.query?.confirmEmail
-  return typeof value === 'string' ? value.trim().toLowerCase() : ''
+// The account after the change, for the last admin / last teacher rule
+function nextState(user, patch) {
+  return {
+    role: patch.role ?? getRole(user),
+    isAdmin: patch.isAdmin ?? isAdmin(user),
+    active: patch.banned === undefined ? !isBanned(user) : !patch.banned,
+  }
+}
+
+async function guardPrivileges(admin, user, next) {
+  if (losesPrivileges(user, next)) assertPrivilegesRemain(await listAllAuthUsers(admin), user, next)
 }
 
 export default async function handler(req, res) {
   if (!allowMethods(req, res, ['GET', 'PATCH', 'DELETE'])) return
   const auth = await requireAdmin(req, res)
   if (!auth) return
-  const { id } = req.query
-  if (!isUuid(id)) return res.status(404).json({ error: NOT_FOUND })
-  const isSelf = id === auth.user.id
+  if (!isUuid(req.query.id)) return res.status(404).json({ error: NOT_FOUND })
+  // Canonical ids: an upper-case id must not slip past the self-protection rules
+  const id = normalizeUuid(req.query.id)
+  const isSelf = id === normalizeUuid(auth.user.id)
 
   try {
+    assertJsonBody(req)
     const admin = createAdminClient()
 
     if (req.method === 'DELETE') {
       if (isSelf) fail('Tu ne peux pas supprimer ton propre compte.')
       const user = await getAuthUser(admin, id)
       if (!user) return res.status(404).json({ error: NOT_FOUND })
-      const confirm = confirmEmailOf(req)
+      const body = bodyOf(req)
+      const confirm = typeof body.confirmEmail === 'string' ? body.confirmEmail.trim().toLowerCase() : ''
       if (!confirm || confirm !== (user.email || '').toLowerCase()) {
         fail("L'adresse e-mail de confirmation ne correspond pas à ce compte.")
       }
+      await guardPrivileges(admin, user, { role: getRole(user), isAdmin: isAdmin(user), active: false })
       const { error } = await admin.auth.admin.deleteUser(id)
       if (error) throw error
       await logAdminAction(admin, auth.user, {
@@ -216,15 +252,23 @@ export default async function handler(req, res) {
     if (!user) return res.status(404).json({ error: NOT_FOUND })
 
     if (req.method === 'PATCH') {
-      const patch = parsePatch(bodyOf(req), { self: isSelf ? { id, role: getRole(user) } : {} })
-      const changes = await applyPatch(admin, user, patch)
-      if (Object.keys(changes).length) {
-        await logAdminAction(admin, auth.user, {
-          action: 'user.update',
-          entity: 'user',
-          entityId: id,
-          details: { email: user.email || null, changes },
-        })
+      const patch = parsePatch(bodyOf(req), { self: isSelf ? { role: getRole(user) } : null })
+      await guardPrivileges(admin, user, nextState(user, patch))
+      const changes = {}
+      let failed = true
+      try {
+        await applyPatch(admin, user, patch, changes)
+        failed = false
+      } finally {
+        // Also when a later step failed: an applied role / admin / ban change is always audited
+        if (Object.keys(changes).length) {
+          await logAdminAction(admin, auth.user, {
+            action: 'user.update',
+            entity: 'user',
+            entityId: id,
+            details: { email: user.email || null, changes, ...(failed ? { incomplete: true } : {}) },
+          })
+        }
       }
       user = (await getAuthUser(admin, id)) || user
     }

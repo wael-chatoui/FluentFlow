@@ -1,22 +1,27 @@
-// GET  /api/admin/users?q=&role=all|student|teacher|admin&page=&perPage= → { users, total, page, perPage }
-// POST /api/admin/users { email, fullName?, role, isAdmin? } → 201 { user } (sends a Supabase invitation)
+// GET  /api/admin/users?q=&role=all|student|teacher|admin|pending&sort=&dir=asc|desc&page=&perPage=
+//      → { users, total, page, perPage } (default: newest first; a page past the end returns the last page)
+// POST /api/admin/users { email, fullName?, role, isAdmin?, sendEmail? } → 201 { user, link }
+//      Creates an approved account. Without sendEmail, `link` is a one-time sign-in link to
+//      send yourself; with sendEmail Supabase emails the invitation (link: null).
 import { allowMethods, requireAdmin } from '@/utils/auth/server'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { fail, handleError } from '@/utils/api/errors'
-import { LIMITS, bodyOf, optionalText } from '@/utils/api/validate'
+import { LIMITS, bodyOf, optionalBoolean, optionalText } from '@/utils/api/validate'
+import { appOrigin, inviteUser, parseEmail } from '@/utils/api/invites'
 import { logAdminAction } from '@/utils/api/audit'
-import { parsePagination, queryEnum, queryText, selectAll } from '@/utils/api/admin/query'
+import { lastPage, parsePagination, queryEnum, queryText, selectAll } from '@/utils/api/admin/query'
+import { assertJsonBody } from '@/utils/api/admin/guard'
 import {
-  byNewest,
+  COUNT_SORTS,
+  USER_SORTS,
   listAllAuthUsers,
   matchesQuery,
   matchesRole,
-  requestOrigin,
+  sortUserItems,
   userListItem,
 } from '@/utils/api/admin/users'
 
 const ROLES = ['student', 'teacher']
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function countBy(rows, key) {
   const map = new Map()
@@ -24,93 +29,59 @@ function countBy(rows, key) {
   return map
 }
 
+// Lessons and practice sessions per account: for `ids`, or for everyone when ids is null
+async function activityCounts(admin, ids) {
+  if (ids && !ids.length) return { lessons: new Map(), sessions: new Map() }
+  const rows = (table) =>
+    selectAll(() => {
+      const request = admin.from(table).select('student_id')
+      return (ids ? request.in('student_id', ids) : request).order('id')
+    })
+  const [lessons, sessions] = await Promise.all([rows('lessons'), rows('practice_sessions')])
+  return { lessons: countBy(lessons, 'student_id'), sessions: countBy(sessions, 'student_id') }
+}
+
 async function listUsers(admin, query) {
   const q = queryText(query.q)
-  const role = queryEnum(query.role, ['all', ...ROLES, 'admin'], 'all', 'Filtre de rôle invalide.')
-  const { page, perPage, from } = parsePagination(query)
+  const role = queryEnum(query.role, ['all', ...ROLES, 'admin', 'pending'], 'all', 'Filtre de rôle invalide.')
+  const sort = queryEnum(query.sort, USER_SORTS, 'created_at', 'Colonne de tri inconnue.')
+  const dir = queryEnum(query.dir, ['asc', 'desc'], sort === 'created_at' ? 'desc' : 'asc', 'Ordre de tri invalide (asc ou desc).')
+  const { page, perPage } = parsePagination(query)
 
   const [authUsers, profiles] = await Promise.all([
     listAllAuthUsers(admin),
     selectAll(() => admin.from('profiles').select('id, email, full_name, level, onboarded_at, created_at').order('id')),
   ])
   const profileById = new Map(profiles.map((p) => [p.id, p]))
+  const matching = authUsers.filter((u) => matchesRole(u, role) && matchesQuery(u, profileById.get(u.id), q))
 
-  const matching = authUsers
-    .filter((u) => matchesRole(u, role) && matchesQuery(u, profileById.get(u.id), q))
-    .sort(byNewest)
-  const pageUsers = matching.slice(from, from + perPage)
-  const ids = pageUsers.map((u) => u.id)
+  // Sorting by a count needs the counts of every match; otherwise only the page's
+  const countAll = COUNT_SORTS.includes(sort)
+  const allCounts = countAll ? await activityCounts(admin, null) : null
+  const items = matching.map((u) =>
+    userListItem(u, profileById.get(u.id), allCounts ? { lessons: allCounts.lessons.get(u.id), sessions: allCounts.sessions.get(u.id) } : {})
+  )
+  const sorted = sortUserItems(items, sort, dir)
 
-  let lessons = []
-  let sessions = []
-  if (ids.length) {
-    ;[lessons, sessions] = await Promise.all([
-      selectAll(() => admin.from('lessons').select('student_id').in('student_id', ids).order('id')),
-      selectAll(() => admin.from('practice_sessions').select('student_id').in('student_id', ids).order('id')),
-    ])
+  const current = Math.min(page, lastPage(sorted.length, perPage))
+  const pageItems = sorted.slice((current - 1) * perPage, current * perPage)
+  if (!countAll) {
+    const counts = await activityCounts(admin, pageItems.map((u) => u.id))
+    for (const item of pageItems) {
+      item.lesson_count = counts.lessons.get(item.id) || 0
+      item.session_count = counts.sessions.get(item.id) || 0
+    }
   }
-  const lessonCounts = countBy(lessons, 'student_id')
-  const sessionCounts = countBy(sessions, 'student_id')
-
-  return {
-    users: pageUsers.map((u) =>
-      userListItem(u, profileById.get(u.id), { lessons: lessonCounts.get(u.id), sessions: sessionCounts.get(u.id) })
-    ),
-    total: matching.length,
-    page,
-    perPage,
-  }
+  return { users: pageItems, total: sorted.length, page: current, perPage }
 }
 
 function parseInvite(body) {
-  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
-  if (!email || email.length > 254 || !EMAIL_RE.test(email)) fail('Adresse e-mail invalide.')
+  const email = parseEmail(body.email)
   const fullName = optionalText(body.fullName, LIMITS.fullName, `Le nom doit faire au plus ${LIMITS.fullName} caractères.`)
   if (!ROLES.includes(body.role)) fail('Rôle invalide (student ou teacher).')
-  if (body.isAdmin !== undefined && typeof body.isAdmin !== 'boolean') fail('isAdmin doit être un booléen.')
-  return { email, fullName: fullName || '', role: body.role, isAdmin: body.isAdmin === true }
-}
-
-const alreadyExists = (error) =>
-  error?.code === 'email_exists' || error?.status === 422 || /already (been )?registered|already exists/i.test(error?.message || '')
-
-async function inviteUser(admin, req, input) {
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(input.email, {
-    redirectTo: `${requestOrigin(req)}/auth/callback`,
-    data: input.fullName ? { full_name: input.fullName } : {},
-  })
-  if (error) {
-    if (alreadyExists(error)) fail('Un compte existe déjà avec cette adresse e-mail.')
-    throw error
-  }
-  const invited = data?.user
-  if (!invited?.id) throw new Error('inviteUserByEmail returned no user')
-
-  const { data: updated, error: updateError } = await admin.auth.admin.updateUserById(invited.id, {
-    app_metadata: { ...(invited.app_metadata || {}), role: input.role, is_admin: input.isAdmin },
-  })
-  if (updateError) {
-    // Do not leave an account with the wrong role behind
-    await admin.auth.admin.deleteUser(invited.id).catch(() => {})
-    throw updateError
-  }
-  const user = updated?.user || {
-    ...invited,
-    app_metadata: { ...(invited.app_metadata || {}), role: input.role, is_admin: input.isAdmin },
-  }
-
-  // The DB trigger creates the profile; make sure it exists either way
-  const { error: profileError } = await admin
-    .from('profiles')
-    .upsert({ id: user.id, email: input.email, full_name: input.fullName || null }, { onConflict: 'id', ignoreDuplicates: true })
-  if (profileError) console.error('[api] admin/users POST profile:', profileError)
-  const { data: profile } = await admin
-    .from('profiles')
-    .select('id, email, full_name, level, onboarded_at, created_at')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  return userListItem(user, profile || { email: input.email, full_name: input.fullName || null })
+  const isAdmin = optionalBoolean(body.isAdmin, 'isAdmin doit être un booléen.')
+  const sendEmail = optionalBoolean(body.sendEmail, 'Le champ « envoyer par e-mail » doit être un booléen.')
+  return { email, fullName: fullName || '', role: body.role, isAdmin: isAdmin === true, sendEmail: sendEmail === true }
 }
 
 export default async function handler(req, res) {
@@ -122,15 +93,24 @@ export default async function handler(req, res) {
     const admin = createAdminClient()
     if (req.method === 'GET') return res.status(200).json(await listUsers(admin, req.query || {}))
 
+    assertJsonBody(req)
     const input = parseInvite(bodyOf(req))
-    const user = await inviteUser(admin, req, input)
+    const { user, link } = await inviteUser(admin, { ...input, origin: appOrigin(req) })
+    // Never the link itself: it signs in as this account
     await logAdminAction(admin, auth.user, {
       action: 'user.invite',
       entity: 'user',
       entityId: user.id,
-      details: { email: input.email, role: input.role, is_admin: input.isAdmin, full_name: input.fullName || null },
+      details: {
+        email: input.email,
+        role: input.role,
+        is_admin: input.isAdmin,
+        full_name: input.fullName || null,
+        delivery: input.sendEmail ? 'email' : 'link',
+      },
     })
-    return res.status(201).json({ user })
+    const profile = { email: input.email, full_name: input.fullName || null }
+    return res.status(201).json({ user: userListItem(user, profile), link })
   } catch (err) {
     return handleError(res, err, `admin/users ${req.method}`, 'fr')
   }

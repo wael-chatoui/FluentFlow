@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import StatusPill from '@/components/admin/common/StatusPill'
+import { LessonStatusPills } from '@/components/admin/common/StatusPill'
 import { formatDate, formatDateTime, formatNumber, formatRelative } from '@/components/admin/common/format'
 import admin from '@/components/admin/common/admin.module.css'
 import styles from '@/components/admin/lessons/editor.module.css'
@@ -38,8 +38,12 @@ export default function LessonHeader({ lesson }) {
         <div>
           <dt>Statut</dt>
           <dd>
-            <StatusPill status={lesson.status} />
+            <LessonStatusPills lesson={lesson} />
           </dd>
+        </div>
+        <div>
+          <dt>Source</dt>
+          <dd>{lesson.source_kind === 'import' ? 'Document importé' : 'Transcription + Canva'}</dd>
         </div>
         <div>
           <dt>Modèle IA</dt>

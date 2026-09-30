@@ -27,6 +27,11 @@ function alignClass(align) {
  * Responsive data table: a real <table> with a sticky header from 768px,
  * stacked cards below. Skeleton rows while loading with no rows yet.
  *
+ * Clickable rows: with `rowHref`, the primary cell is a real link (keyboard and
+ * screen readers) and the rest of the row / card is a mouse shortcut to it.
+ * `onRowClick` is a mouse shortcut only: the row must then contain its own link or
+ * button for keyboard users (e.g. the explorer's id cell links).
+ *
  * @param {{
  *   columns: Array<{ key: string, label: string, render?: (row: any) => React.ReactNode,
  *     width?: string|number, align?: 'left'|'right'|'center',
@@ -38,7 +43,7 @@ function alignClass(align) {
  *   loading?: boolean,
  *   empty?: React.ReactNode,
  *   onRowClick?: (row: any) => void,
- *   rowHref?: (row: any) => string,
+ *   rowHref?: (row: any) => string|null,
  *   sort?: { key: string, dir: 'asc'|'desc' },
  *   onSort?: (key: string) => void,
  *   rowKey?: (row: any, index: number) => string,
@@ -61,16 +66,16 @@ export default function DataTable({
 }) {
   const router = useRouter()
   const list = Array.isArray(rows) ? rows : []
-  const clickable = Boolean(onRowClick || rowHref)
   const showSkeleton = loading && list.length === 0
   const keyOf = (row, i) => (rowKey ? rowKey(row, i) : row?.id ?? i)
+  const hrefOf = (row) => (!onRowClick && rowHref ? rowHref(row) || null : null)
 
   const activate = (row, e) => {
     if (onRowClick) {
       onRowClick(row)
       return
     }
-    const href = rowHref?.(row)
+    const href = hrefOf(row)
     if (!href) return
     if (e && (e.metaKey || e.ctrlKey)) window.open(href, '_blank', 'noopener')
     else router.push(href)
@@ -82,14 +87,6 @@ export default function DataTable({
     if (hit && hit !== e.currentTarget && e.currentTarget.contains(hit)) return
     if (window.getSelection?.().toString()) return
     activate(row, e)
-  }
-
-  const handleRowKey = (row) => (e) => {
-    if (e.target !== e.currentTarget) return
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      activate(row, e)
-    }
   }
 
   if (!loading && list.length === 0) {
@@ -157,21 +154,29 @@ export default function DataTable({
                       ))}
                     </tr>
                   ))
-                : list.map((row, i) => (
-                    <tr
-                      key={keyOf(row, i)}
-                      className={clickable ? s.dtRowClickable : undefined}
-                      tabIndex={clickable ? 0 : undefined}
-                      onClick={clickable ? handleRowClick(row) : undefined}
-                      onKeyDown={clickable ? handleRowKey(row) : undefined}
-                    >
-                      {columns.map((col) => (
-                        <td key={col.key} className={alignClass(col.align)}>
-                          {cellValue(col, row)}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
+                : list.map((row, i) => {
+                    const href = hrefOf(row)
+                    const rowClickable = Boolean(onRowClick || href)
+                    return (
+                      <tr
+                        key={keyOf(row, i)}
+                        className={rowClickable ? s.dtRowClickable : undefined}
+                        onClick={rowClickable ? handleRowClick(row) : undefined}
+                      >
+                        {columns.map((col) => (
+                          <td key={col.key} className={alignClass(col.align)}>
+                            {href && col === primaryCol ? (
+                              <Link href={href} className={s.rowLink}>
+                                {cellValue(col, row)}
+                              </Link>
+                            ) : (
+                              cellValue(col, row)
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    )
+                  })}
             </tbody>
           </table>
         </div>
@@ -188,11 +193,21 @@ export default function DataTable({
               </li>
             ))
           : list.map((row, i) => {
+              const href = hrefOf(row)
+              const title = cellValue(primaryCol, row)
               const body = (
                 <>
                   <div className={s.dtCardTop}>
-                    <div className={s.dtCardTitle}>{cellValue(primaryCol, row)}</div>
-                    {clickable && <span className={s.dtChevron} aria-hidden="true">›</span>}
+                    <div className={s.dtCardTitle}>
+                      {href ? (
+                        <Link href={href} className={s.dtCardLink}>
+                          {title}
+                        </Link>
+                      ) : (
+                        title
+                      )}
+                    </div>
+                    {(href || onRowClick) && <span className={s.dtChevron} aria-hidden="true">›</span>}
                   </div>
                   {cardCols.length > 0 && (
                     <dl className={s.dtCardFields}>
@@ -206,21 +221,12 @@ export default function DataTable({
                   )}
                 </>
               )
-              const href = !onRowClick && rowHref ? rowHref(row) : null
               return (
                 <li key={keyOf(row, i)}>
                   {href ? (
-                    <Link href={href} className={cx(s.dtCard, s.dtCardClickable)}>
-                      {body}
-                    </Link>
+                    <div className={cx(s.dtCard, s.dtCardClickable, s.dtCardLinked)}>{body}</div>
                   ) : onRowClick ? (
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      className={cx(s.dtCard, s.dtCardClickable)}
-                      onClick={handleRowClick(row)}
-                      onKeyDown={handleRowKey(row)}
-                    >
+                    <div className={cx(s.dtCard, s.dtCardClickable)} onClick={handleRowClick(row)}>
                       {body}
                     </div>
                   ) : (

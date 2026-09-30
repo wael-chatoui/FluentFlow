@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import AdminShell from '@/components/admin/AdminShell'
-import StatusPill from '@/components/admin/common/StatusPill'
+import StatusPill, { LessonStatusPills } from '@/components/admin/common/StatusPill'
 import { ToastViewport } from '@/components/admin/common/Toast'
 import useAdminQuery from '@/components/admin/common/useAdminQuery'
 import {
@@ -15,6 +15,7 @@ import {
   formatDate,
   formatUsd,
   initialsOf,
+  plural,
 } from '@/components/admin/common/format'
 import ui from '@/components/ui/ui.module.css'
 import s from '@/components/admin/common/admin.module.css'
@@ -24,6 +25,8 @@ const SERIES = [
   { key: 'signups', label: 'Inscriptions', tone: d.seriesBlue },
   { key: 'lessons', label: 'Leçons', tone: d.seriesPurple },
   { key: 'sessions', label: "Sessions d'exercices", tone: d.seriesGreen },
+  // Only with the ai_generations ledger (migration 0006)
+  { key: 'generations', label: 'Générations IA', tone: d.seriesOrange, optional: true },
 ]
 
 function pct(part, whole) {
@@ -31,26 +34,98 @@ function pct(part, whole) {
   return Math.round((part / whole) * 100)
 }
 
+function aiTiles(ai) {
+  const tokens = (Number(ai.prompt_tokens) || 0) + (Number(ai.completion_tokens) || 0)
+  const prices =
+    ai.price_input_per_m !== undefined
+      ? `Tarifs : ${formatUsd(ai.price_input_per_m)} / M tokens en entrée, ${formatUsd(ai.price_output_per_m)} / M en sortie. `
+      : ''
+  const tokenText = `${formatCompact(tokens)} tokens (${formatCompact(ai.prompt_tokens || 0)} entrée + ${formatCompact(ai.completion_tokens || 0)} sortie)`
+  if (ai.source !== 'ledger') {
+    return [
+      {
+        key: 'ai',
+        emoji: '🤖',
+        label: 'Coût IA (minimum)',
+        value: formatUsd(ai.estimated_cost_usd),
+        sub: `${plural(ai.calls || 0, 'leçon', 'leçons')} · versions actuelles seulement`,
+        title: `${prices}Estimation sur la dernière génération de chaque leçon : applique la migration 0006 pour le coût réel (échecs et régénérations inclus). ${tokenText}.`,
+        tone: d.orange,
+      },
+    ]
+  }
+  const kinds = ai.by_kind || {}
+  const seconds = ai.avg_duration_ms ? `${formatNumber(Math.round(ai.avg_duration_ms / 100) / 10)} s en moyenne` : null
+  // Real cost reported by OpenRouter when available; token × price estimate for the rest
+  const costNote = {
+    provider: 'Coût réel facturé par OpenRouter. ',
+    mixed: `Coût réel OpenRouter + estimation pour ${plural(ai.estimated_calls || 0, 'génération', 'générations')} sans coût remonté. ${prices}`,
+  }[ai.cost_source] || prices
+  return [
+    {
+      key: 'ai',
+      emoji: '🤖',
+      label: 'Coût IA',
+      value: formatUsd(ai.cost_usd ?? ai.estimated_cost_usd),
+      sub: `${plural(ai.calls || 0, 'génération', 'générations')} (${formatNumber(kinds.lesson || 0)} leçons, ${formatNumber(kinds.plan || 0)} plans)`,
+      title: `${costNote}Toutes les tentatives, échecs compris. ${tokenText}.`,
+      tone: d.orange,
+    },
+    {
+      key: 'ai_failures',
+      emoji: '🧯',
+      label: 'Échecs IA',
+      value: ai.failure_rate === null || ai.failure_rate === undefined ? '—' : formatPercent(ai.failure_rate),
+      sub: [plural(ai.failures || 0, 'échec', 'échecs'), seconds].filter(Boolean).join(' · '),
+      tone: ai.failures > 0 ? d.red : undefined,
+      href: '/admin/tables/ai_generations',
+    },
+  ]
+}
+
 function buildTiles(stats) {
   const t = stats?.totals || {}
-  const ai = stats?.ai || {}
-  const tokens = (Number(ai.prompt_tokens) || 0) + (Number(ai.completion_tokens) || 0)
   const onboardedPct = pct(t.onboarded, t.students)
   const publishedPct = pct(t.lessons_published, t.lessons)
   return [
-    { key: 'users', emoji: '👥', label: 'Utilisateurs', value: formatNumber(t.users), tone: d.blue, href: '/admin/users' },
+    {
+      key: 'users',
+      emoji: '👥',
+      label: 'Utilisateurs',
+      value: formatNumber(t.users),
+      sub: t.invites_pending ? `${plural(t.invites_pending, 'invitation', 'invitations')} en attente` : null,
+      tone: d.blue,
+      href: '/admin/users',
+    },
     { key: 'students', emoji: '🎓', label: 'Élèves', value: formatNumber(t.students), tone: d.blue, href: '/admin/users?role=student' },
     { key: 'teachers', emoji: '🧑‍🏫', label: 'Profs', value: formatNumber(t.teachers), tone: d.orange, href: '/admin/users?role=teacher' },
     { key: 'admins', emoji: '🛠️', label: 'Admins', value: formatNumber(t.admins), tone: d.purple, href: '/admin/users?role=admin' },
     {
+      key: 'pending',
+      emoji: '⏳',
+      label: 'À approuver',
+      value: formatNumber(t.pending_approval || 0),
+      sub: t.pending_approval > 1 ? 'inscriptions en attente' : t.pending_approval ? 'inscription en attente' : 'aucune inscription en attente',
+      tone: t.pending_approval > 0 ? d.yellow : undefined,
+      href: '/admin/users?role=pending',
+    },
+    {
       key: 'onboarded',
       emoji: '✅',
-      label: 'Onboardés',
+      label: 'Élèves onboardés',
       value: formatNumber(t.onboarded),
       sub: onboardedPct !== null ? `${onboardedPct} % des élèves` : null,
       tone: d.green,
     },
-    { key: 'lessons', emoji: '📚', label: 'Leçons', value: formatNumber(t.lessons), tone: d.purple, href: '/admin/lessons' },
+    {
+      key: 'lessons',
+      emoji: '📚',
+      label: 'Leçons',
+      value: formatNumber(t.lessons),
+      sub: t.lessons_hidden ? `dont ${formatNumber(t.lessons_hidden)} brouillon${t.lessons_hidden > 1 ? 's' : ''}` : null,
+      tone: d.purple,
+      href: '/admin/lessons',
+    },
     {
       key: 'published',
       emoji: '🚀',
@@ -78,18 +153,7 @@ function buildTiles(stats) {
       sub: 'Moyenne score / total',
       tone: d.green,
     },
-    {
-      key: 'ai',
-      emoji: '🤖',
-      label: 'Coût IA estimé',
-      value: formatUsd(ai.estimated_cost_usd),
-      sub: `${formatNumber(ai.calls || 0)} appels · ${formatCompact(tokens)} tokens (${formatCompact(ai.prompt_tokens || 0)} entrée + ${formatCompact(ai.completion_tokens || 0)} sortie)`,
-      title:
-        ai.price_input_per_m !== undefined
-          ? `Tarifs : ${formatUsd(ai.price_input_per_m)} / M tokens en entrée, ${formatUsd(ai.price_output_per_m)} / M en sortie`
-          : undefined,
-      tone: d.orange,
-    },
+    ...aiTiles(stats?.ai || {}),
   ]
 }
 
@@ -132,7 +196,7 @@ function Tiles({ stats }) {
 function TilesSkeleton() {
   return (
     <div className={d.tiles} aria-hidden="true">
-      {Array.from({ length: 12 }, (_, i) => (
+      {Array.from({ length: 14 }, (_, i) => (
         <div key={i} className={cx(d.tile, d.tileSkel)}>
           <span className={ui.skel} style={{ width: '60%', height: 12 }} />
           <span className={ui.skel} style={{ width: 56, height: 26 }} />
@@ -173,7 +237,7 @@ function SeriesChart({ label, tone, days, values }) {
 
 function ActivityChart({ last30 }) {
   const days = Array.isArray(last30?.days) ? last30.days : []
-  const series = SERIES.map((sr) => {
+  const series = SERIES.filter((sr) => !sr.optional || Array.isArray(last30?.[sr.key])).map((sr) => {
     const raw = Array.isArray(last30?.[sr.key]) ? last30[sr.key] : []
     const values = days.map((_, i) => Number(raw[i]) || 0)
     return { ...sr, values, total: values.reduce((a, b) => a + b, 0) }
@@ -291,7 +355,7 @@ function RecentLessons({ lessons }) {
               <span className={d.itemSub}>{l.student_name || 'Élève inconnu'}</span>
             </span>
             <span className={d.itemSide}>
-              <StatusPill status={l.status} />
+              <LessonStatusPills lesson={l} />
               <time dateTime={l.created_at} title={formatDateTime(l.created_at)}>
                 {formatRelative(l.created_at)}
               </time>
@@ -318,6 +382,7 @@ function RecentSignups({ signups }) {
               {u.full_name && <span className={d.itemSub}>{u.email}</span>}
             </span>
             <span className={d.itemSide}>
+              {u.approved === false && <StatusPill role="pending" />}
               <time dateTime={u.created_at} title={formatDateTime(u.created_at)}>
                 {formatRelative(u.created_at)}
               </time>
