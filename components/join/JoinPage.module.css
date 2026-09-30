@@ -1,0 +1,66 @@
+/* /join/<token>: what the student gets, under the welcome header */
+.perks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 0 0 1.1rem;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.perks li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--st-ink);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.perkIcon {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 12px;
+  background: var(--st-blue-bg);
+  color: var(--st-blue-ink);
+}
+
+.green {
+  background: var(--st-green-bg);
+  color: var(--st-green-ink);
+}
+
+.orange {
+  background: var(--st-orange-bg);
+  color: var(--st-orange-ink);
+}
+
+.blue {
+  background: var(--st-blue-bg);
+  color: var(--st-blue-ink);
+}
+
+.small {
+  margin: 0.9rem 0 0;
+  color: var(--st-ink-soft);
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.45;
+  text-align: center;
+}
+
+/* Title that receives focus when the step changes (announced, no outline for mouse users) */
+.focusTitle:focus {
+  outline: none;
+}
+
+.focusTitle:focus-visible {
+  outline: 3px solid var(--st-focus, var(--st-blue-dark));
+  outline-offset: 4px;
+  border-radius: 6px;
+}

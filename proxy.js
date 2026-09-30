@@ -20,7 +20,8 @@ const BACKOFFICE_HOSTS = (process.env.BACKOFFICE_HOSTS || 'backoffice.localhost'
   .filter(Boolean)
 
 // Paths that work the same on every host (auth flow, public admin error page)
-const SHARED_PATHS = ['/login', '/logout', '/auth/callback', '/auth/confirm', '/pending', '/admin/forbidden']
+// /join/<token>: public invitation page (join links), signed in or not
+const SHARED_PATHS = ['/login', '/logout', '/auth/callback', '/auth/confirm', '/pending', '/join', '/admin/forbidden']
 const PROTECTED_AREAS = ['/student', '/teacher', '/onboarding', '/admin', '/pending']
 
 // Remembers (per user) that onboarding is done, so the profile is read once, not on

@@ -1,3 +1,4 @@
+import Icon from '@/components/ui/Icon'
 import StepHeading from '@/components/onboarding/StepHeading'
 import {
   GOAL_OPTIONS,
@@ -18,7 +19,7 @@ function Choices({ options, ids, text, empty }) {
         <ul className={styles.tagList}>
           {picked.map((o) => (
             <li key={o.id} className={styles.tag}>
-              <span aria-hidden="true">{o.emoji}</span>
+              <Icon icon={o.icon} size={14} />
               {o.label}
             </li>
           ))}

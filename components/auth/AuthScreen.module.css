@@ -93,14 +93,20 @@
   animation: float 6s ease-in-out infinite;
 }
 
+.emoji svg {
+  display: block;
+}
+
 .emojiA {
   --r: -12deg;
+  color: var(--st-orange-dark);
   bottom: 7%;
   left: 9%;
 }
 
 .emojiB {
   --r: 10deg;
+  color: var(--st-blue-dark);
   top: 7%;
   right: 12%;
   animation-delay: -2.5s;
@@ -108,6 +114,7 @@
 
 .emojiC {
   --r: 0deg;
+  color: var(--st-yellow-dark);
   top: 9%;
   left: 20%;
   font-size: 1.4rem;
@@ -162,6 +169,7 @@
   border-bottom: 5px solid var(--tone-dark);
   font-size: 2.1rem;
   line-height: 1;
+  color: var(--tone-dark);
   transform: rotate(-6deg);
 }
 

@@ -63,9 +63,11 @@
 }
 
 .emoji {
+  display: inline-flex;
   flex: none;
   font-size: 17px;
   line-height: 1;
+  color: var(--ob-fg-soft, currentColor);
 }
 
 .label {

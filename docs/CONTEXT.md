@@ -50,7 +50,9 @@
 **Prof** (`/teacher`, FR)
 - Tableau de bord : élèves, « À traiter » (demandes d'accès, générations échouées ou bloquées,
   brouillons, régénérations ratées), élèves sans cours depuis 14 jours, activité récente.
-- Inviter un élève : lien d'invitation à copier (à envoyer dans le chat Preply) ou e-mail.
+- Inviter un élève : par défaut **« Lien d'invitation (sans e-mail) »** (prénom facultatif → lien
+  `/join/<token>` + message en anglais à coller dans le chat Preply ; usage unique, 14 jours, liste des
+  liens récents avec « Annuler ») ; en option, invitation par adresse e-mail (lien à copier ou e-mail).
 - Nouvelle leçon : transcription + notes Canva (boutons « Coller »), options d'exercices, case
   « Relire avant de publier » ; la génération tourne en arrière-plan, on peut quitter la page.
 - Page leçon : suivi de génération, aperçu élève, publier / retirer, tester les exercices,
@@ -62,6 +64,8 @@
 
 **Élève** (`/student`, EN)
 - Connexion Google ou lien magique, sur invitation ; comptes non invités en attente (`/pending`).
+- Lien d'invitation `/join/<token>` : fil d'Ariane « Welcome › Sign in › Your profile › Start
+  learning », création du compte (Google ou e-mail), le lien approuve le compte puis onboarding.
 - Onboarding pas à pas (look à part, voulu par Wael), accueil façon Duolingo (progression, pas de
   streak ni XP), liste des leçons, bilan (Save as PDF), exercices avec écoute (voix française),
   révision des erreurs, banque de mots + flashcards, profil (suppression de compte).
@@ -74,7 +78,7 @@ bannissement, suppression), éditeur complet de leçons, explorateur de tables, 
 | Sujet | Décision |
 |---|---|
 | Publication | Directe par défaut ; option « Relire avant de publier » (brouillon `hidden`) ; publier / retirer à tout moment. |
-| Accès | Sur invitation, sans mot de passe (Google + lien magique). Inscription spontanée → compte « en attente » à approuver. |
+| Accès | Sur invitation, sans mot de passe (Google + lien magique). Inscription spontanée → compte « en attente » à approuver. Lien d'invitation sans e-mail (`join_links`, seul le hash SHA-256 du jeton est stocké) : usage unique, 14 jours, révocable ; il approuve le compte créé en l'ouvrant. |
 | Rôles | Dans `app_metadata` (`role`, `is_admin`, `approved`), jamais `user_metadata`. |
 | Accents (textes à trous) | Tolérés avec avertissement, sauf quand l'accent change le mot : mots ≤ 3 lettres, paires (a/à, ou/où, sur/sûr…), dernière lettre et terminaisons -é(e)(s). œ/oe et tiret/espace équivalents. |
 | Notes privées | Jamais envoyées à l'IA ; seul « Contexte pour l'IA » l'est. Textes non fiables encadrés comme données dans les prompts. |
@@ -89,13 +93,15 @@ bannissement, suppression), éditeur complet de leçons, explorateur de tables, 
 
 - Migrations dans `supabase/migrations/` : 0001 pipeline, 0002 prof (obsolète, remplacée par
   `scripts/bootstrap-owner.mjs`), 0003 révision, 0004 back office, 0005 import, 0006 publication +
-  accès sur invitation + contexte IA + plans + journal IA + verrouillage des tables + droits service role.
+  accès sur invitation + contexte IA + plans + journal IA + verrouillage des tables + droits service role,
+  0007 liens d'invitation sans e-mail (`join_links`).
 - **Local** : `pnpm db:start` (Supabase CLI + Docker/Colima) applique toutes les migrations ;
   e-mails visibles sur <http://127.0.0.1:54324>. Compte prof : `node --env-file=… scripts/bootstrap-owner.mjs <email>`.
 - **Prod** (depuis le terminal, dossier `webapp/`, déjà relié au projet) : `pnpm db:status` pour
   comparer, `pnpm db:push` pour appliquer (`supabase login` / `pnpm db:link` si la session a expiré).
   Historique réparé le 2026-09-30 (0001–0003 et 0005 avaient été passées à la main) ; 0004 et 0006
-  appliquées le même jour. Toutes les migrations locales sont en prod.
+  appliquées le même jour. **0007 (`join_links`) appliquée en local seulement, pas encore en prod** :
+  `pnpm db:push` avant de merger dans `main`.
   Toujours appliquer une migration en prod **avant** de merger dans `main` le code qui en dépend.
 
 ## Git et déploiement
@@ -110,13 +116,18 @@ bannissement, suppression), éditeur complet de leçons, explorateur de tables, 
 
 - Passe « fiabilité + features » **en prod** (PR #13, `develop` → `main`), découpée en PR par feature
   #2 à #12 dans `develop`. Build + 429 tests Vitest verts à chaque étape. Migrations 0001–0006 en prod.
+- Branche `feat/pictograms-and-join-links` (en cours, pas encore commitée) : pictogrammes lucide à la
+  place des emojis, et **liens d'invitation sans e-mail** (`/join/<token>`, migration 0007, routes
+  `/api/teacher/join-links`, `/api/join/[token]`). **Migration 0007 pas encore appliquée en prod.**
+  Parcours à tester en local (prof : « Inviter un élève » → lien ; élève : fenêtre privée → lien →
+  Google ou e-mail sur Mailpit → onboarding).
 - Pas encore fait : parcours prof et élève complets dans le navigateur (reportés pour économiser des
   tokens) — à faire en local (`pnpm db:start`, compte `prof@local.test`) puis sur la prod.
 - À faire côté Wael : Supabase → URL Configuration (Site URL `https://fluent-flow-mu.vercel.app`,
   Redirect URLs `https://fluent-flow-mu.vercel.app/**` et `http://localhost:3000/**`) ;
   `NEXT_PUBLIC_SITE_URL=https://fluent-flow-mu.vercel.app` sur Vercel ; remplir « Contexte pour l'IA »
   de chaque élève ; sortir le secret OAuth en clair de `../.agents/mcp_config.json`.
-- Idées reportées par la relecture : colonne `lessons.generation_started_at` (migration 0007) pour un
+- Idées reportées par la relecture : colonne `lessons.generation_started_at` (future migration 0008) pour un
   délai « bloquée » plus précis ; 409 `pending_exists` à l'invitation d'un compte en attente.
 
 ## Pistes pour la suite

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { inArea, pageLang, pathAfterSignIn, safeNext } from '@/utils/auth/routing'
+import { inArea, isJoinPath, pageLang, pathAfterSignIn, safeNext } from '@/utils/auth/routing'
 
 describe('safeNext', () => {
   it('keeps same-origin paths with query and hash', () => {
@@ -92,6 +92,17 @@ describe('pathAfterSignIn', () => {
     expect(pathAfterSignIn({ role: 'student', approved: true, onboarded: true, isAdmin: false, next: '/admin' })).toBe('/student')
   })
 
+  it('sends students back to a join link, even before approval and onboarding', () => {
+    expect(pathAfterSignIn({ role: 'student', approved: false, next: '/join/abc' })).toBe('/join/abc')
+    expect(pathAfterSignIn({ role: 'student', approved: true, onboarded: false, next: '/join/abc' })).toBe('/join/abc')
+    expect(pathAfterSignIn({ role: 'student', approved: true, onboarded: true, next: '/join/abc' })).toBe('/join/abc')
+    expect(pathAfterSignIn({ role: 'teacher', next: '/join/abc' })).toBe('/teacher')
+    expect(pathAfterSignIn({ role: 'student', approved: false, next: '/join' })).toBe('/pending')
+    expect(pathAfterSignIn({ role: 'student', approved: false, next: '/join/../student' })).toBe('/pending')
+    expect(pathAfterSignIn({ role: 'student', approved: false, next: '/joined' })).toBe('/pending')
+    expect(pathAfterSignIn({ role: 'student', approved: false, next: '//evil.com/join/abc' })).toBe('/pending')
+  })
+
   it('handles no input', () => {
     expect(pathAfterSignIn()).toBe('/onboarding')
   })
@@ -106,5 +117,15 @@ describe('pageLang', () => {
     expect(pageLang('/login')).toBe('en')
     expect(pageLang('/404')).toBe('en')
     expect(pageLang(undefined)).toBe('en')
+  })
+})
+
+describe('isJoinPath', () => {
+  it('matches /join/<token> only', () => {
+    expect(isJoinPath('/join/abc')).toBe(true)
+    expect(isJoinPath('/join/abc?x=1')).toBe(true)
+    expect(isJoinPath('/join')).toBe(false)
+    expect(isJoinPath('/join/')).toBe(false)
+    expect(isJoinPath('/joined/abc')).toBe(false)
   })
 })
