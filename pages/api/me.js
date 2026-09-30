@@ -1,12 +1,13 @@
-// GET /api/me → { user: { id, email }, role, profile }
-import { allowMethods, requireUser, serverError } from '@/utils/auth/server'
+// GET /api/me → { user: { id, email }, role, approved, isAdmin, profile }
+// Also answers for accounts waiting for approval, so /pending can check its status.
+import { allowMethods, isAdmin, isApproved, requireUser } from '@/utils/auth/server'
 import { createAdminClient } from '@/utils/supabase/admin'
-
-const PROFILE_FIELDS = 'id, email, full_name, level, goals, interests, drive_folder_url, onboarded_at, created_at, updated_at'
+import { PROFILE_FIELDS } from '@/utils/supabase/profiles'
+import { handleError } from '@/utils/api/errors'
 
 export default async function handler(req, res) {
   if (!allowMethods(req, res, ['GET'])) return
-  const auth = await requireUser(req, res)
+  const auth = await requireUser(req, res, { allowPending: true })
   if (!auth) return
   const { user, role } = auth
 
@@ -18,8 +19,15 @@ export default async function handler(req, res) {
       .maybeSingle()
     if (error) throw error
 
-    return res.status(200).json({ user: { id: user.id, email: user.email }, role, profile: profile || null })
+    res.setHeader('Cache-Control', 'private, no-store')
+    return res.status(200).json({
+      user: { id: user.id, email: user.email },
+      role,
+      approved: isApproved(user),
+      isAdmin: isAdmin(user),
+      profile: profile || null,
+    })
   } catch (err) {
-    return serverError(res, err, 'me')
+    return handleError(res, err, 'me')
   }
 }

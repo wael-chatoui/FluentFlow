@@ -1,10 +1,10 @@
 // POST /api/onboarding/complete { fullName, level, goals, interests } → { profile }
+// Students only: teachers get 403, accounts waiting for approval get 403 { code: 'pending' }.
 import { allowMethods, requireUser } from '@/utils/auth/server'
 import { createAdminClient } from '@/utils/supabase/admin'
+import { PROFILE_FIELDS } from '@/utils/supabase/profiles'
 import { handleError } from '@/utils/api/errors'
 import { bodyOf, parseProfileInput } from '@/utils/api/validate'
-
-const PROFILE_FIELDS = 'id, email, full_name, level, goals, interests, drive_folder_url, onboarded_at, created_at, updated_at'
 
 function parse(body) {
   const { fullName, level, goals, interests } = parseProfileInput(body)
@@ -22,6 +22,14 @@ export default async function handler(req, res) {
     const input = parse(bodyOf(req))
     const admin = createAdminClient()
 
+    // A second submit (double click, back button) keeps the first completion date
+    const { data: existing, error: readError } = await admin
+      .from('profiles')
+      .select('onboarded_at')
+      .eq('id', user.id)
+      .maybeSingle()
+    if (readError) throw readError
+
     const { data: profile, error } = await admin
       .from('profiles')
       .upsert(
@@ -32,7 +40,7 @@ export default async function handler(req, res) {
           level: input.level,
           goals: input.goals,
           interests: input.interests,
-          onboarded_at: new Date().toISOString(),
+          onboarded_at: existing?.onboarded_at || new Date().toISOString(),
         },
         { onConflict: 'id' }
       )
