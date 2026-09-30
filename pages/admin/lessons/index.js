@@ -1,24 +1,22 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/router'
 import AdminShell from '@/components/admin/AdminShell'
 import DataTable from '@/components/admin/common/DataTable'
 import Pagination from '@/components/admin/common/Pagination'
 import SearchInput from '@/components/admin/common/SearchInput'
 import FilterChips from '@/components/admin/common/FilterChips'
-import StatusPill from '@/components/admin/common/StatusPill'
+import { LessonStatusPills } from '@/components/admin/common/StatusPill'
 import { ToastViewport } from '@/components/admin/common/Toast'
 import useAdminQuery from '@/components/admin/common/useAdminQuery'
-import { formatDate, formatNumber, formatRelative, formatDateTime } from '@/components/admin/common/format'
+import { cx, formatDate, formatNumber, formatRelative, formatDateTime, isValidId } from '@/components/admin/common/format'
 import useUrlQuery, { toPage, toQueryString } from '@/components/admin/tables/useUrlQuery'
 import { LESSON_STATUS_FILTERS, lessonTitle } from '@/components/admin/lessons/constants'
+import { isStaleGeneration } from '@/utils/lesson/schema'
 import admin from '@/components/admin/common/admin.module.css'
 import ui from '@/components/ui/ui.module.css'
 
 const PER_PAGE = 50
-const DEFAULTS = { q: '', status: '', page: '1' }
-
-const stop = (e) => e.stopPropagation()
+const DEFAULTS = { q: '', status: '', studentId: '', page: '1' }
 
 const COLUMNS = [
   {
@@ -30,6 +28,7 @@ const COLUMNS = [
   {
     key: 'title',
     label: 'Titre',
+    primary: true,
     render: (row) => <span className={admin.cellStrong}>{lessonTitle(row)}</span>,
   },
   {
@@ -37,14 +36,18 @@ const COLUMNS = [
     label: 'Élève',
     render: (row) =>
       row.student_id ? (
-        <Link href={`/admin/users/${row.student_id}`} className={admin.link} onClick={stop}>
+        <Link href={`/admin/users/${row.student_id}`} className={admin.link}>
           {row.student_name || 'Élève'}
         </Link>
       ) : (
         <span className={admin.muted}>—</span>
       ),
   },
-  { key: 'status', label: 'Statut', render: (row) => <StatusPill status={row.status} /> },
+  {
+    key: 'status',
+    label: 'Statut',
+    render: (row) => <LessonStatusPills lesson={{ ...row, stale: isStaleGeneration(row) }} />,
+  },
   {
     key: 'exercise_count',
     label: 'Exercices',
@@ -77,23 +80,30 @@ const COLUMNS = [
 ]
 
 export default function AdminLessonsPage() {
-  const router = useRouter()
   const { ready, params, setParams } = useUrlQuery(DEFAULTS)
   const page = toPage(params.page)
+  const studentId = isValidId(params.studentId) ? params.studentId : ''
 
   const url = ready
-    ? `/api/admin/lessons${toQueryString({ q: params.q.trim(), status: params.status, page, perPage: PER_PAGE })}`
+    ? `/api/admin/lessons${toQueryString({ q: params.q.trim(), status: params.status, studentId, page, perPage: PER_PAGE })}`
     : null
   const { data, error, loading, reload } = useAdminQuery(url)
 
+  // The server clamps a page past the end (bookmarked URL, deleted rows): follow it
+  useEffect(() => {
+    if (data?.page && data.page !== page && !loading && !error) setParams({ page: String(data.page) })
+  }, [data, page, loading, error, setParams])
+
   const rows = useMemo(() => data?.lessons || [], [data])
   const total = data?.total ?? 0
+  const studentName = studentId ? rows.find((l) => l.student_id === studentId)?.student_name : ''
+  const filtered = Boolean(params.q || params.status || studentId)
 
   return (
     <AdminShell
       title="Leçons"
       actions={
-        <button type="button" className={`${ui.btn} ${ui.small} ${admin.tap} ${admin.blueGhost}`} onClick={reload} disabled={loading}>
+        <button type="button" className={cx(ui.btn, ui.small, admin.tap, admin.blueGhost)} onClick={reload} disabled={loading}>
           <span aria-hidden="true">↻</span> Actualiser
         </button>
       }
@@ -104,7 +114,7 @@ export default function AdminLessonsPage() {
             <SearchInput
               value={params.q}
               onChange={(q) => setParams({ q, page: '1' })}
-              placeholder="Rechercher un titre, un élève…"
+              placeholder="Rechercher un titre, un élève (nom ou e-mail)…"
               label="Rechercher une leçon"
             />
           </div>
@@ -114,12 +124,24 @@ export default function AdminLessonsPage() {
             value={params.status}
             onChange={(status) => setParams({ status, page: '1' })}
           />
+          {studentId && (
+            <span className={admin.chips}>
+              <button
+                type="button"
+                className={cx(admin.chip, admin.chipActive)}
+                onClick={() => setParams({ studentId: '', page: '1' })}
+                aria-label={`Retirer le filtre élève${studentName ? ` (${studentName})` : ''}`}
+              >
+                Élève : {studentName || 'sélectionné'} <span aria-hidden="true">✕</span>
+              </button>
+            </span>
+          )}
         </div>
 
         {error && (
           <div className={admin.alert} role="alert">
             <span className={admin.alertText}>{error}</span>
-            <button type="button" className={`${ui.btn} ${ui.small} ${admin.tap}`} onClick={reload}>
+            <button type="button" className={cx(ui.btn, ui.small, admin.tap)} onClick={reload}>
               Réessayer
             </button>
           </div>
@@ -129,11 +151,12 @@ export default function AdminLessonsPage() {
           columns={COLUMNS}
           rows={rows}
           loading={loading}
-          empty={params.q || params.status ? 'Aucune leçon ne correspond à ces filtres.' : 'Aucune leçon pour le moment.'}
-          onRowClick={(row) => router.push(`/admin/lessons/${row.id}`)}
+          caption="Liste des leçons"
+          empty={filtered ? 'Aucune leçon ne correspond à ces filtres.' : 'Aucune leçon pour le moment.'}
+          rowHref={(row) => `/admin/lessons/${row.id}`}
         />
 
-        <Pagination page={page} perPage={PER_PAGE} total={total} onPage={(p) => setParams({ page: String(p) })} />
+        <Pagination page={page} perPage={PER_PAGE} total={total} onPage={(p) => setParams({ page: String(p) })} disabled={loading} />
       </div>
       <ToastViewport />
     </AdminShell>

@@ -7,14 +7,23 @@ import styles from '@/components/admin/audit/audit.module.css'
 export const ENTITY_LABELS = { user: 'Utilisateur', lesson: 'Leçon' }
 
 // Actions/entities known from the API contract; values seen in the log are added at runtime
-export const KNOWN_ACTIONS = ['user.invite', 'user.update', 'user.delete', 'lesson.update', 'lesson.delete']
+export const KNOWN_ACTIONS = [
+  'user.invite',
+  'user.approve',
+  'user.sign_in_link',
+  'user.update',
+  'user.delete',
+  'lesson.update',
+  'lesson.delete',
+]
 export const KNOWN_ENTITIES = ['user', 'lesson']
 
 function actionTone(action) {
   const verb = String(action || '').split('.').pop()
   if (verb === 'delete') return 'red'
-  if (verb === 'create' || verb === 'invite') return 'green'
+  if (verb === 'create' || verb === 'invite' || verb === 'approve') return 'green'
   if (verb === 'update') return 'blue'
+  if (verb === 'sign_in_link') return 'orange' // gives access to the account: worth spotting
   return 'gray'
 }
 

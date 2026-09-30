@@ -11,6 +11,8 @@ function normalize(text) {
 /**
  * Confirmation dialog (bottom sheet on mobile). With `requireText`, the user must
  * type that exact text (trimmed, case-insensitive) before the confirm button enables.
+ * A destructive dialog (tone 'danger') opens with the focus on « Annuler », so an
+ * Enter pressed too fast never confirms it.
  *
  * @param {{ open: boolean, title: string, message?: React.ReactNode, confirmLabel?: string,
  *   cancelLabel?: string, tone?: 'danger'|'primary', requireText?: string, busy?: boolean,
@@ -32,6 +34,7 @@ export default function ConfirmDialog({
   const inputId = useId()
   const messageId = useId()
   const inputRef = useRef(null)
+  const cancelRef = useRef(null)
   const confirmRef = useRef(null)
   const [typed, setTyped] = useState('')
 
@@ -56,11 +59,11 @@ export default function ConfirmDialog({
       busy={busy}
       tone={tone}
       icon={icon || (danger ? '⚠️' : '🤔')}
-      initialFocusRef={requireText ? inputRef : confirmRef}
+      initialFocusRef={requireText ? inputRef : danger ? cancelRef : confirmRef}
       describedBy={message ? messageId : undefined}
       actions={
         <>
-          <button type="button" className={cx(ui.btn, s.tap)} onClick={onCancel} disabled={busy}>
+          <button ref={cancelRef} type="button" className={cx(ui.btn, s.tap)} onClick={onCancel} disabled={busy}>
             {cancelLabel}
           </button>
           <button

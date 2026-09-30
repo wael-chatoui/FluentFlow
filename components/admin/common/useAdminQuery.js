@@ -7,6 +7,9 @@ import { api } from '@/utils/apiClient'
  * - Aborts the previous request on change/unmount; AbortError is ignored; no setState after unmount.
  * - `reload()` re-fetches the same url (keeps the previous data visible while loading).
  * - `setData` lets a page apply a server response (e.g. after a PATCH) without re-fetching.
+ * - `loading` is already true on the render where `url` changes (before the fetch effect
+ *   runs), so `data` is never taken for the new url's answer (e.g. by a "follow the
+ *   server's clamped page" effect, which would otherwise bounce back to the old page).
  *
  * @param {string|null} url
  * @param {unknown[]} [deps]
@@ -16,6 +19,7 @@ export default function useAdminQuery(url, deps = []) {
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(Boolean(url))
+  const [settledUrl, setSettledUrl] = useState(null) // url of the last request that answered
   const [tick, setTick] = useState(0)
   const mounted = useRef(true)
 
@@ -38,11 +42,13 @@ export default function useAdminQuery(url, deps = []) {
       .then((result) => {
         if (!mounted.current || controller.signal.aborted) return
         setData(result)
+        setSettledUrl(url)
         setLoading(false)
       })
       .catch((err) => {
         if (err?.name === 'AbortError' || !mounted.current || controller.signal.aborted) return
         setError(err?.message || 'Le chargement a échoué.')
+        setSettledUrl(url)
         setLoading(false)
       })
     return () => controller.abort()
@@ -51,5 +57,5 @@ export default function useAdminQuery(url, deps = []) {
 
   const reload = useCallback(() => setTick((t) => t + 1), [])
 
-  return { data, error, loading, reload, setData }
+  return { data, error, loading: loading || (Boolean(url) && url !== settledUrl), reload, setData }
 }

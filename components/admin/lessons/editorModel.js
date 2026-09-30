@@ -1,7 +1,8 @@
 // Draft model of the admin lesson editor: builds an editable draft from the API
 // lesson, diffs it against the original (only changed top-level fields are sent),
 // and validates it client-side, mirroring utils/lesson/schema.js normalizers.
-import { BLANK, safeDriveUrl, safeHttpsUrl } from '@/utils/lesson/schema'
+import { BLANK, safeDriveUrl, safeHomeworkUrl, stableJson } from '@/utils/lesson/schema'
+import { exercisesResetProgress as savedExercisesResetProgress } from '@/utils/api/admin/lessonEdit'
 
 export const LIMITS = {
   title: 120,
@@ -87,6 +88,7 @@ export function toDraft(lesson) {
     lessonDate: s(lesson?.lesson_date).slice(0, 10),
     status: s(lesson?.status),
     studentId: s(lesson?.student_id),
+    hidden: Boolean(lesson?.hidden),
     driveUrl: s(lesson?.drive_url),
     content: toContentDraft(lesson?.content),
     exercises: arr(lesson?.exercises).map(toExerciseDraft),
@@ -98,6 +100,7 @@ export const FIELD_LABELS = {
   lessonDate: 'Date',
   status: 'Statut',
   studentId: 'Élève',
+  hidden: 'Visibilité',
   driveUrl: 'Lien Drive',
   content: 'Contenu',
   exercises: 'Exercices',
@@ -111,6 +114,31 @@ const serialize = (v) => JSON.stringify(stripKeys(v))
 export function changedFields(draft, original) {
   if (!draft || !original) return []
   return FIELDS.filter((f) => serialize(draft[f]) !== serialize(original[f]))
+}
+
+/**
+ * Draft to show after a save answered with `saved` (server draft): fields edited
+ * while the request was in flight (draft ≠ `sent`) keep the local value, and so do
+ * fields the server stored unchanged (their row keys stay, so no input loses focus).
+ */
+export function mergeAfterSave(current, sent, saved) {
+  const next = { ...saved }
+  FIELDS.forEach((f) => {
+    const local = serialize(current[f])
+    if (local !== serialize(sent[f]) || local === serialize(saved[f])) next[f] = current[f]
+  })
+  return next
+}
+
+/**
+ * True when saving the draft exercises resets the student's progress on the lesson:
+ * an exercise was added or edited. Removing or reordering keeps the results, which are
+ * stored per exercise id. Same function as the server (normalized comparison), so an
+ * exercise saved under older rules and left alone never counts as edited.
+ */
+export function exercisesResetProgress(draftExercises, originalExercises) {
+  const next = stripKeys(arr(draftExercises))
+  return next.some((e) => !e.id) || savedExercisesResetProgress(stripKeys(arr(originalExercises)), next)
 }
 
 /** PATCH body with only the changed fields (trimmed, keys stripped, new exercises without id). */
@@ -137,7 +165,12 @@ export function buildPatch(draft, fields) {
 // ---------------------------------------------------------------------------
 
 const blank = (v) => !s(v).trim()
-const lower = (v) => s(v).trim().toLowerCase()
+// Same comparison as the server (utils/lesson/schema.js): spaces collapsed, ** ignored
+const collapse = (v) => s(v).replace(/\s+/g, ' ').trim()
+const lower = (v) => collapse(s(v).replace(/\*\*/g, '')).toLowerCase()
+// Choices, answers and pairs are stored without ** (utils/lesson/schema.js plain()):
+// '**' alone is empty for the server
+const empty = (v) => !lower(v)
 
 /** Number of blanks once ____ / [blank] are normalized to ___ (like the server). */
 export function countBlanks(sentence) {
@@ -157,7 +190,7 @@ function validateContent(c, errors) {
   c.corrections.forEach((v, i) => {
     if (blank(v.wrong)) errors[`content.corrections.${i}.wrong`] = 'La phrase fautive est obligatoire.'
     if (blank(v.right)) errors[`content.corrections.${i}.right`] = 'La correction est obligatoire.'
-    else if (!blank(v.wrong) && v.wrong.trim() === v.right.trim()) {
+    else if (!blank(v.wrong) && collapse(v.wrong) === collapse(v.right)) {
       errors[`content.corrections.${i}.right`] = 'La correction doit être différente de la phrase fautive.'
     }
   })
@@ -170,7 +203,11 @@ function validateContent(c, errors) {
   })
   c.homework.forEach((h, i) => {
     if (blank(h.task)) errors[`content.homework.${i}.task`] = 'La consigne est obligatoire.'
-    if (!blank(h.link) && !safeHttpsUrl(h.link)) errors[`content.homework.${i}.link`] = 'Lien invalide (https:// obligatoire).'
+    if (!blank(h.link) && !safeHomeworkUrl(h.link)) {
+      // Same rule as the server and the student view: other links are never shown
+      errors[`content.homework.${i}.link`] =
+        'Seuls les liens YouTube sont gardés (vidéo ou recherche, en https) : corrige ou efface ce lien.'
+    }
   })
   c.can_do.forEach((item, i) => {
     if (blank(item)) errors[`content.can_do.${i}`] = 'Ligne vide : remplis-la ou supprime-la.'
@@ -180,22 +217,25 @@ function validateContent(c, errors) {
 function validateExercise(e, i, errors) {
   const p = `exercises.${i}`
   if (e.type === 'mcq') {
+    const n = countBlanks(e.sentence)
     if (blank(e.sentence)) errors[`${p}.sentence`] = 'La phrase est obligatoire.'
+    else if (n > 1) errors[`${p}.sentence`] = `Au plus un ${BLANK} dans la phrase (actuellement ${n}).`
     const choices = arr(e.choices)
-    if (choices.length !== 3 || choices.some(blank)) errors[`${p}.choices`] = 'Il faut 3 choix non vides.'
+    if (choices.length !== 3 || choices.some(empty)) errors[`${p}.choices`] = 'Il faut 3 choix non vides.'
     else if (new Set(choices.map(lower)).size !== 3) errors[`${p}.choices`] = 'Les 3 choix doivent être différents.'
     if (!(e.answer >= 0 && e.answer <= 2)) errors[`${p}.answer`] = 'Coche la bonne réponse.'
   } else if (e.type === 'fill_blank') {
     const n = countBlanks(e.sentence)
     if (blank(e.sentence)) errors[`${p}.sentence`] = 'La phrase est obligatoire.'
     else if (n !== 1) errors[`${p}.sentence`] = `La phrase doit contenir exactement un ${BLANK} (actuellement ${n}).`
-    const answers = arr(e.answers).filter((a) => !blank(a))
-    if (answers.length === 0) errors[`${p}.answers`] = 'Ajoute au moins une réponse acceptée.'
-    else if (answers.length > LIMITS.fillAnswers) errors[`${p}.answers`] = `${LIMITS.fillAnswers} réponses maximum.`
+    // The server keeps the first 5 answers only: more would be dropped silently
+    const answers = arr(e.answers)
+    if (answers.length > LIMITS.fillAnswers) errors[`${p}.answers`] = `${LIMITS.fillAnswers} réponses maximum.`
+    else if (answers.every(empty)) errors[`${p}.answers`] = 'Ajoute au moins une réponse acceptée.'
   } else if (e.type === 'match') {
     const pairs = arr(e.pairs)
     pairs.forEach((pair, j) => {
-      if (blank(pair.fr) || blank(pair.en)) errors[`${p}.pairs.${j}`] = 'Remplis le français et l’anglais.'
+      if (empty(pair.fr) || empty(pair.en)) errors[`${p}.pairs.${j}`] = 'Remplis le français et l’anglais.'
     })
     if (pairs.length < LIMITS.pairsMin || pairs.length > LIMITS.pairsMax) {
       errors[`${p}.pairs`] = `Il faut entre ${LIMITS.pairsMin} et ${LIMITS.pairsMax} paires.`
@@ -210,7 +250,12 @@ function validateExercise(e, i, errors) {
   }
 }
 
-export function validateDraft(d) {
+/**
+ * Draft errors by path. `storedExercises`: the exercises as saved (API `lesson.exercises`).
+ * One left exactly as stored is not checked: the server keeps it even if it predates the
+ * current rules (e.g. an MCQ with two blanks), so it must not block the save.
+ */
+export function validateDraft(d, { storedExercises = [] } = {}) {
   const errors = {}
   if (!d) return errors
   if (blank(d.title)) errors.title = 'Le titre est obligatoire.'
@@ -223,8 +268,21 @@ export function validateDraft(d) {
   }
   validateContent(d.content, errors)
   if (d.exercises.length > LIMITS.exercises) errors.exercises = `${LIMITS.exercises} exercices maximum.`
-  d.exercises.forEach((e, i) => validateExercise(e, i, errors))
+  const untouched = untouchedMatcher(storedExercises)
+  d.exercises.forEach((e, i) => {
+    if (!untouched(e)) validateExercise(e, i, errors)
+  })
   return errors
+}
+
+// Same test as the server (utils/lesson/schema.js): the item it receives (keys stripped)
+// equals the stored exercise with its id
+function untouchedMatcher(stored) {
+  const byId = new Map()
+  arr(stored).forEach((e) => {
+    if (e && typeof e.id === 'string' && !byId.has(e.id)) byId.set(e.id, stableJson(e))
+  })
+  return (e) => typeof e.id === 'string' && byId.has(e.id) && byId.get(e.id) === stableJson(stripKeys(e))
 }
 
 /** Errors that belong to a top-level field ('content', 'exercises', 'title', …). */

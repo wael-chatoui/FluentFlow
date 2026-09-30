@@ -47,13 +47,13 @@
   display: inline-flex;
   align-items: center;
   min-height: 36px;
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
   font-weight: 800;
   cursor: pointer;
 }
 
 .summary:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 1px;
   border-radius: 6px;
 }

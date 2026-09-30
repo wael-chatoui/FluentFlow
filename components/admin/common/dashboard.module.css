@@ -59,16 +59,16 @@ a.tile:active {
 }
 
 a.tile:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
 }
 
-.blue { --tone: #b3e5fc; --tone-dark: var(--st-blue); --tone-bg: var(--st-blue-bg); }
-.green { --tone: #b8eb8f; --tone-dark: var(--st-green); --tone-bg: var(--st-green-bg); }
-.purple { --tone: #e6c6ff; --tone-dark: var(--st-purple); --tone-bg: var(--st-purple-bg); }
-.orange { --tone: #ffd49a; --tone-dark: var(--st-orange); --tone-bg: var(--st-orange-bg); }
-.red { --tone: #ffc1c1; --tone-dark: var(--st-red); --tone-bg: var(--st-red-bg); }
-.yellow { --tone: #ffe27a; --tone-dark: var(--st-yellow); --tone-bg: var(--st-yellow-bg); }
+.blue { --tone: var(--st-blue-line); --tone-dark: var(--st-blue); --tone-bg: var(--st-blue-bg); }
+.green { --tone: var(--st-green-line); --tone-dark: var(--st-green); --tone-bg: var(--st-green-bg); }
+.purple { --tone: var(--st-purple-line); --tone-dark: var(--st-purple); --tone-bg: var(--st-purple-bg); }
+.orange { --tone: var(--st-orange-line); --tone-dark: var(--st-orange); --tone-bg: var(--st-orange-bg); }
+.red { --tone: var(--st-red-line); --tone-dark: var(--st-red); --tone-bg: var(--st-red-bg); }
+.yellow { --tone: var(--st-yellow-line); --tone-dark: var(--st-yellow); --tone-bg: var(--st-yellow-bg); }
 .pink { --tone: #ffc2e1; --tone-dark: var(--st-pink); --tone-bg: var(--st-pink-bg); }
 
 .tileLabel {
@@ -173,6 +173,7 @@ a.tile:focus-visible {
 .seriesBlue { --series: var(--st-blue); }
 .seriesPurple { --series: var(--st-purple-dark); }
 .seriesGreen { --series: var(--st-green); }
+.seriesOrange { --series: var(--st-orange); }
 
 .seriesHead {
   display: flex;
@@ -229,7 +230,7 @@ a.tile:focus-visible {
   align-items: center;
   min-height: 44px;
   font-weight: 800;
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
   cursor: pointer;
 }
 
@@ -317,7 +318,7 @@ a.item:hover {
 }
 
 a.item:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: -3px;
 }
 
@@ -363,15 +364,15 @@ a.item:focus-visible {
   flex: none;
   border-radius: 12px;
   background: var(--st-purple-bg);
-  border: 2px solid #e6c6ff;
-  color: #8a4fb3;
+  border: 2px solid var(--st-purple-line);
+  color: var(--st-purple-ink);
   font-size: 0.85rem;
   font-weight: 900;
 }
 
 .lessonIcon {
   background: var(--st-blue-bg);
-  border-color: #b3e5fc;
+  border-color: var(--st-blue-line);
   font-size: 1.1rem;
 }
 
@@ -381,7 +382,7 @@ a.item:focus-visible {
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
   font-size: 0.88rem;
   font-weight: 800;
   text-decoration: none;

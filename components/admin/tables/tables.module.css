@@ -37,7 +37,7 @@
 }
 
 .card:hover {
-  border-color: #84d8ff;
+  border-color: var(--st-blue-line-strong);
 }
 
 .card:active {
@@ -46,7 +46,7 @@
 }
 
 .card:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
 }
 
@@ -61,7 +61,7 @@
   width: 48px;
   height: 48px;
   flex: none;
-  border: 2px solid #b3e5fc;
+  border: 2px solid var(--st-blue-line);
   border-bottom-width: 4px;
   border-radius: 14px;
   background: var(--st-blue-bg);
@@ -95,9 +95,29 @@
   color: var(--st-ink-soft);
 }
 
+/* Optional table not created yet (migration 0006): shown, not clickable */
+.cardDisabled,
+.cardDisabled:hover {
+  border-color: var(--st-line);
+  border-style: dashed;
+  background: var(--st-bg);
+}
+
+.cardDisabled:active {
+  transform: none;
+  border-bottom-width: 5px;
+}
+
+.cardMissing {
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--st-yellow-ink);
+}
+
 /* ---------- Cells ---------- */
 .null {
-  color: #bdbdbd;
+  color: var(--st-ink-soft);
   font-weight: 800;
 }
 
@@ -131,7 +151,7 @@
   border: 2px solid var(--st-line);
   border-radius: 10px;
   background: var(--st-surface);
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
   font: inherit;
   font-size: 0.8rem;
   font-weight: 800;
@@ -143,7 +163,7 @@
 }
 
 .viewBtn:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 1px;
 }
 
@@ -170,5 +190,5 @@
 }
 
 .valuePre:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
 }

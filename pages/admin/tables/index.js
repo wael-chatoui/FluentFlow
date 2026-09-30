@@ -36,7 +36,7 @@ export default function AdminTablesPage() {
 
       {loading && tables.length === 0 ? (
         <ul className={styles.cards} aria-busy="true" aria-label="Chargement des tables">
-          {Array.from({ length: 6 }, (_, i) => (
+          {Array.from({ length: 9 }, (_, i) => (
             <li key={i}>
               <span className={cx(ui.skel, styles.cardSkel)} />
             </li>
@@ -44,23 +44,43 @@ export default function AdminTablesPage() {
         </ul>
       ) : (
         <ul className={styles.cards}>
-          {tables.map((t) => (
-            <li key={t.name}>
-              <Link href={`/admin/tables/${encodeURIComponent(t.name)}`} className={styles.card}>
+          {tables.map((t) => {
+            const inner = (
+              <>
                 <span className={styles.cardIcon} aria-hidden="true">
                   {TABLE_ICONS[t.name] || '🗂️'}
                 </span>
                 <span className={styles.cardText}>
                   <strong className={styles.cardLabel}>{t.label || t.name}</strong>
                   <span className={cx(admin.mono, admin.muted)}>{t.name}</span>
+                  {t.unavailable && (
+                    <span className={styles.cardMissing}>
+                      {t.unavailable === 'forbidden'
+                        ? 'Inaccessible : droits du rôle service_role manquants'
+                        : 'Absente : migration 0006 à appliquer'}
+                    </span>
+                  )}
                 </span>
-                <span className={styles.cardCount}>
-                  {formatNumber(t.count)}
-                  <span className={styles.cardCountLabel}> ligne{t.count > 1 ? 's' : ''}</span>
-                </span>
-              </Link>
-            </li>
-          ))}
+                {!t.unavailable && (
+                  <span className={styles.cardCount}>
+                    {formatNumber(t.count)}
+                    <span className={styles.cardCountLabel}> ligne{t.count > 1 ? 's' : ''}</span>
+                  </span>
+                )}
+              </>
+            )
+            return (
+              <li key={t.name}>
+                {t.unavailable ? (
+                  <div className={cx(styles.card, styles.cardDisabled)}>{inner}</div>
+                ) : (
+                  <Link href={`/admin/tables/${encodeURIComponent(t.name)}`} className={styles.card}>
+                    {inner}
+                  </Link>
+                )}
+              </li>
+            )
+          })}
         </ul>
       )}
     </AdminShell>

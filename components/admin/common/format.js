@@ -15,13 +15,6 @@ export const LEVEL_LABELS = {
   unknown: 'Niveau non défini',
 }
 
-export const ROLE_LABELS = {
-  student: 'Élève',
-  teacher: 'Prof',
-  admin: 'Admin',
-  banned: 'Banni',
-}
-
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /** True if the router query value looks like a database id (uuid). */

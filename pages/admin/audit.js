@@ -19,7 +19,7 @@ import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/admin/audit/audit.module.css'
 
 const PER_PAGE = 50
-const DEFAULTS = { action: '', entity: '', page: '1' }
+const DEFAULTS = { action: '', entity: '', entityId: '', page: '1' }
 
 const COLUMNS = [
   {
@@ -51,10 +51,15 @@ export default function AdminAuditPage() {
   const page = toPage(params.page)
 
   const url = ready
-    ? `/api/admin/audit${toQueryString({ action: params.action, entity: params.entity, page, perPage: PER_PAGE })}`
+    ? `/api/admin/audit${toQueryString({ action: params.action, entity: params.entity, entityId: params.entityId, page, perPage: PER_PAGE })}`
     : null
   const { data, error, loading, reload } = useAdminQuery(url)
   const entries = useMemo(() => data?.entries || [], [data])
+
+  // The server clamps a page past the end: follow it
+  useEffect(() => {
+    if (data?.page && data.page !== page && !loading && !error) setParams({ page: String(data.page) })
+  }, [data, page, loading, error, setParams])
 
   // Filter chips = known values + everything seen in the log so far
   const [seen, setSeen] = useState({ actions: KNOWN_ACTIONS, entities: KNOWN_ENTITIES })
@@ -73,7 +78,7 @@ export default function AdminAuditPage() {
     })
   }, [entries, params.action, params.entity])
 
-  const filtered = Boolean(params.action || params.entity)
+  const filtered = Boolean(params.action || params.entity || params.entityId)
 
   return (
     <AdminShell
@@ -108,6 +113,23 @@ export default function AdminAuditPage() {
               onChange={(action) => setParams({ action, page: '1' })}
             />
           </div>
+          {params.entityId && (
+            <div className={styles.filterRow}>
+              <span className={styles.filterLabel} aria-hidden="true">
+                Élément
+              </span>
+              <span className={admin.chips}>
+                <button
+                  type="button"
+                  className={cx(admin.chip, admin.chipActive)}
+                  onClick={() => setParams({ entityId: '', page: '1' })}
+                  aria-label={`Retirer le filtre sur l’élément ${params.entityId}`}
+                >
+                  <span className={admin.mono}>{params.entityId.slice(0, 8)}…</span> <span aria-hidden="true">✕</span>
+                </button>
+              </span>
+            </div>
+          )}
           <div className={styles.filterRow}>
             <span className={admin.sectionSub} role="status">
               {data ? `${formatNumber(data.total ?? 0)} entrée${(data.total ?? 0) > 1 ? 's' : ''}` : 'Chargement…'}
@@ -116,7 +138,7 @@ export default function AdminAuditPage() {
               <button
                 type="button"
                 className={cx(ui.btn, ui.small, admin.tap, admin.blueGhost)}
-                onClick={() => setParams({ action: '', entity: '', page: '1' })}
+                onClick={() => setParams({ action: '', entity: '', entityId: '', page: '1' })}
               >
                 Effacer les filtres
               </button>
@@ -141,7 +163,13 @@ export default function AdminAuditPage() {
           empty={filtered ? 'Aucune entrée pour ces filtres.' : 'Aucune action enregistrée pour le moment.'}
         />
 
-        <Pagination page={page} perPage={PER_PAGE} total={data?.total ?? 0} onPage={(p) => setParams({ page: String(p) })} />
+        <Pagination
+          page={page}
+          perPage={PER_PAGE}
+          total={data?.total ?? 0}
+          onPage={(p) => setParams({ page: String(p) })}
+          disabled={loading}
+        />
       </div>
     </AdminShell>
   )

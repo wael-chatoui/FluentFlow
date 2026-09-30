@@ -157,15 +157,15 @@
 }
 
 .tab:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 1px;
 }
 
 .tabActive,
 .tabActive:hover {
   background: var(--st-blue-bg);
-  border-color: #84d8ff;
-  color: var(--st-blue-dark);
+  border-color: var(--st-blue-line-strong);
+  color: var(--st-blue-ink);
 }
 
 .tabCount {
@@ -182,8 +182,8 @@
   min-width: 1.4rem;
   padding: 0 0.4rem;
   border-radius: 999px;
-  background: var(--st-red);
-  color: #fff;
+  background: var(--st-red-strong);
+  color: var(--st-on-color);
   font-size: 0.75rem;
   font-weight: 900;
   text-align: center;
@@ -350,7 +350,7 @@
 
 .iconBtn:hover:not(:disabled) {
   background: var(--st-blue-bg);
-  border-color: #b3e5fc;
+  border-color: var(--st-blue-line);
 }
 
 .iconBtn:disabled {
@@ -362,17 +362,17 @@
 .insertBtn:focus-visible,
 .chipRemove:focus-visible,
 .linkBtn:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 1px;
 }
 
 .iconDanger {
-  color: var(--st-red-dark);
+  color: var(--st-red-ink);
 }
 
 .iconDanger:hover:not(:disabled) {
   background: var(--st-red-bg);
-  border-color: #ffc1c1;
+  border-color: var(--st-red-line);
 }
 
 .addBtn {
@@ -400,7 +400,7 @@
   border: 2px solid var(--st-line);
   border-radius: 12px;
   background: var(--st-surface);
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
   font: inherit;
   font-size: 0.85rem;
   font-weight: 800;
@@ -412,7 +412,7 @@
 .insertBtn:link,
 .insertBtn:visited,
 .insertBtn:hover {
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
   text-decoration: none;
 }
 
@@ -430,7 +430,7 @@
   padding: 0 0.25rem;
   border: none;
   background: none;
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
   font: inherit;
   font-weight: 800;
   text-decoration: underline;
@@ -450,10 +450,10 @@
   gap: 0.15rem;
   max-width: 100%;
   padding-left: 0.75rem;
-  border: 2px solid #b3e5fc;
+  border: 2px solid var(--st-blue-line);
   border-radius: 999px;
   background: var(--st-blue-bg);
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
   font-weight: 800;
 }
 
@@ -506,7 +506,7 @@
 }
 
 .cardInvalid {
-  border-color: #ffc1c1;
+  border-color: var(--st-red-line);
 }
 
 .exerciseHead {
@@ -524,7 +524,7 @@
   flex: none;
   border-radius: 10px;
   background: var(--st-ink);
-  color: #fff;
+  color: var(--st-on-color);
   font-weight: 900;
 }
 
@@ -579,7 +579,7 @@
 }
 
 .radio:focus-within {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 1px;
 }
 
@@ -589,12 +589,12 @@
 }
 
 .choiceCorrect .radio {
-  border-color: var(--st-green-dark);
-  background: var(--st-green);
+  border-color: var(--st-green-strong-dark);
+  background: var(--st-green-strong);
 }
 
 .choiceCorrect .letter {
-  color: #fff;
+  color: var(--st-on-color);
 }
 
 .pairList {
@@ -656,7 +656,7 @@
 }
 
 .sourceText:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
 }
 
 /* ---------- Sticky save bar ---------- */
@@ -692,8 +692,13 @@
 }
 
 .saveErrors {
-  color: var(--st-red-dark);
+  color: var(--st-red-ink);
   font-weight: 900;
+}
+
+.saveWarn {
+  color: var(--st-yellow-ink);
+  font-weight: 800;
 }
 
 .saveActions {
@@ -710,4 +715,20 @@
   .saveActions > * {
     flex: 1 1 auto;
   }
+}
+
+/* ---------- Read-only while a generation runs ---------- */
+.locked {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.locked:disabled {
+  opacity: 0.7;
+}
+
+.lockedValue {
+  margin: 0;
 }

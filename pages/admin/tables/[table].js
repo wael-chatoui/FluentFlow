@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import AdminShell from '@/components/admin/AdminShell'
@@ -14,7 +14,6 @@ import ValueDialog from '@/components/admin/tables/ValueDialog'
 import { TABLE_ICONS, downloadText, rowLink, toCsv } from '@/components/admin/tables/tableMeta'
 import admin from '@/components/admin/common/admin.module.css'
 import ui from '@/components/ui/ui.module.css'
-import styles from '@/components/admin/tables/tables.module.css'
 
 const PER_PAGE = 50
 const DEFAULTS = { q: '', sort: '', dir: 'desc', page: '1' }
@@ -42,6 +41,11 @@ export default function AdminTableExplorerPage() {
   const { data, error, loading, reload } = useAdminQuery(url)
   const current = data && data.table === table ? data : null
 
+  // The server clamps a page past the end (bookmarked URL, deleted rows): follow it
+  useEffect(() => {
+    if (current?.page && current.page !== page && !loading && !error) setParams({ page: String(current.page) })
+  }, [current, page, loading, error, setParams])
+
   const [viewing, setViewing] = useState(null) // { column, value }
   const closeView = useCallback(() => setViewing(null), [])
   const onView = useCallback((column, value) => setViewing({ column, value }), [])
@@ -59,7 +63,8 @@ export default function AdminTableExplorerPage() {
   const rows = current?.rows || []
   const hasLinks = rows.some((r) => rowLink(table, r))
 
-  // onRowClick (not rowHref): cells may contain links, and links can't be nested
+  // onRowClick (not rowHref): cells may contain links, and links can't be nested. The
+  // row click is a mouse shortcut; keyboard users reach the same page through the id cell link.
   const openRow = (row) => {
     const href = rowLink(table, row)
     if (href) router.push(href)
@@ -149,11 +154,18 @@ export default function AdminTableExplorerPage() {
             loading={loading}
             empty={params.q ? 'Aucune ligne ne correspond à cette recherche.' : 'Cette table est vide.'}
             onRowClick={hasLinks ? openRow : undefined}
+            caption={`Lignes de la table ${table}`}
             sort={params.sort ? { key: params.sort, dir } : undefined}
             onSort={onSort}
           />
 
-          <Pagination page={page} perPage={PER_PAGE} total={current?.total ?? 0} onPage={(p) => setParams({ page: String(p) })} />
+          <Pagination
+            page={page}
+            perPage={PER_PAGE}
+            total={current?.total ?? 0}
+            onPage={(p) => setParams({ page: String(p) })}
+            disabled={loading}
+          />
         </div>
       )}
 
