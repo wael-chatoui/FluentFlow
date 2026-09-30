@@ -108,16 +108,16 @@ bannissement, suppression), éditeur complet de leçons, explorateur de tables, 
 
 ## État actuel (2026-09-30)
 
-- Grosse passe « fiabilité + features » terminée côté code : analyse (177 problèmes confirmés,
-  dont 2 importants), corrections, nouvelles features (liste ci-dessus), tests Vitest, base locale.
-- En cours : relecture critique globale, parcours prof et élève testés dans le navigateur, découpage
-  en branches par feature et merge dans `develop`.
-- Migrations 0004 et 0006 appliquées en prod le 2026-09-30 (compatibles avec le code actuel de `main`).
-- À faire côté Wael : dans Supabase, URLs de redirection
-  (`https://fluent-flow-mu.vercel.app/**`, `http://localhost:3000/**`) ;
-  `NEXT_PUBLIC_SITE_URL=https://fluent-flow-mu.vercel.app` sur Vercel ;
-  Fluid compute ; remplir « Contexte pour l'IA » de chaque élève ; secret OAuth en clair dans
-  `../.agents/mcp_config.json` à sortir de ce fichier.
+- Passe « fiabilité + features » **en prod** (PR #13, `develop` → `main`), découpée en PR par feature
+  #2 à #12 dans `develop`. Build + 429 tests Vitest verts à chaque étape. Migrations 0001–0006 en prod.
+- Pas encore fait : parcours prof et élève complets dans le navigateur (reportés pour économiser des
+  tokens) — à faire en local (`pnpm db:start`, compte `prof@local.test`) puis sur la prod.
+- À faire côté Wael : Supabase → URL Configuration (Site URL `https://fluent-flow-mu.vercel.app`,
+  Redirect URLs `https://fluent-flow-mu.vercel.app/**` et `http://localhost:3000/**`) ;
+  `NEXT_PUBLIC_SITE_URL=https://fluent-flow-mu.vercel.app` sur Vercel ; remplir « Contexte pour l'IA »
+  de chaque élève ; sortir le secret OAuth en clair de `../.agents/mcp_config.json`.
+- Idées reportées par la relecture : colonne `lessons.generation_started_at` (migration 0007) pour un
+  délai « bloquée » plus précis ; 409 `pending_exists` à l'invitation d'un compte en attente.
 
 ## Pistes pour la suite
 
