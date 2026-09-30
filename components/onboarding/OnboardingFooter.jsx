@@ -1,5 +1,6 @@
 import styles from '@/components/onboarding/OnboardingLayout.module.css'
 
+/** Signed-in email + Sign out, and « Delete my account » when `onDelete` is given. */
 export default function OnboardingFooter({ email, onSignOut, onDelete, deleteRef, disabled }) {
   return (
     <>
@@ -18,18 +19,20 @@ export default function OnboardingFooter({ email, onSignOut, onDelete, deleteRef
           Sign out
         </button>
       </div>
-      <div className={styles.footerRow}>
-        <button
-          ref={deleteRef}
-          type="button"
-          className={`${styles.textButton} ${styles.dangerButton}`}
-          onClick={onDelete}
-          disabled={disabled}
-          aria-haspopup="dialog"
-        >
-          Delete my account
-        </button>
-      </div>
+      {onDelete ? (
+        <div className={styles.footerRow}>
+          <button
+            ref={deleteRef}
+            type="button"
+            className={`${styles.textButton} ${styles.dangerButton}`}
+            onClick={onDelete}
+            disabled={disabled}
+            aria-haspopup="dialog"
+          >
+            Delete my account
+          </button>
+        </div>
+      ) : null}
     </>
   )
 }

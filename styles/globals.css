@@ -1,14 +1,9 @@
 /* ============================================
    Global base styles. The design system lives in styles/tokens.css
    (tokens) and components/ui/ui.module.css (primitives).
+   Fonts come from next/font (self-hosted, no third-party request): Nunito
+   everywhere (--font-app, pages/_app.js), Inter on /onboarding only (--font-sans).
    ============================================ */
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-:root {
-  /* Onboarding flow only (minimal SaaS look); the rest of the app uses --font-app */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-}
 
 *,
 *::before,
@@ -25,25 +20,55 @@ html {
 }
 
 body {
-  font-family: var(--font-app, var(--font-sans));
-  background-color: var(--st-bg, #f7f7f7);
-  color: var(--st-ink, #3c3c3c);
+  font-family: var(--font-app, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
+  background-color: var(--st-bg);
+  color: var(--st-ink);
   line-height: 1.6;
   min-height: 100vh;
 }
 
 a {
-  color: #e0559e;
+  color: var(--st-link);
   text-decoration: none;
 }
 
 a:hover {
-  color: #c9448a;
+  color: var(--st-link-hover);
+}
+
+/* One visible focus ring for every control that doesn't draw its own */
+:focus-visible {
+  outline: 3px solid var(--st-focus);
+  outline-offset: 2px;
+}
+
+/* Non-interactive targets focused by script (step headings, <main> after "Skip to content") */
+:is(h1, h2, h3, h4, h5, h6, main, section)[tabindex='-1']:focus {
+  outline: none;
 }
 
 img {
   max-width: 100%;
   height: auto;
+}
+
+/* Neutral <dialog> (components/ui/Dialog.jsx): each dialog styles its own box */
+dialog {
+  margin: auto; /* centered in the viewport (the reset above zeroes it) */
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+}
+
+dialog:focus {
+  outline: none;
+}
+
+dialog::backdrop {
+  background: var(--st-overlay, rgba(30, 30, 30, 0.45));
 }
 
 .sr-only {

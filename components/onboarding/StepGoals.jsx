@@ -1,7 +1,7 @@
 import ChipGroup from '@/components/onboarding/ChipGroup'
 import FreeTextField from '@/components/onboarding/FreeTextField'
 import StepHeading from '@/components/onboarding/StepHeading'
-import { GOAL_OPTIONS } from '@/components/onboarding/options'
+import { GOAL_OPTIONS, freeTextMax } from '@/components/onboarding/options'
 import styles from '@/components/onboarding/Steps.module.css'
 
 export default function StepGoals({ selected, text, onToggle, onTextChange, onEnter, autoFocus, disabled }) {
@@ -28,6 +28,7 @@ export default function StepGoals({ selected, text, onToggle, onTextChange, onEn
           id="ob-goals-text"
           label="Anything specific?"
           value={text}
+          max={freeTextMax(GOAL_OPTIONS, selected)}
           onChange={onTextChange}
           onEnter={onEnter}
           placeholder="e.g. I'm moving to Lyon in March and need to handle day-to-day life"

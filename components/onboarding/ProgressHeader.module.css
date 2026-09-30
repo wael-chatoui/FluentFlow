@@ -30,7 +30,7 @@
   height: 26px;
   border-radius: 8px;
   background: var(--ob-fg);
-  color: #fff;
+  color: var(--ob-on-fill);
   font-size: 14px;
   font-weight: 700;
   letter-spacing: -0.02em;

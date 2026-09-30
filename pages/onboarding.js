@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Head from 'next/head'
+import { Inter } from 'next/font/google'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/components/AuthProvider'
 import { api } from '@/utils/apiClient'
-import { LEVELS } from '@/utils/lesson/schema'
+import { pathAfterSignIn } from '@/utils/auth/routing'
+import { LEVELS } from '@/utils/profile/levels'
 import ConfirmDialog from '@/components/onboarding/ConfirmDialog'
+import LoadError from '@/components/onboarding/LoadError'
 import OnboardingFooter from '@/components/onboarding/OnboardingFooter'
 import OnboardingLayout from '@/components/onboarding/OnboardingLayout'
 import OnboardingSkeleton from '@/components/onboarding/OnboardingSkeleton'
@@ -31,7 +34,11 @@ import {
 } from '@/components/onboarding/options'
 import styles from '@/components/onboarding/Steps.module.css'
 
+// Self-hosted by next/font and preloaded on this page only (the rest of the app uses Nunito)
+const inter = Inter({ subsets: ['latin'], variable: '--font-sans', display: 'swap' })
+
 const AUTO_ADVANCE_MS = 250
+const REFRESH_WAIT_MS = 3000 // max wait for the session refresh before going to /student
 
 function PageHead() {
   return (
@@ -68,7 +75,7 @@ function initialState(userId, profile, user) {
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const { user, loading, signOut } = useAuth()
+  const { user, loading, signOut, refreshUser } = useAuth()
   const routerRef = useRef(router)
   routerRef.current = router
   const userRef = useRef(user)
@@ -76,6 +83,8 @@ export default function OnboardingPage() {
   const userId = user?.id
 
   const [ready, setReady] = useState(false)
+  const [loadError, setLoadError] = useState('')
+  const [attempt, setAttempt] = useState(0)
   const [answers, setAnswers] = useState(EMPTY_ANSWERS)
   // dir: 'none' (initial/restore) | 'forward' | 'back' — drives the transition + heading focus
   const [nav, setNav] = useState({ step: STEPS.NAME, dir: 'none' })
@@ -99,6 +108,7 @@ export default function OnboardingPage() {
   const submittingRef = useRef(false)
   const deletingRef = useRef(false)
   const finishedRef = useRef(false) // stop saving the draft once submitted / deleted / signed out
+  const ownerRef = useRef(null) // account the answers in state belong to
   const deleteBtnRef = useRef(null)
 
   useEffect(() => {
@@ -118,9 +128,15 @@ export default function OnboardingPage() {
     return controller
   }
 
-  // Who am I? Teacher → /teacher; already onboarded → /student; else prefill + restore draft.
+  // Who am I? Teacher → /teacher, waiting for approval → /pending, already onboarded
+  // → /student; else prefill + restore draft. Runs again if another account signs
+  // in from another tab: the previous person's answers are dropped first.
   useEffect(() => {
     if (loading) return
+    ownerRef.current = null
+    setReady(false)
+    setLoadError('')
+    setConfirmOpen(false)
     const currentUser = userRef.current
     if (!userId || !currentUser) {
       routerRef.current.replace('/login')
@@ -129,36 +145,38 @@ export default function OnboardingPage() {
     const controller = new AbortController()
     const start = (profile) => {
       const initial = initialState(userId, profile, currentUser)
+      ownerRef.current = userId
       setAnswers(initial.answers)
       setNav({ step: initial.step, dir: 'none' })
+      setEditing(false)
+      setError('')
       setReady(true)
     }
     api('/api/me', { signal: controller.signal })
       .then((me) => {
         if (controller.signal.aborted) return
-        if (me?.role === 'teacher') {
-          routerRef.current.replace('/teacher')
-          return
-        }
-        if (me?.profile?.onboarded_at) {
-          clearDraft(userId)
-          routerRef.current.replace('/student')
+        const onboarded = Boolean(me?.profile?.onboarded_at)
+        const target = pathAfterSignIn({ role: me?.role, approved: me?.approved, isAdmin: me?.isAdmin, onboarded })
+        if (target !== '/onboarding') {
+          if (onboarded) clearDraft(userId)
+          routerRef.current.replace(target)
           return
         }
         start(me?.profile)
       })
       .catch((err) => {
-        if (err?.name === 'AbortError' || controller.signal.aborted) return
-        // Show the flow anyway; submitting will surface any real problem
-        start(null)
+        // 401: api() is already sending the browser to /login
+        if (err?.name === 'AbortError' || controller.signal.aborted || err?.status === 401) return
+        // Never show an empty flow: submitting it could overwrite an existing profile
+        setLoadError(err?.message || 'Something went wrong. Please try again.')
       })
     return () => controller.abort()
     // Only once per signed-in user (token refreshes must not reset the flow)
-  }, [loading, userId])
+  }, [loading, userId, attempt])
 
-  // Keep in-progress answers across refreshes
+  // Keep in-progress answers across refreshes, only under the account they belong to
   useEffect(() => {
-    if (!ready || finishedRef.current) return
+    if (!ready || finishedRef.current || ownerRef.current !== userId) return
     saveDraft(userId, answers, nav.step)
   }, [ready, userId, answers, nav.step])
 
@@ -219,6 +237,9 @@ export default function OnboardingPage() {
       clearDraft(userId)
       if (!mountedRef.current) return
       setDone(true)
+      // The session's cached user still has the old name (the student shell reads it):
+      // refresh it first, but never let a slow refresh hold the redirect
+      await Promise.race([refreshUser().catch(() => {}), new Promise((r) => setTimeout(r, REFRESH_WAIT_MS))])
       // Full reload so every page sees the fresh profile
       window.location.href = '/student'
     } catch (err) {
@@ -312,11 +333,26 @@ export default function OnboardingPage() {
     }
   }
 
+  if (loadError) {
+    return (
+      <>
+        <PageHead />
+        <OnboardingLayout
+          className={inter.variable}
+          header={<ProgressHeader step={null} total={STEP_COUNT} />}
+          footer={<OnboardingFooter email={user?.email} onSignOut={handleSignOut} disabled={signingOut} />}
+        >
+          <LoadError message={loadError} onRetry={() => setAttempt((n) => n + 1)} />
+        </OnboardingLayout>
+      </>
+    )
+  }
+
   if (loading || !ready) {
     return (
       <>
         <PageHead />
-        <OnboardingSkeleton />
+        <OnboardingSkeleton className={inter.variable} />
       </>
     )
   }
@@ -375,6 +411,7 @@ export default function OnboardingPage() {
     <>
       <PageHead />
       <OnboardingLayout
+        className={inter.variable}
         header={<ProgressHeader step={step} total={STEP_COUNT} />}
         footer={
           <OnboardingFooter
@@ -387,6 +424,23 @@ export default function OnboardingPage() {
             deleteRef={deleteBtnRef}
             disabled={busy}
           />
+        }
+        overlay={
+          confirmOpen ? (
+            <ConfirmDialog
+              title="Delete your account?"
+              description="This permanently deletes your account and everything in it. This can't be undone: to come back later, you'll need a new invitation from Wael."
+              cancelLabel="Keep my account"
+              confirmLabel="Delete my account"
+              busyLabel="Deleting…"
+              busy={deleting}
+              error={deleteError}
+              danger
+              onCancel={() => setConfirmOpen(false)}
+              onConfirm={handleDelete}
+              returnFocusRef={deleteBtnRef}
+            />
+          ) : null
         }
       >
         <p className="sr-only" aria-live="polite" aria-atomic="true">
@@ -406,7 +460,7 @@ export default function OnboardingPage() {
           </div>
           <StepActions
             step={step}
-            canContinue={step === STEPS.INTERESTS ? !interestsEmpty : validity[step]}
+            canContinue={validity[step] && !(step === STEPS.INTERESTS && interestsEmpty)}
             editing={editing}
             submitting={submitting}
             done={done}
@@ -417,22 +471,6 @@ export default function OnboardingPage() {
           />
         </form>
       </OnboardingLayout>
-
-      {confirmOpen ? (
-        <ConfirmDialog
-          title="Delete your account?"
-          description="This permanently deletes your account and everything in it. You can sign up again later, but this can't be undone."
-          cancelLabel="Keep my account"
-          confirmLabel="Delete my account"
-          busyLabel="Deleting…"
-          busy={deleting}
-          error={deleteError}
-          danger
-          onCancel={() => setConfirmOpen(false)}
-          onConfirm={handleDelete}
-          returnFocusRef={deleteBtnRef}
-        />
-      ) : null}
     </>
   )
 }

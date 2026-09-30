@@ -1,36 +1,24 @@
 // Answer options for the student onboarding + (de)serialisation helpers.
 // goals / interests are stored as plain text (≤ 1000 chars, see utils/api/validate.js)
 // because the AI reads them as-is: "Travel, Work — I want to pass the DELF B2".
-import { LEVELS } from '@/utils/lesson/schema'
+import { LEVEL_INFO, LEVELS, levelShort } from '@/utils/profile/levels'
 
 export const STEP_COUNT = 5
 export const STEPS = { NAME: 0, LEVEL: 1, GOALS: 2, INTERESTS: 3, SUMMARY: 4 }
 
 export const NAME_MAX = 120
-export const PROFILE_TEXT_MAX = 1000
-// Free text leaves room for the chip labels in front of it
-export const FREE_TEXT_MAX = 700
+export const PROFILE_TEXT_MAX = 1000 // LIMITS.profileText on the server
 
-const LEVEL_INFO = {
-  A1: { title: 'Complete beginner', desc: 'I know a few words' },
-  A2: { title: 'Elementary', desc: 'I can handle simple everyday situations' },
-  B1: { title: 'Intermediate', desc: 'I can get by and talk about familiar topics' },
-  B2: { title: 'Upper intermediate', desc: 'I can discuss most topics, with some effort' },
-  C1: { title: 'Advanced', desc: "I'm fluent and working on nuance and style" },
-  C2: { title: 'Mastery', desc: 'Near-native — I want to stay sharp' },
-  unknown: { title: 'Not sure', desc: 'Wael will figure it out' },
-}
-
+// Level wording is shared with the student profile (utils/profile/levels.js)
 export const LEVEL_OPTIONS = LEVELS.map((code) => ({
   code,
   badge: code === 'unknown' ? '?' : code,
-  ...(LEVEL_INFO[code] || { title: code, desc: '' }),
+  title: LEVEL_INFO[code]?.name || code,
+  desc: LEVEL_INFO[code]?.desc || '',
 }))
 
 export function levelLabel(code) {
-  const option = LEVEL_OPTIONS.find((o) => o.code === code)
-  if (!option) return ''
-  return code === 'unknown' ? 'Not sure yet' : `${code} · ${option.title}`
+  return code === 'unknown' ? LEVEL_INFO.unknown.name : levelShort(code)
 }
 
 export const GOAL_OPTIONS = [
@@ -70,17 +58,32 @@ export function cleanIds(options, ids) {
   return options.filter((o) => ids.includes(o.id)).map((o) => o.id)
 }
 
+const labelsOf = (options, ids) =>
+  options
+    .filter((o) => ids.includes(o.id))
+    .map((o) => o.label)
+    .join(', ')
+
+/**
+ * Room left for the free text once the picked chips are written in front of it,
+ * so the stored value never exceeds PROFILE_TEXT_MAX (nothing is ever cut).
+ */
+export function freeTextMax(options, ids) {
+  const labels = labelsOf(options, ids)
+  return PROFILE_TEXT_MAX - (labels ? labels.length + SEPARATOR.length : 0)
+}
+
 /** ['travel', 'work'] + 'I want to…' → 'Travel, Work — I want to…' */
 export function serializeChoices(options, ids, text) {
-  const labels = options.filter((o) => ids.includes(o.id)).map((o) => o.label).join(', ')
+  const labels = labelsOf(options, ids)
   const extra = (text || '').trim()
-  const joined = labels && extra ? `${labels}${SEPARATOR}${extra}` : labels || extra
-  return joined.slice(0, PROFILE_TEXT_MAX)
+  return labels && extra ? `${labels}${SEPARATOR}${extra}` : labels || extra
 }
 
 /**
  * Best-effort reverse of serializeChoices (prefill from an existing profile).
- * Anything that isn't exactly "Label, Label — text" is kept as free text.
+ * Anything that isn't exactly "Label, Label — text" is kept as free text, in full:
+ * a text over the limit is flagged by the step (see stepValidity), never truncated.
  */
 export function parseChoices(options, value) {
   const str = typeof value === 'string' ? value.trim() : ''
@@ -89,9 +92,14 @@ export function parseChoices(options, value) {
   const head = at >= 0 ? str.slice(0, at) : str
   const byLabel = new Map(options.map((o) => [o.label.toLowerCase(), o.id]))
   const ids = head.split(', ').map((part) => byLabel.get(part.trim().toLowerCase()))
-  if (ids.some((id) => !id)) return { ids: [], text: str.slice(0, FREE_TEXT_MAX) }
+  if (ids.some((id) => !id)) return { ids: [], text: str }
   const text = at >= 0 ? str.slice(at + SEPARATOR.length).trim() : ''
-  return { ids: cleanIds(options, ids), text: text.slice(0, FREE_TEXT_MAX) }
+  return { ids: cleanIds(options, ids), text }
+}
+
+/** How many characters of free text are over the limit (0 = fits). */
+export function freeTextOverflow(options, ids, text) {
+  return Math.max(0, (text || '').trim().length - freeTextMax(options, ids))
 }
 
 export function firstNameOf(fullName) {
@@ -107,13 +115,16 @@ export const EMPTY_ANSWERS = {
   interestsText: '',
 }
 
-/** Which steps are complete (index = step). Interests are optional. */
+/** Which steps are complete (index = step). Interests are optional but must fit. */
 export function stepValidity(answers) {
   const name = answers.fullName.trim()
   const nameOk = name.length > 0 && name.length <= NAME_MAX
   const levelOk = LEVELS.includes(answers.level)
-  const goalsOk = answers.goals.length > 0 || answers.goalsText.trim().length > 0
-  return [nameOk, levelOk, goalsOk, true, nameOk && levelOk && goalsOk]
+  const goalsOk =
+    (answers.goals.length > 0 || answers.goalsText.trim().length > 0) &&
+    freeTextOverflow(GOAL_OPTIONS, answers.goals, answers.goalsText) === 0
+  const interestsOk = freeTextOverflow(INTEREST_OPTIONS, answers.interests, answers.interestsText) === 0
+  return [nameOk, levelOk, goalsOk, interestsOk, nameOk && levelOk && goalsOk && interestsOk]
 }
 
 export function hasInterests(answers) {

@@ -11,12 +11,18 @@ export function accentFor(id) {
   return ACCENTS[h % ACCENTS.length]
 }
 
-/** CSS custom properties for an accent, to spread into a `style` prop. */
+/**
+ * CSS custom properties for an accent, to spread into a `style` prop.
+ * --accent / -dark / -bg are decorative (borders, fills, bars); text uses
+ * --accent-ink and white labels sit on --accent-strong (WCAG AA, styles/tokens.css).
+ */
 export function accentStyle(id) {
   const a = accentFor(id)
   return {
     '--accent': `var(--st-${a})`,
     '--accent-dark': `var(--st-${a}-dark)`,
     '--accent-bg': `var(--st-${a}-bg)`,
+    '--accent-ink': `var(--st-${a}-ink)`,
+    '--accent-strong': `var(--st-${a}-strong)`,
   }
 }

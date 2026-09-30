@@ -4,9 +4,9 @@ import { STEP_COUNT } from '@/components/onboarding/options'
 import styles from '@/components/onboarding/OnboardingLayout.module.css'
 
 /** Neutral placeholder rendered on the server and until we know who the user is. */
-export default function OnboardingSkeleton() {
+export default function OnboardingSkeleton({ className }) {
   return (
-    <OnboardingLayout header={<ProgressHeader step={null} total={STEP_COUNT} />}>
+    <OnboardingLayout className={className} header={<ProgressHeader step={null} total={STEP_COUNT} />}>
       <div className={styles.skeleton} role="status">
         <span className="sr-only">Loading…</span>
         <div className={`${styles.skeletonBar} ${styles.skeletonTitle}`} aria-hidden="true" />
