@@ -1,5 +1,5 @@
 /* Exercise bodies inside the practice player. Uses the --st-* tokens and the
-   player's --pp-* text shades (with fallbacks). */
+   player's --pp-* text shades (-ink tokens, set on .player). */
 
 .exercise {
   display: flex;
@@ -7,7 +7,23 @@
   gap: 1.25rem;
 }
 
-/* ---- Sentence with a blank ---- */
+/* ---- Sentence with a blank (+ listen button) ---- */
+.sentenceRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.sentenceRow > .sentence {
+  flex: 1;
+  min-width: 0;
+}
+
+.sentenceRow > .listenBtn {
+  flex: none;
+  margin-top: 0.2rem;
+}
+
 .sentence {
   margin: 0;
   font-size: 1.3125rem;
@@ -38,12 +54,12 @@
 
 .blankGood {
   border-bottom-color: var(--st-green);
-  color: var(--pp-good-text, #2b7a0b);
+  color: var(--pp-good-text);
 }
 
 .blankBad {
   border-bottom-color: var(--st-red);
-  color: var(--pp-bad-text, #c62828);
+  color: var(--pp-bad-text);
 }
 
 /* ---- MCQ choices: cards with a 2px border + 4px bottom edge ---- */
@@ -88,7 +104,7 @@
 }
 
 .choice:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
 }
 
@@ -107,7 +123,7 @@
   border-radius: 10px;
   font-size: 0.85rem;
   font-weight: 800;
-  color: #8a8a8a;
+  color: var(--st-ink-soft);
 }
 
 .choiceText {
@@ -118,15 +134,15 @@
 
 .choiceSelected,
 .choiceSelected:hover:not(:disabled) {
-  --edge: #84d8ff;
+  --edge: var(--st-blue-line-strong);
   border-bottom-color: var(--st-blue);
   background: var(--st-blue-bg);
-  color: var(--pp-link, #0a6fa3);
+  color: var(--pp-link);
 }
 
 .choiceSelected .choiceKey {
   border-color: var(--st-blue);
-  color: var(--pp-link, #0a6fa3);
+  color: var(--pp-link);
 }
 
 .choiceGood,
@@ -134,12 +150,12 @@
   --edge: var(--st-green);
   border-bottom-color: var(--st-green-dark);
   background: var(--st-green-bg);
-  color: var(--pp-good-text, #2b7a0b);
+  color: var(--pp-good-text);
 }
 
 .choiceGood .choiceKey {
   border-color: var(--st-green);
-  color: var(--pp-good-text, #2b7a0b);
+  color: var(--pp-good-text);
 }
 
 .choiceBad,
@@ -147,12 +163,12 @@
   --edge: var(--st-red);
   border-bottom-color: var(--st-red-dark);
   background: var(--st-red-bg);
-  color: var(--pp-bad-text, #c62828);
+  color: var(--pp-bad-text);
 }
 
 .choiceBad .choiceKey {
   border-color: var(--st-red);
-  color: var(--pp-bad-text, #c62828);
+  color: var(--pp-bad-text);
 }
 
 .choiceDim {
@@ -188,7 +204,7 @@
 }
 
 .blankInput:focus {
-  border-color: var(--st-blue);
+  border-color: var(--st-focus);
   background: var(--st-surface);
   box-shadow: 0 0 0 3px var(--st-blue-bg);
 }
@@ -201,13 +217,13 @@
 .blankInputGood {
   border-color: var(--st-green);
   background: var(--st-green-bg);
-  color: var(--pp-good-text, #2b7a0b);
+  color: var(--pp-good-text);
 }
 
 .blankInputBad {
   border-color: var(--st-red);
   background: var(--st-red-bg);
-  color: var(--pp-bad-text, #c62828);
+  color: var(--pp-bad-text);
 }
 
 .hintRow {
@@ -227,7 +243,7 @@
   font-family: inherit;
   font-size: 0.95rem;
   font-weight: 800;
-  color: var(--pp-link, #0a6fa3);
+  color: var(--pp-link);
   cursor: pointer;
   touch-action: manipulation;
 }
@@ -237,7 +253,7 @@
 }
 
 .hintToggle:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 0;
 }
 
@@ -291,7 +307,7 @@
 }
 
 .accentKey:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 1px;
 }
 
@@ -325,6 +341,10 @@
   gap: 0.625rem;
 }
 
+.tileSlot {
+  position: relative;
+}
+
 .tile {
   width: 100%;
   min-height: 58px;
@@ -356,16 +376,32 @@
 }
 
 .tile:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
+}
+
+/* Room for the listen button, which sits over the tile's right edge (a sibling:
+   a button can't contain another button) */
+.tileWithListen {
+  padding-right: 3rem;
+}
+
+.tileSlot .tileListen {
+  position: absolute;
+  top: calc(50% - 20px);
+  right: 6px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  font-size: 1rem;
 }
 
 .tileSelected,
 .tileSelected:hover:not([aria-disabled='true']) {
-  border-color: #84d8ff;
+  border-color: var(--st-blue-line-strong);
   border-bottom-color: var(--st-blue);
   background: var(--st-blue-bg);
-  color: var(--pp-link, #0a6fa3);
+  color: var(--pp-link);
 }
 
 .tileWrong,
@@ -373,7 +409,7 @@
   border-color: var(--st-red);
   border-bottom-color: var(--st-red-dark);
   background: var(--st-red-bg);
-  color: var(--pp-bad-text, #c62828);
+  color: var(--pp-bad-text);
   animation: shake 240ms ease-in-out;
 }
 
@@ -382,7 +418,7 @@
   border-color: var(--st-green);
   border-bottom-color: var(--st-green-dark);
   background: var(--st-green-bg);
-  color: var(--pp-good-text, #2b7a0b);
+  color: var(--pp-good-text);
   cursor: default;
   animation: settle 250ms ease-out 250ms forwards;
 }
@@ -406,7 +442,7 @@
     opacity: 0.5;
     border-color: var(--st-line);
     background: var(--st-bg);
-    color: #8a8a8a;
+    color: var(--st-disabled-fg);
   }
 }
 

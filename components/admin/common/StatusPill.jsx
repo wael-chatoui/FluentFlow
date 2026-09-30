@@ -22,6 +22,8 @@ export const ROLE_META = {
   teacher: { label: 'Prof', tone: 'orange', icon: '🧑‍🏫' },
   admin: { label: 'Admin', tone: 'purple', icon: '🛠️' },
   banned: { label: 'Banni', tone: 'red', icon: '⛔' },
+  pending: { label: 'En attente d’approbation', tone: 'yellow', icon: '⏳' },
+  invited: { label: 'Invitation en attente', tone: 'gray', icon: '✉️' },
 }
 
 /**
@@ -52,8 +54,9 @@ export default function StatusPill({ status, role, tone, dot, children, title })
 }
 
 /**
- * Role pill + Admin + Banni pills for a user row `{ role, is_admin, banned }`.
- * @param {{ user: { role?: string, is_admin?: boolean, banned?: boolean } }} props
+ * Role pill + Admin / Banni / access-state pills for a user row
+ * `{ role, is_admin, banned, approved, invite_pending }`.
+ * @param {{ user: { role?: string, is_admin?: boolean, banned?: boolean, approved?: boolean, invite_pending?: boolean } }} props
  */
 export function UserRolePills({ user }) {
   if (!user) return null
@@ -62,6 +65,39 @@ export function UserRolePills({ user }) {
       <StatusPill role={user.role === 'teacher' ? 'teacher' : 'student'} />
       {user.is_admin && <StatusPill role="admin" />}
       {user.banned && <StatusPill role="banned" />}
+      {user.approved === false && <StatusPill role="pending" />}
+      {user.invite_pending && <StatusPill role="invited" />}
+    </span>
+  )
+}
+
+/**
+ * State pills of a lesson `{ status, hidden, stale? }`, in the teacher area's words
+ * (components/teacher/StatusBadge.jsx): a published lesson hidden from its student is
+ * a « Brouillon » (in place of « Publiée »), a stuck generation is « Bloquée » (in place
+ * of « En génération »). A hidden lesson in another status also gets « Brouillon ».
+ * @param {{ lesson: { status: string, hidden?: boolean, stale?: boolean } }} props
+ */
+export function LessonStatusPills({ lesson }) {
+  const { status, hidden, stale } = lesson || {}
+  const draft = (
+    <StatusPill tone="orange" title="L’élève ne voit pas cette leçon (à relire avant de la publier, ou retirée de son espace)">
+      <span aria-hidden="true">🙈</span> Brouillon
+    </StatusPill>
+  )
+  let main = <StatusPill status={status} />
+  if (status === 'published' && hidden) main = null
+  else if (status === 'generating' && stale) {
+    main = (
+      <StatusPill tone="yellow" dot title="Génération bloquée depuis plus de 5 minutes">
+        Bloquée
+      </StatusPill>
+    )
+  }
+  return (
+    <span className={s.pills}>
+      {main}
+      {hidden && draft}
     </span>
   )
 }

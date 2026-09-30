@@ -1,0 +1,163 @@
+/* Inline exercise editor on the teacher lesson page (inside an ExerciseReview card). */
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.fieldset:disabled {
+  opacity: 0.7;
+}
+
+.field {
+  min-width: 0;
+}
+
+.inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.inline > input {
+  flex: 1 1 220px;
+}
+
+.group {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.choices,
+.pairs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.choice > input {
+  flex: 1;
+}
+
+.radio {
+  flex: none;
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+}
+
+.radio input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.letter {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 2px solid var(--st-line);
+  background: var(--st-surface);
+  font-weight: 900;
+  color: var(--st-ink-soft);
+}
+
+.correct .letter {
+  background: var(--st-green-strong);
+  border-color: var(--st-green-strong-dark);
+  color: var(--st-on-color);
+}
+
+.radio:has(input:focus-visible) .letter {
+  outline: 3px solid var(--st-focus);
+  outline-offset: 2px;
+}
+
+.answers {
+  min-height: 90px;
+}
+
+.pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.arrow {
+  font-weight: 900;
+  color: var(--st-ink-soft);
+}
+
+.removePair {
+  min-width: 44px;
+  padding-left: 0.6rem;
+  padding-right: 0.6rem;
+}
+
+.addPair {
+  margin-top: 0.6rem;
+}
+
+.notice {
+  font-size: 0.88rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+@media (max-width: 479px) {
+  /* One card per pair: French on top, English + remove below */
+  .pair {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 0.5rem;
+    border-radius: 14px;
+    background: var(--st-bg);
+  }
+
+  .arrow {
+    display: none;
+  }
+
+  .pair > input:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .actions > * {
+    flex: 1;
+  }
+}

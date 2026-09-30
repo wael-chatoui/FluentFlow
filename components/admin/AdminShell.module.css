@@ -16,6 +16,10 @@
   text-decoration: none;
 }
 
+.brand:hover {
+  color: var(--st-ink);
+}
+
 .brand strong {
   display: block;
   font-size: 1.1rem;
@@ -68,8 +72,8 @@
 
 .navLink.active {
   background: var(--st-blue-bg);
-  border-color: #84d8ff;
-  color: var(--st-blue-dark);
+  border-color: var(--st-blue-line-strong);
+  color: var(--st-blue-ink);
 }
 
 .navIcon {
@@ -101,6 +105,7 @@
 
 .footerLink:hover {
   background: var(--st-bg);
+  color: var(--st-ink); /* beats the global a:hover pink */
 }
 
 .me {
@@ -116,16 +121,21 @@
   overflow-wrap: anywhere;
 }
 
-.signOut {
+.signOut,
+.signOut:link,
+.signOut:visited {
   align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
   min-height: 36px;
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--st-red-dark);
-  font: inherit;
+  color: var(--st-red-ink);
   font-weight: 800;
-  cursor: pointer;
+  text-decoration: none;
+}
+
+.signOut:hover {
+  color: var(--st-red-ink);
+  text-decoration: underline;
 }
 
 /* ---- Mobile bar + drawer ---- */
@@ -177,6 +187,30 @@
   background: var(--st-surface);
   overflow-y: auto;
   animation: slide 180ms ease-out;
+}
+
+/* Last item of the mobile menu: its close button (Escape and the backdrop also close it) */
+.drawerClose {
+  min-height: 44px;
+  margin-top: 0.75rem;
+  border: 2px solid var(--st-line);
+  border-radius: 12px;
+  background: var(--st-surface);
+  color: var(--st-ink);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.drawerClose:hover {
+  background: var(--st-bg);
+}
+
+.drawerClose:focus-visible,
+.footerLink:focus-visible,
+.signOut:focus-visible {
+  outline: 3px solid var(--st-focus);
+  outline-offset: 2px;
 }
 
 /* ---- Content ---- */

@@ -7,13 +7,17 @@ import styles from '@/components/admin/lessons/editor.module.css'
 
 /**
  * Searchable student picker: a filter input + a native <select> (accessible and
- * mobile-friendly). Fed by GET /api/admin/users?role=student&perPage=200.
+ * mobile-friendly). Fed by GET /api/admin/users?role=student (200 first by name); accounts
+ * waiting for approval cannot receive lessons and are left out.
+ * `locked`: reason why the student cannot be changed (the picker is then read-only).
  */
-export default function StudentSelect({ value, onChange, error, fallbackName }) {
+export default function StudentSelect({ value, onChange, error, fallbackName, locked }) {
   const uid = useId()
   const [filter, setFilter] = useState('')
-  const { data, error: loadError, loading, reload } = useAdminQuery('/api/admin/users?role=student&perPage=200')
-  const students = useMemo(() => data?.users || [], [data])
+  const { data, error: loadError, loading, reload } = useAdminQuery(
+    locked ? null : '/api/admin/users?role=student&sort=full_name&perPage=200'
+  )
+  const students = useMemo(() => (data?.users || []).filter((u) => u.approved !== false), [data])
 
   const current = students.find((u) => u.id === value)
   const options = useMemo(() => {
@@ -30,6 +34,24 @@ export default function StudentSelect({ value, onChange, error, fallbackName }) 
 
   const errorId = error ? `${uid}-err` : undefined
   const hintId = `${uid}-hint`
+
+  if (locked) {
+    return (
+      <div className={admin.field}>
+        <span className={admin.label}>Élève</span>
+        <p className={cx(admin.cellStrong, styles.lockedValue)}>
+          {value ? (
+            <Link href={`/admin/users/${value}`} className={admin.link}>
+              {fallbackName || 'Élève'}
+            </Link>
+          ) : (
+            '—'
+          )}
+        </p>
+        <p className={admin.hint}>{locked}</p>
+      </div>
+    )
+  }
 
   return (
     <div className={admin.field}>

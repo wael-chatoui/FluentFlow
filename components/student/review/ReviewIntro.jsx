@@ -5,9 +5,6 @@ import { formatLessonDate, plural } from '@/components/lesson/format'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/review/ReviewIntro.module.css'
 
-// GET /api/student/review returns at most this many mistakes per round
-const ROUND_MAX = 20
-
 /** Groups exercises by lesson, keeping the API order (newest lessons first). */
 function groupByLesson(exercises) {
   const groups = []
@@ -30,6 +27,7 @@ function ResultBanner({ result }) {
   const remaining = Number(result.remaining)
   const score = Number(result.score) || 0
   const total = Number(result.total) || 0
+  const skipped = Number(result.skipped) || 0
   const allFixed = Number.isFinite(remaining) && remaining === 0
   return (
     <div className={`${styles.banner} ${allFixed ? styles.bannerGood : ''}`}>
@@ -45,6 +43,45 @@ function ResultBanner({ result }) {
             {allFixed ? 'No mistakes left — well done!' : `${plural(remaining, 'mistake')} remaining`}
           </p>
         )}
+        {skipped > 0 && (
+          <p className={styles.bannerSub}>
+            {plural(skipped, 'answer')} skipped: your teacher updated or removed the lesson
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// The last round couldn't be saved and the player is closed: its answers wait here
+function UnsavedBanner({ unsaved, onRetry, onDiscard }) {
+  if (!unsaved) return null
+  return (
+    <div className={`${styles.banner} ${styles.bannerError}`} role="alert">
+      <span className={styles.bannerIcon} aria-hidden="true">
+        ⚠️
+      </span>
+      <div className={styles.bannerText}>
+        <p className={styles.bannerTitle}>Your last round wasn’t saved</p>
+        <p className={styles.bannerSub}>{unsaved.error}</p>
+        <div className={styles.bannerActions}>
+          <button
+            type="button"
+            className={`${ui.btn} ${ui.small} ${ui.blue}`}
+            onClick={onRetry}
+            disabled={unsaved.retrying}
+          >
+            {unsaved.retrying ? 'Saving…' : 'Try again'}
+          </button>
+          <button
+            type="button"
+            className={`${ui.btn} ${ui.small} ${ui.ghost}`}
+            onClick={onDiscard}
+            disabled={unsaved.retrying}
+          >
+            Discard
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -77,16 +114,34 @@ function IntroSkeleton() {
 
 /**
  * Intro screen of /student/review (inside StudentShell).
- * @param {{ status: 'loading'|'ready'|'error', exercises: object[], error: string,
- *   lastResult: { score, total, remaining } | null, onStart: () => void, onRetry: () => void }} props
+ * @param {{ status: 'loading'|'ready'|'error', exercises: object[], total: number, error: string,
+ *   lastResult: { score?, total?, remaining, skipped } | null,
+ *   unsaved: { error: string, retrying: boolean } | null, onStart: () => void, onRetry: () => void,
+ *   onRetrySave: () => void, onDiscardSave: () => void }} props
+ *   exercises = this round (at most 20); total = every mistake to fix (same number as Home);
+ *   unsaved = the last round's save failed after the player was closed (starting a round drops it)
  */
-export default function ReviewIntro({ status, exercises, error, lastResult, onStart, onRetry }) {
+export default function ReviewIntro({
+  status,
+  exercises,
+  total,
+  error,
+  lastResult,
+  unsaved,
+  onStart,
+  onRetry,
+  onRetrySave,
+  onDiscardSave,
+}) {
   const groups = useMemo(() => groupByLesson(exercises), [exercises])
   const count = exercises.length
+  const all = Math.max(count, Number(total) || 0)
 
   return (
     <div className={styles.page}>
       <h1 className={styles.pageTitle}>Review</h1>
+
+      <UnsavedBanner unsaved={unsaved} onRetry={onRetrySave} onDiscard={onDiscardSave} />
 
       <div aria-live="polite">
         <ResultBanner result={lastResult} />
@@ -102,7 +157,7 @@ export default function ReviewIntro({ status, exercises, error, lastResult, onSt
       {status === 'error' && (
         <div className={`${ui.card} ${styles.center}`} role="alert">
           <div className={styles.bigEmoji} aria-hidden="true">😵‍💫</div>
-          <h2 className={styles.heroTitle}>Couldn&apos;t load your mistakes</h2>
+          <h2 className={styles.heroTitle}>Couldn’t load your mistakes</h2>
           <p className={styles.heroText}>{error}</p>
           <button type="button" className={`${ui.btn} ${ui.blue}`} onClick={onRetry}>
             Try again
@@ -115,11 +170,11 @@ export default function ReviewIntro({ status, exercises, error, lastResult, onSt
           <div className={`${styles.bigEmoji} ${styles.bounce}`} aria-hidden="true">🏆</div>
           <h2 className={styles.heroTitle}>No mistakes to review 🎉</h2>
           <p className={styles.heroText}>
-            Every exercise you&apos;ve practised is correct. Keep going with a lesson or your word bank!
+            Every exercise you’ve practiced is correct. Keep going with a lesson or your word bank!
           </p>
           <div className={styles.emptyActions}>
             <Link href="/student/lessons" className={`${ui.btn} ${ui.blue}`}>
-              <span aria-hidden="true">📚</span> Lessons
+              <span aria-hidden="true">📚</span> My lessons
             </Link>
             <Link href="/student/vocabulary" className={`${ui.btn} ${ui.green}`}>
               <span aria-hidden="true">🔤</span> Words
@@ -135,15 +190,20 @@ export default function ReviewIntro({ status, exercises, error, lastResult, onSt
               <span className={styles.bounce}>🎯</span>
             </div>
             <h2 id="review-count" className={styles.heroTitle}>
-              {count} {count === 1 ? 'mistake' : 'mistakes'} to fix
+              {plural(all, 'mistake')} to fix
             </h2>
             <p className={styles.heroText}>
               Exercises you got wrong in your lessons. Get them right to clear them from this list.
             </p>
-            {count >= ROUND_MAX && (
-              <p className={styles.heroHint}>Up to {ROUND_MAX} per round — do another one afterwards!</p>
+            {all > count && (
+              <p className={styles.heroHint}>{count} in this round — do another one afterwards!</p>
             )}
-            <button type="button" className={`${ui.btn} ${ui.orange} ${ui.block} ${styles.startBtn}`} onClick={onStart}>
+            <button
+              type="button"
+              className={`${ui.btn} ${ui.orange} ${ui.block} ${styles.startBtn}`}
+              onClick={onStart}
+              disabled={Boolean(unsaved?.retrying)}
+            >
               Start review
             </button>
           </section>

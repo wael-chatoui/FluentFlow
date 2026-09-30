@@ -1,8 +1,9 @@
+import { EXERCISE_TYPE_LABELS, formatCount } from '@/components/teacher/format'
 import styles from '@/components/teacher/lessons/LessonSources.module.css'
 
 function Source({ title, icon, tone, text, open }) {
   const value = (text || '').trim()
-  const n = value.length.toLocaleString('fr-FR')
+  const n = formatCount(value.length)
   return (
     <details className={`${styles.source} ${styles[tone]}`} open={open}>
       <summary className={styles.summary}>
@@ -20,24 +21,68 @@ function Source({ title, icon, tone, text, open }) {
         )}
         <span className={styles.chevron} aria-hidden="true" />
       </summary>
-      {value ? (
-        <div className={styles.text}>{value}</div>
-      ) : (
-        <p className={styles.empty}>Rien n&apos;a été collé ici.</p>
-      )}
+      {value ? <div className={styles.text}>{value}</div> : <p className={styles.empty}>Rien n&apos;a été collé ici.</p>}
     </details>
   )
 }
 
-/** Read-only transcript + Canva notes as collapsible cards (line breaks preserved). */
-export default function LessonSources({ transcript, canva, aiModel, defaultOpen = false }) {
+/** One-line summary of the generation options stored with a lesson, or null. */
+export function describeOptions(options) {
+  if (!options || typeof options !== 'object') return null
+  const parts = []
+  if (Number.isInteger(options.count)) parts.push(`${options.count} exercices`)
+  if (Array.isArray(options.types) && options.types.length) {
+    parts.push(options.types.map((t) => EXERCISE_TYPE_LABELS[t] || t).join(', '))
+  }
+  return parts.length ? parts.join(' · ') : null
+}
+
+/**
+ * Read-only sources of a lesson (line breaks preserved): transcript + Canva notes,
+ * or the imported document for `source_kind: 'import'`, plus the generation options.
+ * @param {{ lesson: object, defaultOpen?: boolean }} props
+ */
+export default function LessonSources({ lesson, defaultOpen = false }) {
+  const imported = lesson.source_kind === 'import'
+  const options = lesson.generation_options
+  const summary = describeOptions(options)
+  const instructions = typeof options?.instructions === 'string' ? options.instructions.trim() : ''
+
   return (
     <div className={styles.sources}>
-      <Source title="Transcription" icon="🎙️" tone="blue" text={transcript} open={defaultOpen} />
-      <Source title="Notes Canva" icon="🎨" tone="pink" text={canva} open={defaultOpen} />
-      {aiModel && (
+      {imported ? (
+        <Source
+          title={`Document importé${lesson.source_name ? ` : ${lesson.source_name}` : ''}`}
+          icon="📄"
+          tone="blue"
+          text={lesson.source_text}
+          open={defaultOpen}
+        />
+      ) : (
+        <>
+          <Source title="Transcription" icon="🎙️" tone="blue" text={lesson.transcript} open={defaultOpen} />
+          <Source title="Notes Canva" icon="🎨" tone="pink" text={lesson.canva} open={defaultOpen} />
+        </>
+      )}
+      {(summary || instructions) && (
+        <dl className={styles.options}>
+          {summary && (
+            <div>
+              <dt>Exercices demandés</dt>
+              <dd>{summary}</dd>
+            </div>
+          )}
+          {instructions && (
+            <div>
+              <dt>Consignes pour l&apos;IA</dt>
+              <dd>{instructions}</dd>
+            </div>
+          )}
+        </dl>
+      )}
+      {lesson.ai_model && (
         <p className={styles.aiModel}>
-          <span aria-hidden="true">🤖</span> Modèle IA : {aiModel}
+          <span aria-hidden="true">🤖</span> Modèle IA : {lesson.ai_model}
         </p>
       )}
     </div>

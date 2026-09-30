@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import s from '@/components/admin/common/admin.module.css'
 import { cx } from '@/components/admin/common/format'
 
@@ -10,6 +11,9 @@ let nextId = 1
 const listeners = new Set()
 const timers = new Map()
 const viewports = []
+// Open modals (Modal.jsx, native modal <dialog>): the page behind them is inert and
+// below the top layer, so toasts render inside the topmost one while it is open.
+const hosts = []
 
 function emit() {
   listeners.forEach((fn) => fn(toasts))
@@ -46,14 +50,32 @@ export function useToast() {
   return api
 }
 
+/** Makes `ref`'s element (inside an open modal) the place where toasts render until it unmounts. */
+export function useToastHost(ref) {
+  useEffect(() => {
+    const host = ref.current
+    if (!host) return undefined
+    hosts.push(host)
+    emit()
+    return () => {
+      hosts.splice(hosts.indexOf(host), 1)
+      emit()
+    }
+  }, [ref])
+}
+
 export function ToastViewport() {
   const [items, setItems] = useState(toasts)
   const token = useMemo(() => ({}), [])
   const [isPrimary, setIsPrimary] = useState(false)
+  const [host, setHost] = useState(null)
 
   useEffect(() => {
     viewports.push(token)
-    const sync = () => setIsPrimary(viewports[0] === token)
+    const sync = () => {
+      setIsPrimary(viewports[0] === token)
+      setHost(hosts[hosts.length - 1] || null)
+    }
     listeners.add(setItems)
     listeners.add(sync)
     setItems(toasts)
@@ -83,7 +105,7 @@ export function ToastViewport() {
     </div>
   )
 
-  return (
+  const viewport = (
     <div className={s.toasts}>
       <div role="status" aria-live="polite" className={s.toastRegion}>
         {success.map(renderToast)}
@@ -93,6 +115,7 @@ export function ToastViewport() {
       </div>
     </div>
   )
+  return host ? createPortal(viewport, host) : viewport
 }
 
 export default ToastViewport

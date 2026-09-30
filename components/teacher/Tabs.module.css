@@ -54,14 +54,14 @@
 }
 
 .tab:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: -3px;
 }
 
 .active {
   background: var(--st-surface);
-  color: var(--st-blue);
-  box-shadow: 0 3px 0 #cfcfcf;
+  color: var(--st-blue-ink);
+  box-shadow: 0 3px 0 var(--st-disabled-edge);
 }
 
 .count {
@@ -78,7 +78,7 @@
 
 .active .count {
   background: var(--st-blue-bg);
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
 }
 
 @media (min-width: 768px) {

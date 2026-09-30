@@ -1,0 +1,339 @@
+/* Lesson import page (/teacher/lessons/import): source list, notices, sticky
+   action bar and end-of-run summary. Step cards / page head come from
+   NewLesson.module.css. */
+
+.pageEmoji {
+  background: var(--st-blue-bg);
+  border-color: var(--st-blue-line);
+}
+
+/* ---- Documents card ---- */
+.listHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0.25rem 0 -0.25rem;
+}
+
+.listTitle {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--st-ink-soft);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.rejected {
+  margin: 0;
+  padding: 0 0 0 1.1rem;
+  font-weight: 700;
+}
+
+.rejected li + li {
+  margin-top: 0.25rem;
+}
+
+.scanNote {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--st-ink-soft);
+}
+
+/* ---- Sticky action bar ---- */
+.bar {
+  position: sticky;
+  bottom: calc(var(--st-tabbar-h) + env(safe-area-inset-bottom) + 12px);
+  z-index: 20; /* below the shell's top / tab bars (40) */
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.8rem;
+  background: var(--st-surface);
+  border: 2px solid var(--st-line);
+  border-bottom-width: 4px;
+  border-radius: var(--st-radius-lg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.barRunning {
+  border-color: var(--st-purple);
+  border-bottom-color: var(--st-purple-dark);
+  background: var(--st-purple-bg);
+}
+
+.barInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.barTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.3;
+  color: var(--st-ink);
+}
+
+.barRunning .barTitle {
+  color: var(--st-purple-ink);
+}
+
+.barMuted {
+  font-weight: 800;
+  color: var(--st-orange-ink);
+}
+
+.barSub {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--st-ink-soft);
+}
+
+.barNote {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--st-purple-ink);
+}
+
+.barActions {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.bar .submit,
+.bar .retryAll {
+  width: 100%;
+  min-height: 56px;
+  font-size: 1.05rem;
+}
+
+.overall {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.15rem;
+}
+
+.overallTrack {
+  flex: 1;
+  height: 16px;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--st-surface);
+  border: 2px solid rgba(165, 104, 204, 0.35);
+  overflow: hidden;
+}
+
+.overallFill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--st-green);
+  transition: width 500ms ease-out;
+}
+
+.overallCount {
+  flex: none;
+  font-size: 0.95rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  color: var(--st-purple-ink);
+}
+
+.bar .stop {
+  width: 100%;
+}
+
+/* ---- End-of-run summary ---- */
+.summary {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem;
+  border: 2px solid var(--sum-edge);
+  border-bottom-width: 5px;
+  border-bottom-color: var(--sum-dark);
+  border-radius: var(--st-radius-lg);
+  background: var(--sum-bg);
+  scroll-margin-top: 80px;
+  animation: pop 220ms ease-out both;
+}
+
+.summary:focus {
+  outline: none;
+}
+
+.summary:focus-visible {
+  outline: 3px solid var(--st-focus);
+  outline-offset: 3px;
+}
+
+.sumGreen { --sum-bg: var(--st-green-bg); --sum-edge: var(--st-green-line); --sum-dark: var(--st-green); --sum-fg: var(--st-green-ink); }
+.sumOrange { --sum-bg: var(--st-orange-bg); --sum-edge: var(--st-orange-line); --sum-dark: var(--st-orange); --sum-fg: var(--st-orange-ink); }
+.sumRed { --sum-bg: var(--st-red-bg); --sum-edge: var(--st-red-line); --sum-dark: var(--st-red); --sum-fg: var(--st-red-ink); }
+
+.sumIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: var(--st-surface);
+  border: 2px solid var(--sum-edge);
+  border-bottom-width: 4px;
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.sumBody {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.sumTitle {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 900;
+  line-height: 1.25;
+  color: var(--sum-fg);
+}
+
+.sumCounts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.sumCounts li {
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+  background: var(--st-surface);
+  border: 2px solid var(--st-line);
+  font-size: 0.85rem;
+  font-weight: 900;
+}
+
+.countGreen { color: var(--st-green-ink); }
+.countOrange { color: var(--st-orange-ink); }
+.countRed { color: var(--st-red-ink); }
+.countGrey { color: var(--st-ink-soft); }
+
+.sumText {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--st-ink-soft);
+}
+
+.sumActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.sumActions > * {
+  flex: 1 1 200px;
+}
+
+@keyframes pop {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (max-width: 360px) {
+  .summary {
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+}
+
+@media (min-width: 560px) {
+  .bar {
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+  }
+
+  .barActions {
+    flex: none;
+    flex-direction: row;
+  }
+
+  .bar .submit,
+  .bar .retryAll {
+    width: auto;
+  }
+
+  .bar .submit {
+    min-width: 240px;
+  }
+
+  .bar .stop {
+    width: auto;
+    flex: none;
+  }
+}
+
+@media (min-width: 768px) {
+  /* No tab bar on desktop: dock at the bottom of the viewport */
+  .bar {
+    bottom: 16px;
+  }
+
+  .summary {
+    padding: 1.5rem 1.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .summary {
+    animation: none;
+  }
+
+  .overallFill {
+    transition: none;
+  }
+}

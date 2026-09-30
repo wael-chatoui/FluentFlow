@@ -44,7 +44,7 @@
 }
 
 .chip:has(.radio:focus-visible) {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
 }
 
@@ -72,7 +72,7 @@
   height: 34px;
   border-radius: 50%;
   background: var(--st-purple-bg);
-  color: var(--st-purple-dark);
+  color: var(--st-purple-ink);
   font-size: 0.8rem;
   font-weight: 900;
 }
@@ -99,18 +99,18 @@
   background: var(--st-blue-bg);
   border-color: var(--st-blue);
   border-bottom-color: var(--st-blue-dark);
-  color: #0b6a99;
+  color: var(--st-blue-ink);
 }
 
 .checked .avatar {
-  background: var(--st-blue);
-  color: #fff;
+  background: var(--st-blue-strong);
+  color: var(--st-on-color);
   font-size: 1rem;
 }
 
 .checked .level {
   background: var(--st-surface);
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
 }
 
 /* ---- Big select (many students) ---- */
@@ -151,7 +151,7 @@ select.bigSelect {
 .noneLink:link,
 .noneLink:visited,
 .noneLink:hover {
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
   font-weight: 900;
 }
 

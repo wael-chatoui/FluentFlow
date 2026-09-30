@@ -62,13 +62,14 @@
   transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
 }
 
+/* ≥ 4.5:1 on white and on the tinted invalid state (the placeholder may be the only visible hint) */
 .input::placeholder {
-  color: #afafaf;
+  color: var(--st-placeholder, #6f6f6f);
   font-weight: 600;
 }
 
 .input:hover {
-  border-color: #d0d0d0;
+  border-color: var(--st-disabled-edge);
 }
 
 .input:focus {
@@ -121,7 +122,23 @@
   font-size: 0.85rem;
   font-weight: 800;
   line-height: 1.45;
-  color: var(--st-red-dark);
+  color: var(--st-red-ink);
+}
+
+/* AI context: purple panel (sent to the AI) */
+.aiContext {
+  padding: 0.9rem;
+  border-radius: var(--st-radius);
+  background: var(--st-purple-bg);
+  border: 2px solid var(--st-purple-line);
+}
+
+.aiContext code {
+  font-size: 0.85em;
+}
+
+.reuse {
+  align-self: flex-start;
 }
 
 /* Private notes: soft yellow panel so it reads as "teacher only" */
@@ -129,11 +146,30 @@
   padding: 0.9rem;
   border-radius: var(--st-radius);
   background: var(--st-yellow-bg);
-  border: 2px dashed #ffe27a;
+  border: 2px dashed var(--st-yellow-line);
 }
 
 .private .hint {
-  color: #8a6d00;
+  color: var(--st-yellow-ink);
+}
+
+.labelRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+}
+
+.counter {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--st-ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.counterOver {
+  color: var(--st-red-ink);
 }
 
 .alert {
@@ -141,10 +177,10 @@
   align-items: flex-start;
   gap: 0.5rem;
   padding: 0.8rem 1rem;
-  border: 2px solid #ffc1c1;
+  border: 2px solid var(--st-red-line);
   border-radius: 14px;
   background: var(--st-red-bg);
-  color: var(--st-red-dark);
+  color: var(--st-red-ink);
   font-size: 0.9rem;
   font-weight: 800;
   line-height: 1.45;
@@ -188,13 +224,13 @@
   padding: 0.2rem 0.7rem;
   border-radius: 999px;
   background: var(--st-green-bg);
-  color: #2b7a0b;
+  color: var(--st-green-ink);
   font-weight: 900;
   animation: pop 200ms ease-out both;
 }
 
 .dirty {
-  color: #b25e00;
+  color: var(--st-orange-ink);
 }
 
 .buttons {

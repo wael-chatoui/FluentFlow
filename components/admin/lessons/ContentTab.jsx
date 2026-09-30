@@ -292,12 +292,13 @@ export default function ContentTab({ content: c, onChange, errors }) {
                 onChange={(task) => update({ task })}
               />
               <TextField
-                label="Lien (optionnel)"
+                label="Lien YouTube (optionnel)"
                 type="url"
                 inputMode="url"
                 value={h.link}
                 maxLength={2000}
-                placeholder="https://…"
+                placeholder="https://www.youtube.com/results?search_query=…"
+                hint="Vidéo ou recherche YouTube en https uniquement."
                 error={errors[`content.homework.${i}.link`]}
                 onChange={(link) => update({ link })}
               />

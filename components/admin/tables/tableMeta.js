@@ -7,6 +7,8 @@ export const TABLE_ICONS = {
   lessons: '📚',
   practice_sessions: '🏋️',
   review_attempts: '🔁',
+  lesson_plans: '🗺️',
+  ai_generations: '🤖',
   admin_audit_log: '🧾',
 }
 

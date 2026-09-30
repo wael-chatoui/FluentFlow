@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
@@ -14,6 +14,76 @@ export const ADMIN_NAV = [
   { href: '/admin/audit', label: 'Journal', icon: '🧾', match: (p) => p.startsWith('/admin/audit') },
 ]
 
+const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+
+/**
+ * Link to the teacher area. On the back-office host (another origin than
+ * NEXT_PUBLIC_SITE_URL) a relative /teacher would be sent back to /admin by the
+ * proxy, so it points to the main app instead.
+ */
+function useTeacherHref() {
+  const [href, setHref] = useState('/teacher')
+  useEffect(() => {
+    const site = (process.env.NEXT_PUBLIC_SITE_URL || '').trim()
+    if (!site) return
+    try {
+      const origin = new URL(site).origin
+      if (origin !== window.location.origin) setHref(`${origin}/teacher`)
+    } catch {
+      // Malformed NEXT_PUBLIC_SITE_URL: keep the relative link
+    }
+  }, [])
+  return href
+}
+
+/**
+ * Mobile menu as a modal dialog: focus moves to its first link, Tab stays inside,
+ * Escape closes it, the page behind does not scroll, and focus returns to the menu
+ * button when it closes.
+ */
+function useDrawerFocus(open, onClose, drawerRef, triggerRef) {
+  const closeRef = useRef(onClose)
+  closeRef.current = onClose
+
+  useEffect(() => {
+    if (!open) return undefined
+    const drawer = drawerRef.current
+    const { overflow } = document.body.style
+    document.body.style.overflow = 'hidden'
+    drawer?.querySelector(FOCUSABLE)?.focus()
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        closeRef.current()
+        return
+      }
+      if (e.key !== 'Tab' || !drawer) return
+      const items = Array.from(drawer.querySelectorAll(FOCUSABLE))
+      if (!items.length) return
+      const first = items[0]
+      const last = items[items.length - 1]
+      const outside = !drawer.contains(document.activeElement)
+      if (e.shiftKey && (outside || document.activeElement === first)) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && (outside || document.activeElement === last)) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = overflow
+      // The drawer is gone: focus would otherwise fall back to <body>
+      const trigger = triggerRef.current
+      const active = document.activeElement
+      if (trigger && (!active || active === document.body || drawer?.contains(active))) trigger.focus()
+    }
+  }, [open, drawerRef, triggerRef])
+}
+
 /**
  * Back-office chrome: fixed sidebar on desktop (≥ 1024px), top bar + slide-over
  * menu on smaller screens. French UI.
@@ -21,25 +91,18 @@ export const ADMIN_NAV = [
  */
 export default function AdminShell({ title, actions, children }) {
   const router = useRouter()
-  const { user, signOut } = useAuth()
+  const { user } = useAuth()
   const [menuOpen, setMenuOpen] = useState(false)
+  const menuButtonRef = useRef(null)
+  const drawerRef = useRef(null)
+  const teacherHref = useTeacherHref()
 
-  // Close the mobile menu on navigation / Escape
+  // Close the mobile menu on navigation
   useEffect(() => {
     setMenuOpen(false)
   }, [router.asPath])
 
-  useEffect(() => {
-    if (!menuOpen) return undefined
-    const onKey = (e) => e.key === 'Escape' && setMenuOpen(false)
-    document.addEventListener('keydown', onKey)
-    return () => document.removeEventListener('keydown', onKey)
-  }, [menuOpen])
-
-  const handleSignOut = async () => {
-    await signOut()
-    router.replace('/login')
-  }
+  useDrawerFocus(menuOpen, () => setMenuOpen(false), drawerRef, menuButtonRef)
 
   const nav = (
     <nav className={styles.nav} aria-label="Back office">
@@ -62,14 +125,15 @@ export default function AdminShell({ title, actions, children }) {
 
   const footer = (
     <div className={styles.sideFooter}>
-      <a href="/teacher" className={styles.footerLink}>
+      <a href={teacherHref} className={styles.footerLink}>
         <span aria-hidden="true">↩</span> Espace prof
       </a>
       <div className={styles.me}>
         <span className={styles.meEmail}>{user?.email}</span>
-        <button type="button" className={styles.signOut} onClick={handleSignOut}>
+        {/* Same sign-out as the teacher area: /logout works on every host (all devices) */}
+        <Link href="/logout?from=admin" prefetch={false} className={styles.signOut}>
           Se déconnecter
-        </button>
+        </Link>
       </div>
     </div>
   )
@@ -95,11 +159,13 @@ export default function AdminShell({ title, actions, children }) {
 
       <header className={styles.mobileBar}>
         <button
+          ref={menuButtonRef}
           type="button"
           className={styles.menuBtn}
           onClick={() => setMenuOpen(true)}
           aria-label="Ouvrir le menu"
           aria-expanded={menuOpen}
+          aria-controls="admin-drawer"
         >
           <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
             <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
@@ -111,14 +177,23 @@ export default function AdminShell({ title, actions, children }) {
       {menuOpen && (
         <div className={styles.overlay} onClick={() => setMenuOpen(false)}>
           <div
+            ref={drawerRef}
+            id="admin-drawer"
             className={styles.drawer}
             role="dialog"
             aria-modal="true"
-            aria-label="Menu"
-            onClick={(e) => e.stopPropagation()}
+            aria-label="Menu du back office"
+            onClick={(e) => {
+              e.stopPropagation()
+              // A link to the page already shown leaves asPath unchanged (no close on navigation)
+              if (e.target.closest('a[href]')) setMenuOpen(false)
+            }}
           >
             {nav}
             {footer}
+            <button type="button" className={styles.drawerClose} onClick={() => setMenuOpen(false)}>
+              Fermer le menu
+            </button>
           </div>
         </div>
       )}

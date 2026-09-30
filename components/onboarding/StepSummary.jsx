@@ -52,7 +52,7 @@ export default function StepSummary({ answers, onEdit, autoFocus, disabled }) {
         id="ob-summary-title"
         helperId="ob-summary-help"
         title={firstName ? `You're all set, ${firstName}!` : "You're all set!"}
-        helper="Here's what Wael will use to personalise your lessons. You can change it any time from your profile."
+        helper="Here's what Wael will use to personalize your lessons. You can change it any time from your profile."
         autoFocus={autoFocus}
       />
       <dl className={`${styles.body} ${styles.summary}`}>

@@ -22,8 +22,8 @@
   flex: none;
   border-radius: 10px;
   background: var(--st-purple-bg);
-  border: 2px solid #e6c6ff;
-  color: #8a4fb3;
+  border: 2px solid var(--st-purple-line);
+  color: var(--st-purple-ink);
   font-size: 0.75rem;
   font-weight: 900;
 }
@@ -46,7 +46,7 @@
   background: var(--st-purple-bg);
   border: 2px solid var(--st-purple);
   border-bottom-width: 4px;
-  color: #8a4fb3;
+  color: var(--st-purple-ink);
   font-size: 1.4rem;
   font-weight: 900;
 }
@@ -202,8 +202,8 @@
 }
 
 .switch input:checked + .track {
-  background: var(--st-purple);
-  border-bottom-color: var(--st-purple-dark);
+  background: var(--st-purple-strong); /* ≥ 3:1 on white: the "on" state must be visible */
+  border-bottom-color: var(--st-purple-strong-dark);
 }
 
 .switch input:checked + .track::after {
@@ -211,7 +211,7 @@
 }
 
 .switch input:focus-visible + .track {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
 }
 
@@ -260,11 +260,11 @@
   padding: 0.85rem;
   border-radius: var(--st-radius);
   background: var(--st-yellow-bg);
-  border: 2px dashed #ffe27a;
+  border: 2px dashed var(--st-yellow-line);
 }
 
 .private .hint {
-  color: #8a6d00;
+  color: var(--st-yellow-ink);
 }
 
 .formFooter {
@@ -302,12 +302,12 @@
   padding: 0.2rem 0.7rem;
   border-radius: 999px;
   background: var(--st-green-bg);
-  color: #2b7a0b;
+  color: var(--st-green-ink);
   font-weight: 900;
 }
 
 .dirty {
-  color: #b25e00;
+  color: var(--st-orange-ink);
 }
 
 .formButtons {
@@ -338,12 +338,12 @@
 
 /* ---- Danger zone ---- */
 .dangerZone {
-  border-color: #ffc1c1;
+  border-color: var(--st-red-line);
   background: #fffafa;
 }
 
 .dangerZone .sectionTitleDanger {
-  color: var(--st-red-dark);
+  color: var(--st-red-ink);
 }
 
 .dangerRow {
@@ -362,12 +362,12 @@
 }
 
 .correct {
-  color: #2b7a0b;
+  color: var(--st-green-ink);
   font-weight: 900;
 }
 
 .wrong {
-  color: var(--st-red-dark);
+  color: var(--st-red-ink);
   font-weight: 900;
 }
 

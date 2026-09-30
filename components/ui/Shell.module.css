@@ -3,12 +3,40 @@
   flex-direction: column;
 }
 
+/* ---- "Skip to content": hidden until it gets keyboard focus ---- */
+.skipLink {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 60;
+  padding: 0.6rem 1rem;
+  border: 2px solid var(--st-line);
+  border-bottom-width: 4px;
+  border-radius: 12px;
+  background: var(--st-surface);
+  color: var(--st-blue-ink);
+  font-weight: 800;
+  text-decoration: none;
+  transform: translateY(calc(-100% - 1rem));
+}
+
+.skipLink:hover {
+  color: var(--st-blue-ink);
+}
+
+.skipLink:focus,
+.skipLink:focus-visible {
+  transform: none;
+  outline: 3px solid var(--st-focus);
+  outline-offset: 2px;
+}
+
 /* ---- Top bar (desktop nav) ---- */
 .topbar {
   position: sticky;
   top: 0;
   z-index: 40;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--st-surface-glass);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-bottom: 2px solid var(--st-line);
@@ -32,6 +60,11 @@
   color: var(--st-ink);
   min-width: 0;
   flex-shrink: 0;
+  border-radius: 12px;
+}
+
+.brand:hover {
+  color: var(--st-ink);
 }
 
 .brandFlag {
@@ -41,23 +74,30 @@
 .brandName {
   font-size: 1.15rem;
   font-weight: 900;
-  color: var(--st-pink);
+  color: var(--st-pink); /* logotype: exempt from text contrast (WCAG 1.4.3) */
   white-space: nowrap;
 }
 
+/* Safety net (large default font size, longer labels): the nav may shrink below its links,
+   which then scroll inside the bar instead of widening the page past the avatar. */
 .topnav {
   display: none;
   flex: 1;
-  justify-content: center;
+  min-width: 0;
   gap: 0.25rem;
+  padding: 5px; /* room for the focus ring, which the scroll box would clip */
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 
 .topnavLink {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 0.4rem;
   min-height: 44px;
   padding: 0 0.9rem;
+  white-space: nowrap;
   border: 2px solid transparent;
   border-radius: 12px;
   color: var(--st-ink-soft);
@@ -69,14 +109,31 @@
   transition: background 150ms ease, color 150ms ease;
 }
 
+/* Centered while they fit, start-aligned once they scroll ("safe" centering:
+   justify-content: center would push the first links out of reach) */
+.topnavLink:first-child {
+  margin-left: auto;
+}
+
+.topnavLink:last-child {
+  margin-right: auto;
+}
+
 .topnavLink:hover {
   background: var(--st-bg);
+  color: var(--st-ink);
 }
 
 .topnavLink.active {
-  color: var(--st-blue);
+  color: var(--st-blue-ink);
   background: var(--st-blue-bg);
-  border-color: #84d8ff;
+  border-color: var(--st-blue-line-strong);
+}
+
+.avatarWrap {
+  position: relative;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .avatar {
@@ -87,20 +144,38 @@
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: var(--st-purple);
-  color: #fff;
-  font-weight: 900;
+  background: var(--st-purple-strong);
+  color: var(--st-on-color);
   text-decoration: none;
   border: none;
-  border-bottom: 3px solid var(--st-purple-dark);
+  border-bottom: 3px solid var(--st-purple-strong-dark);
   font: inherit;
   font-weight: 900;
   cursor: pointer;
 }
 
-.avatar:focus-visible {
-  outline: 3px solid var(--st-blue);
+.avatar:link,
+.avatar:visited,
+.avatar:hover {
+  color: var(--st-on-color);
+}
+
+.avatar[aria-expanded='true'] {
+  box-shadow: 0 0 0 3px var(--st-purple-bg);
+}
+
+/* Same ring everywhere in the chrome */
+.brand:focus-visible,
+.topnavLink:focus-visible,
+.avatar:focus-visible,
+.tab:focus-visible {
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
+}
+
+.tab:focus-visible {
+  outline-offset: -3px;
+  border-radius: 12px;
 }
 
 /* ---- Content ---- */
@@ -109,6 +184,7 @@
   width: 100%;
   max-width: 760px;
   margin: 0 auto;
+  scroll-margin-top: 72px; /* "Skip to content" lands below the sticky top bar */
   padding: 1.25rem 1rem calc(var(--st-tabbar-h) + 1.5rem + env(safe-area-inset-bottom));
 }
 
@@ -127,7 +203,7 @@
   grid-template-columns: repeat(var(--tab-count, 5), 1fr);
   height: calc(var(--st-tabbar-h) + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
-  background: #fff;
+  background: var(--st-surface);
   border-top: 2px solid var(--st-line);
 }
 
@@ -159,13 +235,17 @@
   text-transform: uppercase;
 }
 
+.tab:hover {
+  color: var(--st-ink);
+}
+
 .tab.active {
-  color: var(--st-blue);
+  color: var(--st-blue-ink);
 }
 
 .tab.active .tabIcon {
   background: var(--st-blue-bg);
-  border-color: #84d8ff;
+  border-color: var(--st-blue-line-strong);
 }
 
 @media (min-width: 768px) {
@@ -173,7 +253,8 @@
     display: flex;
   }
 
-  .avatar {
+  .avatar,
+  .avatarWrap {
     margin-left: 0;
   }
 
@@ -183,6 +264,24 @@
 
   .main {
     padding: 2rem 1.5rem 3rem;
+  }
+}
+
+/* Tablet portrait (iPad mini/Air: 768–834px): brand + 5 student links + avatar need ~860px.
+   Keep the flag only (the name stays the link's accessible name) and tighten the links;
+   the tab bar can't take this range, the pages' fixed bars expect it gone from 768px. */
+@media (min-width: 768px) and (max-width: 899.98px) {
+  .brandName {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .topnavLink {
+    padding: 0 0.7rem;
   }
 }
 

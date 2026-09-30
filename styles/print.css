@@ -1,11 +1,15 @@
 /* ============================================
-   Print / "Save as PDF" — clean A4 lesson recap
+   Print / "Save as PDF"
+   Global (imported by pages/_app.js): page setup and `.no-print` everywhere.
+   On a page that shows a lesson recap (.lesson-view), only the recap is printed:
+   no shell, tabs, page header, practice score or buttons. The recap brings its
+   own print header and print layout (components/lesson/LessonView.module.css).
    ============================================ */
 
 @media print {
   @page {
     size: A4;
-    margin: 15mm 14mm;
+    margin: 14mm 14mm 16mm;
   }
 
   * {
@@ -14,15 +18,8 @@
   }
 
   html,
-  body,
-  .dashboard {
+  body {
     background: #fff !important;
-  }
-
-  /* Page roots (StudentShell's themed wrapper has a gray background + 100vh) */
-  #__next > div {
-    background: #fff !important;
-    min-height: 0 !important;
   }
 
   body {
@@ -30,92 +27,34 @@
     line-height: 1.5;
   }
 
-  /* Chrome that makes no sense on paper */
-  .no-print,
-  .dashboard-header,
-  .app-shell-back,
-  .app-shell-actions,
-  button {
+  /* Page roots (themed wrappers have a gray background + 100vh) */
+  #__next > div {
+    background: #fff !important;
+    min-height: 0 !important;
+  }
+
+  .no-print {
     display: none !important;
   }
 
-  .dashboard-main {
+  /* Recap page: hide everything that neither is, contains nor sits inside the recap */
+  body:has(.lesson-view) #__next *:not(.lesson-view):not(:has(.lesson-view)):not(.lesson-view *) {
+    display: none !important;
+  }
+
+  /* …and flatten the recap's ancestors (screen paddings, widths, cards, flex/grid gaps) */
+  body:has(.lesson-view) #__next *:has(.lesson-view) {
+    display: block !important;
+    position: static !important;
+    width: auto !important;
     max-width: none !important;
+    min-height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
-  }
-
-  .app-shell-titlebar {
-    margin-bottom: 4mm !important;
-  }
-
-  .dashboard-title {
-    font-size: 20pt !important;
-  }
-
-  /* Entry animations start at opacity 0 */
-  .animate-fade-in,
-  .animate-fade-in-up,
-  .delay-1,
-  .delay-2,
-  .delay-3,
-  .delay-4 {
-    opacity: 1 !important;
-    animation: none !important;
-    transform: none !important;
-  }
-
-  /* ---- LessonView ---- */
-  .lesson-view {
-    gap: 5mm !important;
-  }
-
-  .lesson-view section {
     border: none !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
     box-shadow: none !important;
-  }
-
-  .lesson-view h2,
-  .lesson-view h3 {
-    break-after: avoid;
-    page-break-after: avoid;
-  }
-
-  .lesson-view table {
-    break-inside: auto;
-  }
-
-  .lesson-view thead {
-    display: table-header-group;
-  }
-
-  .lesson-view tr,
-  .lesson-view li,
-  .lesson-view p {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-
-  /* Grammar "golden rule" blocks and corrections stay in one piece */
-  .lesson-view section > div > div,
-  .lesson-view section ul > li {
-    break-inside: avoid;
-    page-break-inside: avoid;
-  }
-
-  .lesson-view a {
-    color: #1a73e8 !important;
-    text-decoration: underline;
-  }
-
-  .lesson-homework-link::after {
-    content: ' (' attr(href) ')';
-    font-size: 9pt;
-    font-weight: 400;
-    color: #555;
-    word-break: break-all;
+    background: none !important;
+    overflow: visible !important;
   }
 
   .lesson-view .sr-only {

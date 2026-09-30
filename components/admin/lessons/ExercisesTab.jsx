@@ -18,9 +18,10 @@ const DEFAULT_PROMPTS = {
 
 /**
  * "Exercices" tab: one editable card per exercise, add / delete / reorder.
- * @param {{ exercises: object[], onChange: (list: object[]) => void, errors: Record<string, string> }} props
+ * @param {{ exercises: object[], onChange: (list: object[]) => void, errors: Record<string, string>,
+ *   resetsProgress?: boolean }} props  resetsProgress: saving would restart the student's progress
  */
-export default function ExercisesTab({ exercises, onChange, errors }) {
+export default function ExercisesTab({ exercises, onChange, errors, resetsProgress }) {
   const full = exercises.length >= LIMITS.exercises
 
   const addButtons = (
@@ -50,6 +51,17 @@ export default function ExercisesTab({ exercises, onChange, errors }) {
       {errors.exercises && (
         <div className={admin.alert} role="alert">
           <span className={admin.alertText}>{errors.exercises}</span>
+        </div>
+      )}
+
+      {resetsProgress && (
+        <div className={cx(admin.alert, admin.alertWarn)} role="status">
+          <span aria-hidden="true">⚠️</span>
+          <span className={admin.alertText}>
+            Exercices ajoutés ou modifiés : à l’enregistrement, la progression de l’élève sur cette leçon repart de zéro
+            (meilleur score, tentatives, erreurs à revoir), car ses anciens résultats ne correspondent plus. Supprimer ou
+            réordonner des exercices ne la réinitialise pas.
+          </span>
         </div>
       )}
 

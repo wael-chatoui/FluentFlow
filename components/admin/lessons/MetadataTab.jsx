@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { safeDriveUrl } from '@/utils/lesson/schema'
 import { cx, formatDateTime } from '@/components/admin/common/format'
 import { Field, TextField } from '@/components/admin/lessons/fields'
@@ -7,10 +8,22 @@ import { LIMITS } from '@/components/admin/lessons/editorModel'
 import admin from '@/components/admin/common/admin.module.css'
 import styles from '@/components/admin/lessons/editor.module.css'
 
+// What the chosen status does (the server sets `error` with a status change)
+function statusHint(draft, lesson) {
+  if (draft.status === 'generating') return 'Génération bloquée : choisis « Publiée » ou « Échec » pour la débloquer.'
+  if (draft.status !== lesson.status && draft.status === 'published' && lesson.error) {
+    return 'L’erreur de génération sera effacée à l’enregistrement.'
+  }
+  return '« En génération » ne peut pas être choisi à la main.'
+}
+
 /**
- * "Métadonnées" tab: title, date, status, student, Drive link + read-only facts.
+ * "Métadonnées" tab: title, date, status, visibility, student, Drive link + read-only facts.
+ * `hasResults`: the lesson has practice / review results, so it cannot change student.
+ * Visibility words follow the teacher area: hidden = « Brouillon ».
  */
-export default function MetadataTab({ draft, lesson, onChange, errors, onCopy }) {
+export default function MetadataTab({ draft, lesson, onChange, errors, onCopy, hasResults }) {
+  const uid = useId()
   const set = (key) => (value) => onChange({ [key]: value })
   const driveOk = draft.driveUrl.trim() && safeDriveUrl(draft.driveUrl)
 
@@ -33,7 +46,7 @@ export default function MetadataTab({ draft, lesson, onChange, errors, onCopy })
               error={errors.lessonDate}
               onChange={set('lessonDate')}
             />
-            <Field label="Statut" error={errors.status} hint="« En génération » ne peut pas être choisi à la main.">
+            <Field label="Statut" error={errors.status} hint={statusHint(draft, lesson)}>
               {(props) => (
                 <select
                   {...props}
@@ -52,11 +65,33 @@ export default function MetadataTab({ draft, lesson, onChange, errors, onCopy })
               )}
             </Field>
           </div>
+          <div className={admin.field}>
+            <label className={admin.check}>
+              <input
+                type="checkbox"
+                role="switch"
+                checked={!draft.hidden}
+                onChange={(e) => set('hidden')(!e.target.checked)}
+                aria-describedby={`${uid}-visibility`}
+              />
+              <span>Visible dans l’espace élève</span>
+            </label>
+            <p id={`${uid}-visibility`} className={admin.hint}>
+              {draft.hidden
+                ? 'Brouillon : l’élève ne la voit pas (à relire avant de la publier, ou retirée de son espace).'
+                : 'Publiée pour l’élève : il la voit dans son espace dès qu’elle est générée.'}
+            </p>
+          </div>
           <StudentSelect
             value={draft.studentId}
             fallbackName={lesson.student_name}
             error={errors.studentId}
             onChange={set('studentId')}
+            locked={
+              hasResults
+                ? 'Impossible de changer d’élève : cette leçon a déjà des résultats (entraînements ou révisions). Supprime-la et recrée-la pour l’autre élève.'
+                : null
+            }
           />
           <Field
             label="Lien Google Drive"
@@ -117,7 +152,12 @@ export default function MetadataTab({ draft, lesson, onChange, errors, onCopy })
         {lesson.error && (
           <div className={cx(admin.alert, styles.mTop)}>
             <span className={admin.alertText}>
-              <strong>Erreur de génération :</strong> {lesson.error}
+              <strong>
+                {lesson.status === 'published'
+                  ? 'Dernière régénération échouée (la version précédente reste en ligne) :'
+                  : 'Erreur de génération :'}
+              </strong>{' '}
+              {lesson.error}
             </span>
           </div>
         )}

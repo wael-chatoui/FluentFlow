@@ -1,12 +1,14 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { api } from '@/utils/apiClient'
 import { LEVELS } from '@/utils/lesson/schema'
+import useUnsavedGuard from '@/components/ui/useUnsavedGuard'
 import { LEVEL_OPTIONS } from '@/components/student/profile/levels'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/profile/Profile.module.css'
 
 const MAX_NAME = 120
 const MAX_TEXT = 1000
+const LEAVE_MESSAGE = 'You have unsaved changes. Leave this page anyway?'
 
 function toForm(profile) {
   return {
@@ -20,9 +22,11 @@ function toForm(profile) {
 /**
  * Editable profile (name, level, goals, interests) → PATCH /api/student/profile.
  * Only changed fields are sent; the Save button is enabled only when something changed.
- * @param {{ profile: object, onSaved: (profile: object) => void }} props
+ * Leaving the page (tab, link, reload) with unsaved changes asks first, unless `guard`
+ * is false (the page is signing out or deleting the account).
+ * @param {{ profile: object, onSaved: (profile: object) => void, guard?: boolean }} props
  */
-export default function ProfileForm({ profile, onSaved }) {
+export default function ProfileForm({ profile, onSaved, guard = true }) {
   const uid = useId()
   const [saved, setSaved] = useState(() => toForm(profile))
   const [values, setValues] = useState(() => toForm(profile))
@@ -49,16 +53,19 @@ export default function ProfileForm({ profile, onSaved }) {
   const nameMissing = !values.fullName.trim()
   const canSave = dirty && !nameMissing && !saving
 
-  // Warn before leaving the page with unsaved changes
+  useUnsavedGuard(dirty && guard, LEAVE_MESSAGE)
+
+  // The page first renders the cached profile, then refreshes it in the background:
+  // show the fresher values, unless the student has started editing (never overwrite input)
+  const incoming = JSON.stringify(toForm(profile))
+  const busyRef = useRef(false)
+  busyRef.current = dirty || saving
   useEffect(() => {
-    if (!dirty) return
-    const onBeforeUnload = (e) => {
-      e.preventDefault()
-      e.returnValue = ''
-    }
-    window.addEventListener('beforeunload', onBeforeUnload)
-    return () => window.removeEventListener('beforeunload', onBeforeUnload)
-  }, [dirty])
+    if (busyRef.current) return
+    const next = JSON.parse(incoming)
+    setSaved(next)
+    setValues(next)
+  }, [incoming])
 
   const update = (field) => (e) => {
     const { value } = e.target
@@ -172,7 +179,7 @@ export default function ProfileForm({ profile, onSaved }) {
             className={`${styles.input} ${styles.textarea}`}
             value={values.interests}
             onChange={update('interests')}
-            placeholder="Cooking, football, films, history…"
+            placeholder="Cooking, soccer, movies, history…"
             rows={2}
             maxLength={MAX_TEXT}
           />

@@ -33,7 +33,7 @@
   height: 44px;
   border-radius: 14px;
   background: var(--st-yellow-bg);
-  border: 2px solid #ffe38a;
+  border: 2px solid var(--st-yellow-line);
   border-bottom-width: 4px;
   font-size: 1.4rem;
   line-height: 1;
@@ -71,95 +71,13 @@
 
 .pillWarn {
   background: var(--st-orange-bg);
-  border-color: #ffd59e;
-  color: #a35a00;
+  border-color: var(--st-orange-line);
+  color: var(--st-orange-ink);
 }
 
-/* ---- Status (progress / outcome) ---- */
+/* ---- Status panel anchor (import page) ---- */
 .statusAnchor {
   scroll-margin-top: 80px;
-}
-
-.statusAnchor .doneAlert {
-  align-items: center;
-  font-size: 1rem;
-}
-
-.outcome {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  padding: 1.25rem;
-  border: 2px solid var(--out-edge);
-  border-bottom-width: 5px;
-  border-bottom-color: var(--out-dark);
-  border-radius: var(--st-radius-lg);
-  background: var(--out-bg);
-}
-
-.outcomeFailed { --out-bg: var(--st-red-bg); --out-edge: #ffc1c1; --out-dark: var(--st-red); --out-fg: var(--st-red-dark); }
-.outcomeLost { --out-bg: var(--st-orange-bg); --out-edge: #ffd59e; --out-dark: var(--st-orange); --out-fg: #a35a00; }
-
-.outcomeIcon {
-  flex: none;
-  display: grid;
-  place-items: center;
-  width: 52px;
-  height: 52px;
-  border-radius: 16px;
-  background: var(--st-surface);
-  border: 2px solid var(--out-edge);
-  border-bottom-width: 4px;
-  font-size: 1.7rem;
-  line-height: 1;
-}
-
-.outcomeBody {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.outcomeTitle {
-  margin: 0;
-  font-size: 1.2rem;
-  font-weight: 900;
-  color: var(--out-fg);
-}
-
-.outcomeError {
-  margin: 0;
-  padding: 0.5rem 0.75rem;
-  border-radius: 12px;
-  background: var(--st-surface);
-  color: var(--st-ink);
-  font-size: 0.9rem;
-  font-weight: 700;
-  overflow-wrap: anywhere;
-}
-
-.outcomeError:empty {
-  display: none;
-}
-
-.outcomeText {
-  margin: 0;
-  font-size: 0.93rem;
-  font-weight: 600;
-  color: var(--st-ink-soft);
-}
-
-.outcomeActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.35rem;
-}
-
-.outcomeActions > * {
-  flex: 1 1 180px;
 }
 
 /* ---- Form ---- */
@@ -212,10 +130,11 @@
   border-radius: var(--st-radius-lg);
 }
 
-.blue { --step: var(--st-blue); --step-dark: var(--st-blue-dark); --step-bg: var(--st-blue-bg); }
-.purple { --step: var(--st-purple); --step-dark: var(--st-purple-dark); --step-bg: var(--st-purple-bg); }
-.orange { --step: var(--st-orange); --step-dark: var(--st-orange-dark); --step-bg: var(--st-orange-bg); }
-.pink { --step: var(--st-pink); --step-dark: var(--st-pink-dark); --step-bg: var(--st-pink-bg); }
+/* --step / -dark: borders; --step-strong / -strong-dark: the number tile under white text */
+.blue { --step: var(--st-blue); --step-dark: var(--st-blue-dark); --step-bg: var(--st-blue-bg); --step-strong: var(--st-blue-strong); --step-strong-dark: var(--st-blue-strong-dark); }
+.purple { --step: var(--st-purple); --step-dark: var(--st-purple-dark); --step-bg: var(--st-purple-bg); --step-strong: var(--st-purple-strong); --step-strong-dark: var(--st-purple-strong-dark); }
+.orange { --step: var(--st-orange); --step-dark: var(--st-orange-dark); --step-bg: var(--st-orange-bg); --step-strong: var(--st-orange-strong); --step-strong-dark: var(--st-orange-strong-dark); }
+.pink { --step: var(--st-pink); --step-dark: var(--st-pink-dark); --step-bg: var(--st-pink-bg); --step-strong: var(--st-pink-strong); --step-strong-dark: var(--st-pink-strong-dark); }
 
 .step:focus-within {
   border-color: var(--step);
@@ -236,9 +155,9 @@
   width: 36px;
   height: 36px;
   border-radius: 12px;
-  background: var(--step);
-  border-bottom: 3px solid var(--step-dark);
-  color: #fff;
+  background: var(--step-strong, var(--st-blue-strong));
+  border-bottom: 3px solid var(--step-strong-dark, var(--st-blue-strong-dark));
+  color: var(--st-on-color);
   font-size: 1.05rem;
   font-weight: 900;
 }
@@ -282,7 +201,12 @@
 
 .counterOk {
   background: var(--st-green-bg);
-  color: var(--st-green-dark);
+  color: var(--st-green-ink);
+}
+
+.counterOver {
+  background: var(--st-red-bg);
+  color: var(--st-red-ink);
 }
 
 .row {
@@ -315,6 +239,58 @@ textarea.midTextarea {
   color: var(--st-ink-soft);
 }
 
+/* ---- « Relire avant de publier » ---- */
+.review {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  border: 2px solid var(--st-line);
+  border-bottom-width: 4px;
+  border-radius: var(--st-radius-lg);
+  background: var(--st-surface);
+  cursor: pointer;
+}
+
+.review:has(input:checked) {
+  border-color: var(--st-orange);
+  border-bottom-color: var(--st-orange-dark);
+  background: var(--st-orange-bg);
+}
+
+.review input {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: 0.1rem 0 0;
+  accent-color: var(--st-orange-dark);
+  cursor: pointer;
+}
+
+.review input:focus-visible {
+  outline: 3px solid var(--st-focus);
+  outline-offset: 2px;
+}
+
+.reviewText {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.reviewTitle {
+  font-size: 1rem;
+  font-weight: 900;
+  color: var(--st-ink);
+}
+
+.reviewHint {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--st-ink-soft);
+}
+
 /* ---- Action bar: sticky above the tab bar on mobile ---- */
 .actionBar {
   position: sticky;
@@ -332,6 +308,15 @@ textarea.midTextarea {
   box-shadow: none;
 }
 
+/* Keyboard shortcut hint: only useful with a keyboard (hidden on the mobile sticky bar) */
+.shortcut {
+  display: none;
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--st-ink-soft);
+}
+
 @media (max-width: 360px) {
   .pageTitle {
     font-size: 1.5rem;
@@ -343,11 +328,6 @@ textarea.midTextarea {
 
   .stepHead {
     flex-wrap: wrap;
-  }
-
-  .outcome {
-    flex-direction: column;
-    gap: 0.75rem;
   }
 }
 
@@ -370,14 +350,17 @@ textarea.midTextarea {
     min-height: 320px;
   }
 
-  .outcome {
-    padding: 1.5rem 1.75rem;
-  }
-
   .actionBar {
     position: static;
     display: flex;
-    justify-content: flex-end;
+    flex-direction: row-reverse;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 1rem;
+  }
+
+  .shortcut {
+    display: block;
   }
 
   .actionBar .submit {

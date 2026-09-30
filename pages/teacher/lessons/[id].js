@@ -1,218 +1,196 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import dynamic from 'next/dynamic'
 import Head from 'next/head'
-import Link from 'next/link'
 import { useRouter } from 'next/router'
 import LessonView from '@/components/lesson/LessonView'
+import LoadingScreen from '@/components/ui/LoadingScreen'
 import { api } from '@/utils/apiClient'
 import ConfirmDialog from '@/components/teacher/ConfirmDialog'
-import DriveLinkEditor from '@/components/teacher/DriveLinkEditor'
-import ExerciseReview from '@/components/teacher/ExerciseReview'
-import GenerationProgress from '@/components/teacher/GenerationProgress'
 import LessonResults from '@/components/teacher/LessonResults'
 import LessonSources from '@/components/teacher/LessonSources'
 import PageState from '@/components/teacher/PageState'
-import StatusBadge from '@/components/teacher/StatusBadge'
 import Tabs from '@/components/teacher/Tabs'
 import TeacherShell from '@/components/teacher/TeacherShell'
 import BackLink from '@/components/teacher/lessons/BackLink'
-import { lessonEmoji } from '@/components/student/lessons/progress'
-import { accentStyle } from '@/components/ui/accents'
-import { formatLessonDate, isAbortError, isValidId, plural } from '@/components/teacher/format'
-import { useBeforeUnload, useMountedRef } from '@/components/teacher/hooks'
+import ExercisesPanel from '@/components/teacher/lessons/ExercisesPanel'
+import { FailedPanel, GeneratingPanel, RegenErrorBanner } from '@/components/teacher/lessons/GenerationPanels'
+import LessonHeader from '@/components/teacher/lessons/LessonHeader'
+import PreviewLayer from '@/components/teacher/lessons/PreviewLayer'
+import RegeneratePanel from '@/components/teacher/lessons/RegeneratePanel'
+import UndoToast from '@/components/teacher/lessons/UndoToast'
+import useExerciseRemoval, { UNDO_MS } from '@/components/teacher/lessons/useExerciseRemoval'
+import useLesson from '@/components/teacher/lessons/useLesson'
+import { isAbortError, isStaleGeneration, isValidId, lessonTitle, plural } from '@/components/teacher/format'
+import { useMountedRef } from '@/components/teacher/hooks'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/LessonPage.module.css'
 
-const POLL_MS = 4000
-const POLL_RETRY_MS = 8000
-const STALE_GENERATION_MS = 5 * 60 * 1000
-
-function lessonTitle(lesson) {
-  return lesson?.title?.trim() || lesson?.content?.title?.trim() || 'Leçon sans titre'
+// The player is big and client-only (it shuffles in state initializers): loaded on demand,
+// fetched ahead when the pointer or the focus reaches « Tester les exercices »
+const PracticePlayer = dynamic(() => import('@/components/practice/PracticePlayer'), {
+  ssr: false,
+  loading: () => <LoadingScreen label="Chargement des exercices…" />,
+})
+const preloadPlayer = () => {
+  import('@/components/practice/PracticePlayer').catch(() => {})
 }
 
-export default function TeacherLessonPage() {
+const TAB_KEYS = ['recap', 'exercises', 'results', 'sources']
+
+function LessonSkeleton() {
+  return (
+    <div className={styles.stack} aria-hidden="true">
+      <div className={`${styles.header} ${styles.headerSkeleton}`}>
+        <div className={styles.headTop}>
+          <span className={`${ui.skel} ${styles.tileSkel}`} />
+          <div className={styles.headText}>
+            <span className={ui.skel} style={{ width: '45%', height: 12 }} />
+            <span className={ui.skel} style={{ width: '85%', height: 28, marginTop: 10 }} />
+          </div>
+        </div>
+        <span className={ui.skel} style={{ width: '60%', height: 32 }} />
+        <span className={ui.skel} style={{ height: 48, borderRadius: 16 }} />
+      </div>
+      <span className={ui.skel} style={{ height: 52, borderRadius: 16 }} />
+      <span className={ui.skel} style={{ height: 220, borderRadius: 20 }} />
+    </div>
+  )
+}
+
+function Alert({ tone, icon, children, role = 'status' }) {
+  return (
+    <div className={`${bits.alert} ${bits[tone]}`} role={role}>
+      <span className={bits.alertIcon} aria-hidden="true">{icon}</span>
+      <span className={bits.alertBody}>{children}</span>
+    </div>
+  )
+}
+
+/** Everything for one lesson id (remounted when the id changes, so no state leaks between lessons). */
+function LessonScreen({ id, initialTab, duplicate }) {
   const router = useRouter()
   const mounted = useMountedRef()
-  const id = router.isReady ? router.query.id : undefined
-  const validId = isValidId(id)
+  const { lesson, sessions, olderCount, loading, error, notFound, reload, refresh, applyLesson } = useLesson(id)
 
-  const [data, setData] = useState(null) // { lesson, sessions }
-  const [loadError, setLoadError] = useState(null)
-  const [notFound, setNotFound] = useState(false)
-  const loadController = useRef(null)
-
-  const [tab, setTab] = useState('recap')
-  const [confirm, setConfirm] = useState(null) // 'regenerate' | 'delete' | null
+  const [tab, setTab] = useState(initialTab)
+  const [notice, setNotice] = useState(duplicate ? 'Cette leçon avait déjà été créée avec ce brouillon : la voici (pas de doublon).' : null)
   const [actionError, setActionError] = useState(null)
-  const [notice, setNotice] = useState(null)
-
-  const [regenerating, setRegenerating] = useState(false)
-  const [regenStartedAt, setRegenStartedAt] = useState(null)
-  const regenRef = useRef(false)
-  const regenController = useRef(null)
-
+  const [editingSources, setEditingSources] = useState(false)
+  const [regenBusy, setRegenBusy] = useState(false)
+  const [regenError, setRegenError] = useState(null)
+  const [publishing, setPublishing] = useState(false)
+  const [confirm, setConfirm] = useState(null) // 'delete' | 'unpublish' | null
   const [deleting, setDeleting] = useState(false)
-  const deleteController = useRef(null)
-
-  // Exercises removed locally (pending or confirmed); rolled back on error
-  const [hiddenIds, setHiddenIds] = useState(() => new Set())
-  const [removingIds, setRemovingIds] = useState(() => new Set())
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [dismissedError, setDismissedError] = useState(null)
   const [exerciseError, setExerciseError] = useState(null)
-  const exerciseControllers = useRef(new Set())
-  const patchController = useRef(null)
+  // One progress panel per generation run launched from here (its timer start is kept for the run)
+  const [generationRun, setGenerationRun] = useState(0)
+  const testRef = useRef(null)
+  const prevStatus = useRef(null)
 
-  useBeforeUnload(regenerating)
+  const removal = useExerciseRemoval(id, {
+    onCommitted: applyLesson,
+    onError: (message) => setExerciseError(message),
+  })
 
-  // Abort everything on unmount
-  useEffect(
-    () => () => {
-      loadController.current?.abort()
-      regenController.current?.abort()
-      deleteController.current?.abort()
-      patchController.current?.abort()
-      exerciseControllers.current.forEach((c) => c.abort())
-    },
-    []
-  )
-
-  const load = useCallback(async () => {
-    if (!validId) return
-    loadController.current?.abort()
-    const controller = new AbortController()
-    loadController.current = controller
-    setLoadError(null)
-    setNotFound(false)
-    setData(null)
-    try {
-      const res = await api(`/api/teacher/lessons/${id}`, { signal: controller.signal })
-      if (!mounted.current || controller.signal.aborted) return
-      setData({ lesson: res.lesson, sessions: res.sessions || [] })
-    } catch (err) {
-      if (isAbortError(err) || !mounted.current) return
-      if (err.status === 404) setNotFound(true)
-      else setLoadError(err.message || 'Impossible de charger la leçon.')
-    }
-  }, [id, validId, mounted])
-
-  useEffect(() => {
-    load()
-  }, [load])
-
-  // Reset per-lesson UI state when navigating between lessons
-  useEffect(() => {
-    setTab('recap')
-    setHiddenIds(new Set())
-    setActionError(null)
-    setExerciseError(null)
-    setNotice(null)
-  }, [id])
-
-  const lesson = data?.lesson
   const status = lesson?.status
+  const stale = isStaleGeneration(lesson)
 
-  // ---- Poll while the lesson is generating (started elsewhere or before we loaded) ----
+  // Announce the end of a generation seen by the polling
   useEffect(() => {
-    if (status !== 'generating' || regenerating || !validId) return undefined
-    const controller = new AbortController()
-    let timer = null
-    const tick = async () => {
-      try {
-        const res = await api(`/api/teacher/lessons/${id}`, { signal: controller.signal })
-        if (controller.signal.aborted || !mounted.current) return
-        if (res.lesson?.status !== 'generating') setHiddenIds(new Set())
-        setData({ lesson: res.lesson, sessions: res.sessions || [] })
-        if (res.lesson?.status === 'generating') timer = setTimeout(tick, POLL_MS)
-      } catch (err) {
-        if (isAbortError(err) || controller.signal.aborted || !mounted.current) return
-        if (err.status === 404) {
-          setNotFound(true)
-          return
-        }
-        timer = setTimeout(tick, POLL_RETRY_MS)
-      }
+    if (!lesson) return
+    // A new generation: its own failure must show even if an older one was dismissed
+    if (status === 'generating' && prevStatus.current !== 'generating') setDismissedError(null)
+    if (prevStatus.current === 'generating' && status === 'published' && !lesson.error) {
+      setTab('recap')
+      setNotice(
+        lesson.hidden
+          ? "Leçon prête ✓ Elle est encore invisible pour l'élève : relis-la puis publie-la."
+          : "Leçon prête et publiée pour l'élève ✓"
+      )
     }
-    timer = setTimeout(tick, POLL_MS)
-    return () => {
-      controller.abort()
-      clearTimeout(timer)
-    }
-  }, [status, regenerating, id, validId, mounted])
+    prevStatus.current = status
+  }, [lesson, status])
 
-  // Auto-hide success notices
+  // Success notices fade out; errors stay until the next action
   useEffect(() => {
     if (!notice) return undefined
-    const t = setTimeout(() => setNotice(null), 5000)
+    const t = setTimeout(() => setNotice(null), 6000)
     return () => clearTimeout(t)
   }, [notice])
 
-  // ---- Actions ----
-  const refreshSilently = useCallback(
-    async (signal) => {
-      const res = await api(`/api/teacher/lessons/${id}`, { signal })
-      if (!mounted.current || signal?.aborted) return null
-      setData({ lesson: res.lesson, sessions: res.sessions || [] })
-      return res.lesson
+  const patch = useCallback(
+    async (body) => {
+      const res = await api(`/api/teacher/lessons/${id}`, { method: 'PATCH', body })
+      if (mounted.current && res?.lesson) applyLesson(res.lesson)
+      return res?.lesson
     },
-    [id, mounted]
+    [id, applyLesson, mounted]
   )
 
-  const handleRegenerate = async () => {
-    setConfirm(null)
-    if (regenRef.current || !lesson) return
-    regenRef.current = true
-    regenController.current?.abort()
-    const controller = new AbortController()
-    regenController.current = controller
+  const regenerate = async (body = {}) => {
+    if (regenBusy) return
+    setRegenBusy(true)
+    setRegenError(null)
     setActionError(null)
     setNotice(null)
-    setRegenStartedAt(Date.now())
-    setRegenerating(true)
-    setData((prev) => (prev ? { ...prev, lesson: { ...prev.lesson, status: 'generating', error: null } } : prev))
-    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
-
     try {
-      const res = await api(`/api/teacher/lessons/${id}/regenerate`, { method: 'POST', body: {}, signal: controller.signal })
+      await api(`/api/teacher/lessons/${id}/regenerate`, { method: 'POST', body })
       if (!mounted.current) return
-      setHiddenIds(new Set())
-      const fresh = await refreshSilently(controller.signal)
-      if (!fresh) return
-      if (res?.lesson?.status === 'published') {
-        setTab('recap')
-        setNotice('Leçon régénérée et publiée ✓')
-      } else if (fresh.status === 'published') {
-        setActionError(
-          `${res?.lesson?.error || 'La régénération a échoué.'} L'ancienne version reste en ligne pour l'élève.`
-        )
-      }
+      // 202: the AI runs in the background; the polling takes over from here.
+      // updated_at is unknown until the refresh (the old one would start the timer days ago)
+      applyLesson({ status: 'generating', error: null, stale: false, updated_at: null })
+      setGenerationRun((n) => n + 1)
+      setEditingSources(false)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      refresh()
     } catch (err) {
       if (isAbortError(err) || !mounted.current) return
-      const code = err?.status || 0
+      const code = err.status || 0
       if (code === 409) {
-        setActionError('Une génération est déjà en cours pour cette leçon. La page se mettra à jour automatiquement.')
+        setEditingSources(false)
+        setActionError('Une génération est déjà en cours pour cette leçon : la page se met à jour toute seule.')
+        refresh()
       } else if (code === 0 || code >= 500) {
-        setActionError(
-          `${err.message || 'Erreur réseau.'} La génération continue peut-être sur le serveur : la page se mettra à jour automatiquement.`
-        )
+        setActionError(`${err.message} La génération a peut-être démarré : la page va se mettre à jour.`)
+        refresh()
+      } else if (editingSources) {
+        setRegenError(err.message)
       } else {
-        setActionError(err.message || 'La régénération a échoué.')
-        refreshSilently(controller.signal).catch(() => {})
+        setActionError(err.message)
       }
     } finally {
-      regenRef.current = false
-      if (mounted.current) setRegenerating(false)
+      if (mounted.current) setRegenBusy(false)
+    }
+  }
+
+  const setHidden = async (hidden) => {
+    setConfirm(null)
+    setPublishing(true)
+    setActionError(null)
+    try {
+      await patch({ hidden })
+      if (mounted.current) {
+        setNotice(hidden ? "Leçon retirée de l'espace élève." : "Leçon publiée : l'élève la voit maintenant ✓")
+        // The button that was used is replaced by its opposite: land on the next action
+        requestAnimationFrame(() => testRef.current?.focus())
+      }
+    } catch (err) {
+      if (!isAbortError(err) && mounted.current) setActionError(err.message || 'La modification a échoué.')
+    } finally {
+      if (mounted.current) setPublishing(false)
     }
   }
 
   const handleDelete = async () => {
     if (deleting) return
-    deleteController.current?.abort()
-    const controller = new AbortController()
-    deleteController.current = controller
+    removal.undo()
     setDeleting(true)
     setActionError(null)
     try {
-      await api(`/api/teacher/lessons/${id}`, { method: 'DELETE', signal: controller.signal })
+      await api(`/api/teacher/lessons/${id}`, { method: 'DELETE' })
       if (!mounted.current) return
       router.replace(lesson?.student_id ? `/teacher/students/${lesson.student_id}` : '/teacher')
     } catch (err) {
@@ -223,251 +201,141 @@ export default function TeacherLessonPage() {
     }
   }
 
-  const handleDriveSave = async (url) => {
-    patchController.current?.abort()
-    const controller = new AbortController()
-    patchController.current = controller
-    const res = await api(`/api/teacher/lessons/${id}`, {
-      method: 'PATCH',
-      body: { driveUrl: url },
-      signal: controller.signal,
-    })
-    if (!mounted.current) return
-    setData((prev) =>
-      prev ? { ...prev, lesson: res?.lesson ? res.lesson : { ...prev.lesson, drive_url: url } } : prev
-    )
-  }
-
-  const handleRemoveExercise = async (exerciseId) => {
-    if (removingIds.has(exerciseId)) return
-    setExerciseError(null)
-    // Optimistic: hide right away
-    setHiddenIds((prev) => new Set(prev).add(exerciseId))
-    setRemovingIds((prev) => new Set(prev).add(exerciseId))
-    const controller = new AbortController()
-    exerciseControllers.current.add(controller)
+  // « Ignorer » the failed-regeneration warning: cleared server-side too, so it also
+  // leaves the dashboard's « À traiter » list and does not come back on reload
+  const dismissRegenError = async () => {
+    setDismissedError(lesson?.error || null)
+    requestAnimationFrame(() => document.querySelector('[data-lesson-action="regenerate"]')?.focus())
     try {
-      const res = await api(`/api/teacher/lessons/${id}`, {
-        method: 'PATCH',
-        body: { removeExerciseIds: [exerciseId] },
-        signal: controller.signal,
-      })
-      if (!mounted.current) return
-      if (res?.lesson) setData((prev) => (prev ? { ...prev, lesson: res.lesson } : prev))
+      await patch({ dismissError: true })
+      if (mounted.current) refresh()
     } catch (err) {
-      if (isAbortError(err) || !mounted.current) return
-      // Rollback: the exercise reappears at its original place
-      setHiddenIds((prev) => {
-        const next = new Set(prev)
-        next.delete(exerciseId)
-        return next
-      })
-      setExerciseError(err.message || "L'exercice n'a pas pu être supprimé.")
-    } finally {
-      exerciseControllers.current.delete(controller)
-      if (mounted.current) {
-        setRemovingIds((prev) => {
-          const next = new Set(prev)
-          next.delete(exerciseId)
-          return next
-        })
+      if (!isAbortError(err) && mounted.current) {
+        setActionError(err.message || "L'avertissement n'a pas pu être masqué : il réapparaîtra au prochain chargement.")
       }
     }
   }
 
-  // ---- Derived ----
-  const invalid = router.isReady && !validId
-  const loading = !invalid && !data && !loadError && !notFound
-  const exercises = (Array.isArray(lesson?.exercises) ? lesson.exercises : []).filter((e) => !hiddenIds.has(e.id))
-  const sessions = data?.sessions || []
-  const isGenerating = status === 'generating'
-  const updatedAtMs = lesson?.updated_at ? Date.parse(lesson.updated_at) : NaN
-  const staleGeneration =
-    isGenerating && !regenerating && Number.isFinite(updatedAtMs) && Date.now() - updatedAtMs > STALE_GENERATION_MS
-  // Stable start time for the progress timer when the generation was started elsewhere
-  const observedStart = useMemo(
-    () => (Number.isFinite(updatedAtMs) ? Math.min(updatedAtMs, Date.now()) : Date.now()),
-    [lesson?.id, updatedAtMs, isGenerating]
-  )
-  const canRegenerate = Boolean(lesson) && !regenerating && !deleting && (!isGenerating || staleGeneration)
-  const studentHref = lesson?.student_id ? `/teacher/students/${lesson.student_id}` : '/teacher'
-  const title = lesson ? lessonTitle(lesson) : invalid || notFound ? 'Leçon introuvable' : 'Leçon'
+  const openSourcesEditor = () => {
+    setRegenError(null)
+    setEditingSources(true)
+  }
 
+  const closeSourcesEditor = () => {
+    setEditingSources(false)
+    requestAnimationFrame(() => document.querySelector('[data-lesson-action="regenerate"]')?.focus())
+  }
 
-  const tabs = [
-    { key: 'recap', label: 'Bilan' },
-    { key: 'exercises', label: 'Exercices', count: exercises.length },
-    { key: 'results', label: 'Résultats', count: sessions.length },
-    { key: 'sources', label: 'Sources' },
-  ]
+  const closePreview = () => {
+    setPreviewOpen(false)
+    requestAnimationFrame(() => testRef.current?.focus())
+  }
 
+  // ---- Render ----
   const backLink = lesson?.student_id
-    ? { href: studentHref, label: lesson.student_name || "Fiche de l'élève" }
+    ? { href: `/teacher/students/${lesson.student_id}`, label: lesson.student_name || "Fiche de l'élève" }
     : { href: '/teacher', label: 'Mes élèves' }
+  const title = lesson ? lessonTitle(lesson) : notFound ? 'Leçon introuvable' : 'Leçon'
 
   let body
-  if (invalid || notFound) {
+  if (notFound) {
     body = (
       <PageState
         icon="🔍"
+        headingLevel={1}
         title="Leçon introuvable"
         text="Cette leçon n'existe pas ou a été supprimée."
         link={{ href: '/teacher', label: 'Retour à mes élèves' }}
       />
     )
-  } else if (loadError) {
-    body = <PageState role="alert" title="Impossible de charger la leçon" text={loadError} onRetry={load} />
-  } else if (loading) {
+  } else if (error) {
+    body = <PageState role="alert" headingLevel={1} title="Impossible de charger la leçon" text={error} onRetry={reload} />
+  } else if (loading || !lesson) {
     body = (
-      <div className={styles.stack} aria-hidden="true">
-        <div className={`${styles.header} ${styles.headerSkeleton}`}>
-          <div className={styles.headTop}>
-            <span className={`${ui.skel} ${styles.tileSkel}`} />
-            <div className={styles.headText}>
-              <span className={ui.skel} style={{ width: '45%', height: 12 }} />
-              <span className={ui.skel} style={{ width: '85%', height: 28, marginTop: 10 }} />
-            </div>
-          </div>
-          <span className={ui.skel} style={{ width: '60%', height: 32 }} />
-          <span className={ui.skel} style={{ height: 48, borderRadius: 16 }} />
-        </div>
-        <span className={ui.skel} style={{ height: 52, borderRadius: 16 }} />
-        <span className={ui.skel} style={{ height: 220, borderRadius: 20 }} />
-      </div>
+      <>
+        <h1 className="sr-only">Leçon</h1>
+        <span className="sr-only" role="status">
+          Chargement de la leçon…
+        </span>
+        <LessonSkeleton />
+      </>
     )
   } else {
-    const busy = regenerating || deleting
+    const hasContent = Boolean(lesson.content)
+    const generating = status === 'generating'
+    const exercises = (Array.isArray(lesson.exercises) ? lesson.exercises : []).filter((e) => !removal.hiddenIds.has(e.id))
+    const busy = regenBusy || deleting
+    const tabs = [
+      { key: 'recap', label: 'Aperçu élève' },
+      { key: 'exercises', label: 'Exercices', count: exercises.length },
+      { key: 'results', label: 'Résultats', count: sessions.length },
+      { key: 'sources', label: 'Sources' },
+    ]
+    const showRegenError = status === 'published' && lesson.error && dismissedError !== lesson.error && !editingSources
+
     body = (
       <div className={styles.stack}>
-        <header className={styles.header} style={accentStyle(lesson.id)}>
-          <div className={styles.headTop}>
-            <span className={styles.tile} aria-hidden="true">
-              {lessonEmoji(lesson.id)}
-            </span>
-            <div className={styles.headText}>
-              <time className={styles.date} dateTime={lesson.lesson_date || undefined}>
-                {formatLessonDate(lesson.lesson_date, { long: true })}
-              </time>
-              <h1 className={styles.title}>{title}</h1>
-            </div>
-          </div>
-
-          <div className={styles.metaRow}>
-            <StatusBadge status={status} />
-            {lesson.student_id ? (
-              <Link href={studentHref} className={`${styles.metaPill} ${styles.studentLink}`}>
-                <span aria-hidden="true">👤</span>
-                <span className={styles.metaText}>{lesson.student_name || 'Élève'}</span>
-              </Link>
-            ) : (
-              <span className={styles.metaPill}>
-                <span aria-hidden="true">👤</span>
-                <span className={styles.metaText}>{lesson.student_name || 'Élève supprimé'}</span>
-              </span>
-            )}
-            {status === 'published' && (
-              <span className={styles.metaPill}>
-                <span aria-hidden="true">🧩</span> {plural(exercises.length, 'exercice')}
-              </span>
-            )}
-          </div>
-
-          <div className={`${styles.actions} no-print`}>
-            <button
-              type="button"
-              className={`${ui.btn} ${bits.blueGhost} ${styles.actionBtn}`}
-              onClick={() => setConfirm('regenerate')}
-              disabled={!canRegenerate}
-            >
-              {regenerating ? (
-                <>
-                  <span className={bits.spinner} aria-hidden="true" /> Régénération…
-                </>
-              ) : (
-                <>
-                  <span aria-hidden="true">🔄</span> Régénérer
-                </>
-              )}
-            </button>
-            <button
-              type="button"
-              className={`${ui.btn} ${bits.redGhost} ${styles.actionBtn}`}
-              onClick={() => setConfirm('delete')}
-              disabled={busy}
-            >
-              <span aria-hidden="true">🗑️</span> Supprimer
-            </button>
-          </div>
-
-          <div className={styles.drive}>
-            <DriveLinkEditor key={lesson.id} value={lesson.drive_url || ''} onSave={handleDriveSave} disabled={busy} />
-          </div>
-        </header>
+        <LessonHeader
+          ref={testRef}
+          lesson={lesson}
+          exerciseCount={exercises.length}
+          stale={stale}
+          busy={busy}
+          publishing={publishing}
+          onSaveMeta={patch}
+          onPublish={() => setHidden(false)}
+          onUnpublish={() => setConfirm('unpublish')}
+          onTest={() => setPreviewOpen(true)}
+          onTestIntent={preloadPlayer}
+          onRegenerate={openSourcesEditor}
+          onDelete={() => setConfirm('delete')}
+          onDriveSave={(url) => patch({ driveUrl: url })}
+        />
 
         {notice && (
-          <div className={`${bits.alert} ${bits.success}`} role="status">
-            <span className={bits.alertIcon} aria-hidden="true">🎉</span>
-            <span className={bits.alertBody}>{notice}</span>
-          </div>
+          <Alert tone="success" icon="🎉">
+            {notice}
+          </Alert>
         )}
-
         {actionError && (
-          <div className={`${bits.alert} ${bits.error}`} role="alert">
-            <span className={bits.alertIcon} aria-hidden="true">⚠️</span>
-            <span className={bits.alertBody}>{actionError}</span>
-          </div>
+          <Alert tone="error" icon="⚠️" role="alert">
+            {actionError}
+          </Alert>
         )}
-
-        {isGenerating && (
-          <GenerationProgress
-            startedAt={regenerating ? regenStartedAt : observedStart}
-            heading={regenerating ? 'Régénération de la leçon…' : 'Génération en cours…'}
-            note={
-              staleGeneration ? (
-                <div className={`${bits.alert} ${bits.warning}`}>
-                  <span className={bits.alertIcon} aria-hidden="true">⏳</span>
-                  <div className={bits.alertBody}>
-                    <span>La génération semble bloquée depuis plus de 5 minutes.</span>
-                    <div className={bits.alertActions}>
-                      <button
-                        type="button"
-                        className={`${ui.btn} ${ui.small} ${ui.orange} ${bits.tap}`}
-                        onClick={() => setConfirm('regenerate')}
-                      >
-                        <span aria-hidden="true">🔄</span> Relancer
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : !regenerating ? (
-                'La page se met à jour automatiquement.'
-              ) : null
-            }
+        {showRegenError && (
+          <RegenErrorBanner
+            error={lesson.error}
+            busy={busy}
+            onRetry={openSourcesEditor}
+            onDismiss={dismissRegenError}
           />
         )}
 
-        {status === 'failed' && (
-          <section className={styles.failed} role="alert" aria-labelledby="lesson-failed-title">
-            <span className={styles.failedIcon} aria-hidden="true">😵</span>
-            <div className={styles.failedBody}>
-              <h2 id="lesson-failed-title" className={styles.failedTitle}>La génération a échoué</h2>
-              <p className={styles.failedError}>{lesson.error || 'Erreur inconnue.'}</p>
-              <p className={styles.failedText}>
-                La transcription et les notes sont conservées : relance la génération quand tu veux.
-              </p>
-              <button
-                type="button"
-                className={`${ui.btn} ${ui.blue} ${styles.failedBtn}`}
-                onClick={() => setConfirm('regenerate')}
-                disabled={!canRegenerate}
-              >
-                <span aria-hidden="true">🔄</span> Régénérer
-              </button>
-            </div>
-          </section>
+        {generating && (
+          <GeneratingPanel
+            key={generationRun}
+            lesson={lesson}
+            stale={stale}
+            busy={regenBusy}
+            onRelaunch={() => regenerate({})}
+            onEditSources={openSourcesEditor}
+          />
+        )}
+        {status === 'failed' && !editingSources && (
+          <FailedPanel lesson={lesson} busy={regenBusy} onRetry={() => regenerate({})} onEditSources={openSourcesEditor} />
         )}
 
-        {status === 'published' && (
+        {editingSources && (
+          <RegeneratePanel
+            lesson={lesson}
+            busy={regenBusy}
+            error={regenError}
+            onSubmit={regenerate}
+            onCancel={closeSourcesEditor}
+          />
+        )}
+
+        {hasContent ? (
           <section className={styles.content} aria-label="Contenu de la leçon">
             <Tabs tabs={tabs} active={tab} onChange={setTab} idPrefix="lesson" label="Contenu de la leçon" />
             <div
@@ -477,78 +345,91 @@ export default function TeacherLessonPage() {
               tabIndex={0}
               className={styles.panel}
             >
-              {tab === 'recap' &&
-                (lesson.content ? (
-                  <LessonView content={lesson.content} />
-                ) : (
-                  <p className={styles.muted}>Aucun bilan pour cette leçon.</p>
-                ))}
-              {tab === 'exercises' && (
+              {tab === 'recap' && (
                 <>
-                  {exerciseError && (
-                    <div className={`${bits.alert} ${bits.error}`} role="alert">
-                      <span className={bits.alertIcon} aria-hidden="true">⚠️</span>
-                      <span className={bits.alertBody}>{exerciseError}</span>
-                    </div>
-                  )}
-                  <p className={styles.panelIntro}>
-                    <span aria-hidden="true">✅ </span>
-                    Les bonnes réponses sont surlignées en vert. Supprime un exercice s&apos;il n&apos;est pas
-                    pertinent : il disparaîtra aussi chez l&apos;élève.
+                  <p className={styles.previewNote}>
+                    <span aria-hidden="true">👀 </span>
+                    {lesson.hidden
+                      ? "Ce que l'élève verra une fois la leçon publiée."
+                      : "Ce que l'élève voit sur sa page."}
                   </p>
-                  <ExerciseReview
-                    exercises={exercises}
-                    onRemove={handleRemoveExercise}
-                    removingIds={removingIds}
-                    disabled={busy || removingIds.size > 0}
+                  <LessonView
+                    content={lesson.content}
+                    title={lesson.title}
+                    lessonDate={lesson.lesson_date}
+                    studentName={lesson.student_name}
                   />
                 </>
               )}
-              {tab === 'results' && <LessonResults sessions={sessions} />}
-              {tab === 'sources' && (
-                <LessonSources transcript={lesson.transcript} canva={lesson.canva} aiModel={lesson.ai_model} />
+              {tab === 'exercises' && (
+                <ExercisesPanel
+                  lesson={lesson}
+                  exercises={exercises}
+                  disabled={generating}
+                  resultsCount={sessions.length}
+                  error={exerciseError}
+                  onRemove={(exerciseId) => {
+                    setExerciseError(null)
+                    removal.remove(exerciseId)
+                  }}
+                  onEditStart={removal.flush}
+                  onSaved={(saved) => {
+                    applyLesson(saved)
+                    setNotice(
+                      sessions.length
+                        ? "Exercice modifié ✓ Les résultats de l'élève sur cette leçon repartent à zéro."
+                        : 'Exercice modifié ✓'
+                    )
+                    refresh()
+                  }}
+                  onReload={reload}
+                />
               )}
+              {tab === 'results' && <LessonResults sessions={sessions} olderCount={olderCount} />}
+              {tab === 'sources' && <LessonSources lesson={lesson} />}
             </div>
           </section>
-        )}
-
-        {status !== 'published' && (
+        ) : (
           <section aria-labelledby="lesson-sources-title">
             <h2 id="lesson-sources-title" className={ui.sectionTitle}>
               <span aria-hidden="true">📄 </span>Sources
             </h2>
-            <LessonSources transcript={lesson.transcript} canva={lesson.canva} aiModel={lesson.ai_model} />
+            <LessonSources lesson={lesson} />
           </section>
+        )}
+
+        {removal.pendingCount > 0 && (
+          <UndoToast
+            message={removal.pendingCount > 1 ? `${plural(removal.pendingCount, 'exercice')} supprimés` : 'Exercice supprimé'}
+            onUndo={removal.undo}
+            durationMs={UNDO_MS}
+          />
+        )}
+
+        {previewOpen && (
+          <PreviewLayer label={`Aperçu des exercices : ${lessonTitle(lesson)}`}>
+            <PracticePlayer preview exercises={exercises} title={lessonTitle(lesson)} onExit={closePreview} />
+          </PreviewLayer>
         )}
       </div>
     )
   }
 
   return (
-    <TeacherShell>
+    <>
       <Head>
         <title>{`${title} — Preply Lessons`}</title>
       </Head>
       <BackLink href={backLink.href} label={backLink.label} />
-      {loading && (
-        <span className="sr-only" role="status">
-          Chargement de la leçon…
-        </span>
-      )}
-      {(invalid || notFound || loadError) && <h1 className="sr-only">{title}</h1>}
       {body}
 
       <ConfirmDialog
-        open={confirm === 'regenerate'}
-        title="Régénérer la leçon ?"
-        message={
-          status === 'published'
-            ? "Le bilan et les exercices actuels seront remplacés par une nouvelle version, à partir de la même transcription et des mêmes notes. L'élève verra la nouvelle version."
-            : 'La génération va être relancée à partir de la transcription et des notes enregistrées.'
-        }
-        confirmLabel="Régénérer"
-        icon="🔄"
-        onConfirm={handleRegenerate}
+        open={confirm === 'unpublish'}
+        title="Retirer la leçon de l'espace élève ?"
+        message="L'élève ne la verra plus, ni ses exercices dans ses révisions. Ses résultats sont conservés : tu pourras la republier à tout moment."
+        confirmLabel="Retirer"
+        icon="🙈"
+        onConfirm={() => setHidden(true)}
         onCancel={() => setConfirm(null)}
       />
       <ConfirmDialog
@@ -561,6 +442,39 @@ export default function TeacherLessonPage() {
         onConfirm={handleDelete}
         onCancel={() => setConfirm(null)}
       />
-    </TeacherShell>
+    </>
   )
+}
+
+export default function TeacherLessonPage() {
+  const router = useRouter()
+  const { id, tab, duplicate } = router.query
+
+  // One-shot query params (?tab=results from the dashboard, ?duplicate=1 from the new lesson
+  // form) only seed LessonScreen's initial state, then leave the URL so a reload does not replay them.
+  useEffect(() => {
+    if (!router.isReady || (!tab && !duplicate)) return
+    router.replace({ pathname: router.pathname, query: { id } }, undefined, { shallow: true })
+  }, [router, id, tab, duplicate])
+
+  let content
+  if (!router.isReady) {
+    content = <LessonSkeleton />
+  } else if (!isValidId(id)) {
+    content = (
+      <PageState
+        icon="🔍"
+        headingLevel={1}
+        title="Leçon introuvable"
+        text="Ce lien ne correspond à aucune leçon."
+        link={{ href: '/teacher', label: 'Retour à mes élèves' }}
+      />
+    )
+  } else {
+    content = (
+      <LessonScreen key={id} id={id} initialTab={TAB_KEYS.includes(tab) ? tab : 'recap'} duplicate={duplicate === '1'} />
+    )
+  }
+
+  return <TeacherShell>{content}</TeacherShell>
 }

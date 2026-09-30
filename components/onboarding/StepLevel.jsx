@@ -68,7 +68,7 @@ export default function StepLevel({ value, onChange, onPick, autoFocus, disabled
               </span>
               <span className={styles.levelText}>
                 <span className={styles.levelTitle}>
-                  {option.code === 'unknown' ? null : <span className={styles.srOnly}>{option.code}, </span>}
+                  {option.code === 'unknown' ? null : <span className="sr-only">{option.code}, </span>}
                   {option.title}
                 </span>
                 <span className={styles.levelDesc}>{option.desc}</span>

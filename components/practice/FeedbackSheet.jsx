@@ -1,19 +1,9 @@
 import { forwardRef, useId } from 'react'
-import { splitBlank, cx } from '@/components/practice/utils'
+import { RichTextInline } from '@/components/lesson/RichText'
+import SpeakButton from '@/components/student/vocabulary/SpeakButton'
+import BlankSentence from '@/components/practice/BlankSentence'
+import { splitBlank, speakable, isLikelyFrench, cx } from '@/components/practice/utils'
 import styles from '@/components/practice/PracticePlayer.module.css'
-
-/** The full sentence with the right answer in place of ___, or null. */
-function SolvedSentence({ sentence, answer }) {
-  const parts = splitBlank(sentence)
-  if (!parts || !answer) return null
-  return (
-    <p className={styles.fbSentence}>
-      {parts[0]}
-      <strong className={styles.fbFill}>{answer}</strong>
-      {parts[1]}
-    </p>
-  )
-}
 
 /** Title text + tone for a graded answer (also used for the aria-live announcement). */
 export function describeFeedback(exercise, feedback) {
@@ -23,6 +13,7 @@ export function describeFeedback(exercise, feedback) {
       ? { tone: 'good', title: 'Perfect match!' }
       : { tone: 'warn', title: `All matched, with ${n} ${n === 1 ? 'mistake' : 'mistakes'}` }
   }
+  // grading.expected = the accepted answer closest to what was typed
   if (feedback.correct && feedback.accentWarning) {
     return { tone: 'good', title: 'Nice — watch the accents:', answer: feedback.expected }
   }
@@ -32,15 +23,20 @@ export function describeFeedback(exercise, feedback) {
 
 /**
  * Slides up over the bottom action bar after "Check".
- * The ref goes to the Continue button (focused by the player).
+ * The ref goes to the Continue button (focused by the player). `onContinue` gets the click
+ * event: Continue sits where Check was, so the player ignores the end of a double click.
  */
-const FeedbackSheet = forwardRef(function FeedbackSheet({ exercise, feedback, onContinue }, ref) {
+const FeedbackSheet = forwardRef(function FeedbackSheet({ exercise, feedback, onContinue, speech }, ref) {
   const titleId = useId()
   const bodyId = useId()
   const { tone, title, answer } = describeFeedback(exercise, feedback)
   const showExplanation = tone !== 'good' || feedback.accentWarning
   const explanation = showExplanation ? exercise.explanation : ''
-  const showSentence = tone === 'bad' || feedback.accentWarning
+  const parts = exercise.type === 'match' ? null : splitBlank(exercise.sentence)
+  // Fill-blank: always show (and read) the completed sentence; MCQ: only after a mistake
+  const isFill = exercise.type === 'fill_blank'
+  const solved = parts && feedback.expected && (isFill || tone === 'bad') ? parts : null
+  const answerLang = isFill || parts || isLikelyFrench(answer) ? 'fr' : undefined
 
   return (
     <div className={cx(styles.sheet, styles[`sheet_${tone}`])} role="region" aria-labelledby={titleId}>
@@ -55,20 +51,36 @@ const FeedbackSheet = forwardRef(function FeedbackSheet({ exercise, feedback, on
               {answer && (
                 <>
                   {' '}
-                  <span className={styles.fbAnswer} lang="fr">{answer}</span>
+                  <RichTextInline text={answer} className={styles.fbAnswer} lang={answerLang} />
                 </>
               )}
             </h2>
           </div>
           <div id={bodyId} className={styles.fbBody}>
-            {showSentence && exercise.type !== 'match' && (
-              <SolvedSentence sentence={exercise.sentence} answer={answer} />
+            {solved && (
+              <div className={styles.fbSentenceRow}>
+                <BlankSentence parts={solved} className={styles.fbSentence}>
+                  <strong className={styles.fbFill}>{feedback.expected}</strong>
+                </BlankSentence>
+                {isFill && (
+                  <SpeakButton
+                    speech={speech}
+                    text={speakable(exercise.sentence, feedback.expected)}
+                    speakKey={`fill-${exercise.id}`}
+                    className={styles.fbListen}
+                  />
+                )}
+              </div>
             )}
             {exercise.type === 'match' && !feedback.correct && (
               <p className={styles.fbText}>You got there! Only a perfect first try counts for your score.</p>
             )}
-            {explanation && <p className={styles.fbText}>{explanation}</p>}
-            {tone === 'bad' && <p className={styles.fbNote}>You&apos;ll see this one again at the end.</p>}
+            {explanation && (
+              <p className={styles.fbText}>
+                <RichTextInline text={explanation} />
+              </p>
+            )}
+            {tone === 'bad' && <p className={styles.fbNote}>You’ll see this one again at the end.</p>}
           </div>
         </div>
         <button

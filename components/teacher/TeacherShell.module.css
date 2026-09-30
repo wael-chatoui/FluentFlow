@@ -3,18 +3,18 @@
   padding: 0.15rem 0.55rem;
   border-radius: 999px;
   background: var(--st-blue-bg);
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
   font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-/* Account popover, anchored under the avatar (top-right of the top bar) */
+/* Account menu, anchored under the avatar (rendered right after it by Shell) */
 .menu {
-  position: fixed;
-  top: 70px;
-  right: max(1rem, calc((100vw - 1080px) / 2 + 1rem));
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
   z-index: 50;
   min-width: 240px;
   max-width: calc(100vw - 2rem);
@@ -23,7 +23,7 @@
   border: 2px solid var(--st-line);
   border-bottom-width: 4px;
   border-radius: var(--st-radius);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--st-shadow-pop);
   animation: pop 150ms ease-out;
 }
 
@@ -49,25 +49,26 @@
   width: 100%;
   min-height: 44px;
   padding: 0 0.75rem;
-  border: none;
   border-radius: 12px;
-  background: none;
-  color: var(--st-red-dark);
-  font: inherit;
+  color: var(--st-red-ink);
   font-weight: 800;
-  text-align: left;
-  cursor: pointer;
+  text-decoration: none;
+}
+
+.menuItem:link,
+.menuItem:visited,
+.menuItem:hover {
+  color: var(--st-red-ink);
 }
 
 .menuItem:hover,
-.menuItem:focus-visible {
+.menuItem:focus {
   background: var(--st-red-bg);
-  outline: none;
 }
 
-.menuItem:disabled {
-  opacity: 0.6;
-  cursor: wait;
+.menuItem:focus-visible {
+  outline: 3px solid var(--st-focus);
+  outline-offset: -3px;
 }
 
 @keyframes pop {

@@ -41,13 +41,13 @@
 }
 
 .dirBtn:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 1px;
 }
 
 .dirActive {
   background: var(--st-surface);
-  color: var(--st-purple-dark);
+  color: var(--st-purple-ink);
   box-shadow: 0 2px 0 #d0d0d0;
 }
 
@@ -113,7 +113,7 @@
 }
 
 .card:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 4px;
 }
 
@@ -181,7 +181,7 @@
 
 .back .faceLabel {
   background: rgba(255, 255, 255, 0.75);
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
 }
 
 .faceText {
@@ -224,7 +224,7 @@
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #b0b0b0;
+  color: var(--st-ink-soft);
 }
 
 .stamp {
@@ -244,13 +244,13 @@
 
 .stampAgain {
   right: 1rem;
-  color: var(--st-red);
+  color: var(--st-red-ink);
   transform: rotate(8deg);
 }
 
 .stampGot {
   left: 1rem;
-  color: var(--st-green-dark);
+  color: var(--st-green-ink);
   transform: rotate(-8deg);
 }
 
@@ -360,7 +360,7 @@
 }
 
 .endScore strong {
-  color: var(--st-green-dark);
+  color: var(--st-green-ink);
   font-weight: 900;
 }
 

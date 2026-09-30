@@ -2,7 +2,8 @@
    Student area — design tokens + shared UI primitives
    Playful, Duolingo-like: bright colors, chunky "3D" buttons, rounded cards.
    Tokens (--st-*) are global (styles/tokens.css); .theme applies the app
-   background + text color to a page root.
+   background + text color to a page root. Colored buttons use the -strong
+   fills so their white labels stay readable (WCAG AA ≥ 4.5:1).
    ============================================ */
 
 .theme {
@@ -60,28 +61,28 @@
 }
 
 .btn:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
 }
 
 .btn:disabled,
 .btn[aria-disabled='true'] {
-  --btn-bg: var(--st-line);
-  --btn-edge: #d0d0d0;
-  --btn-fg: #afafaf;
+  --btn-bg: var(--st-disabled-bg);
+  --btn-edge: var(--st-disabled-edge);
+  --btn-fg: var(--st-disabled-fg);
   cursor: not-allowed;
   transform: none;
   filter: none;
 }
 
-.green { --btn-bg: var(--st-green); --btn-edge: var(--st-green-dark); --btn-fg: #fff; }
-.blue { --btn-bg: var(--st-blue); --btn-edge: var(--st-blue-dark); --btn-fg: #fff; }
-.orange { --btn-bg: var(--st-orange); --btn-edge: var(--st-orange-dark); --btn-fg: #fff; }
-.red { --btn-bg: var(--st-red); --btn-edge: var(--st-red-dark); --btn-fg: #fff; }
-.purple { --btn-bg: var(--st-purple); --btn-edge: var(--st-purple-dark); --btn-fg: #fff; }
-.pink { --btn-bg: var(--st-pink); --btn-edge: var(--st-pink-dark); --btn-fg: #fff; }
+.green { --btn-bg: var(--st-green-strong); --btn-edge: var(--st-green-strong-dark); --btn-fg: var(--st-on-color); }
+.blue { --btn-bg: var(--st-blue-strong); --btn-edge: var(--st-blue-strong-dark); --btn-fg: var(--st-on-color); }
+.orange { --btn-bg: var(--st-orange-strong); --btn-edge: var(--st-orange-strong-dark); --btn-fg: var(--st-on-color); }
+.red { --btn-bg: var(--st-red-strong); --btn-edge: var(--st-red-strong-dark); --btn-fg: var(--st-on-color); }
+.purple { --btn-bg: var(--st-purple-strong); --btn-edge: var(--st-purple-strong-dark); --btn-fg: var(--st-on-color); }
+.pink { --btn-bg: var(--st-pink-strong); --btn-edge: var(--st-pink-strong-dark); --btn-fg: var(--st-on-color); }
 /* Outlined: white with colored text */
-.ghost { --btn-bg: var(--st-surface); --btn-edge: var(--st-line); --btn-fg: var(--st-blue); }
+.ghost { --btn-bg: var(--st-surface); --btn-edge: var(--st-line); --btn-fg: var(--st-blue-ink); }
 
 .block { width: 100%; }
 .small { min-height: 40px; padding: 0.5rem 0.9rem; font-size: 0.8rem; border-radius: 12px; }
@@ -119,7 +120,7 @@
 .skel {
   display: block;
   border-radius: 10px;
-  background: linear-gradient(90deg, #ececec 25%, #f5f5f5 37%, #ececec 63%);
+  background: linear-gradient(90deg, var(--st-skeleton) 25%, var(--st-skeleton-hi) 37%, var(--st-skeleton) 63%);
   background-size: 400% 100%;
   animation: shimmer 1.4s ease infinite;
 }

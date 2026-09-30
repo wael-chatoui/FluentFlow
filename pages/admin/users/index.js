@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/router'
+import { useEffect, useId, useRef, useState } from 'react'
+import Link from 'next/link'
 import AdminShell from '@/components/admin/AdminShell'
+import CopyLink from '@/components/admin/common/CopyLink'
 import DataTable from '@/components/admin/common/DataTable'
 import Pagination from '@/components/admin/common/Pagination'
 import SearchInput from '@/components/admin/common/SearchInput'
@@ -11,7 +12,6 @@ import { ToastViewport, useToast } from '@/components/admin/common/Toast'
 import useAdminQuery from '@/components/admin/common/useAdminQuery'
 import {
   cx,
-  displayName,
   formatDate,
   formatDateTime,
   formatNumber,
@@ -19,38 +19,25 @@ import {
   initialsOf,
   isAbortError,
 } from '@/components/admin/common/format'
+import useUrlQuery, { toPage, toQueryString } from '@/components/admin/tables/useUrlQuery'
 import { api } from '@/utils/apiClient'
 import ui from '@/components/ui/ui.module.css'
 import s from '@/components/admin/common/admin.module.css'
 import u from '@/components/admin/common/users.module.css'
 
 const PER_PAGE = 50
-const ROLES = ['all', 'student', 'teacher', 'admin']
+const DEFAULTS = { q: '', role: 'all', sort: '', dir: '', page: '1' }
 const ROLE_OPTIONS = [
   { value: 'all', label: 'Tous' },
   { value: 'student', label: 'Élèves' },
   { value: 'teacher', label: 'Profs' },
   { value: 'admin', label: 'Admins' },
+  { value: 'pending', label: 'En attente' },
 ]
+const ROLES = ROLE_OPTIONS.map((o) => o.value)
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-// Values used for client-side sorting of the current page
-const SORT_VALUE = {
-  full_name: (r) => displayName(r).toLocaleLowerCase('fr'),
-  email: (r) => (r.email || '').toLowerCase(),
-  role: (r) => `${r.is_admin ? 0 : 1}${r.role || ''}`,
-  level: (r) => (r.level && r.level !== 'unknown' ? r.level : 'ZZ'),
-  onboarded_at: (r) => r.onboarded_at || '',
-  lesson_count: (r) => Number(r.lesson_count) || 0,
-  session_count: (r) => Number(r.session_count) || 0,
-  created_at: (r) => r.created_at || '',
-  last_sign_in_at: (r) => r.last_sign_in_at || '',
-}
+// Dates and counts: the first click sorts newest / biggest first
 const DESC_FIRST = new Set(['onboarded_at', 'lesson_count', 'session_count', 'created_at', 'last_sign_in_at'])
-
-function firstParam(v) {
-  return Array.isArray(v) ? v[0] : v
-}
 
 const COLUMNS = [
   {
@@ -66,7 +53,7 @@ const COLUMNS = [
       </span>
     ),
   },
-  { key: 'email', label: 'Email', render: (r) => <span style={{ overflowWrap: 'anywhere' }}>{r.email || '—'}</span> },
+  { key: 'email', label: 'E-mail', render: (r) => <span style={{ overflowWrap: 'anywhere' }}>{r.email || '—'}</span> },
   { key: 'role', label: 'Rôle', render: (r) => <UserRolePills user={r} /> },
   {
     key: 'level',
@@ -116,18 +103,20 @@ const COLUMNS = [
   },
 ]
 
-const EMPTY_INVITE = { email: '', fullName: '', role: 'student', isAdmin: false }
+const EMPTY_INVITE = { email: '', fullName: '', role: 'student', isAdmin: false, sendEmail: false }
 
 function InviteModal({ open, onClose, onInvited }) {
   const toast = useToast()
   const uid = useId()
   const emailRef = useRef(null)
+  const doneRef = useRef(null)
   const controllerRef = useRef(null)
   const mounted = useRef(true)
   const [values, setValues] = useState(EMPTY_INVITE)
   const [touched, setTouched] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
+  const [created, setCreated] = useState(null) // { user, link } once the account exists
 
   useEffect(() => {
     mounted.current = true
@@ -137,16 +126,23 @@ function InviteModal({ open, onClose, onInvited }) {
     }
   }, [])
 
+  // Reset on close (not on open): reopening must never show the previous link, even for a frame
   useEffect(() => {
-    if (open) {
+    if (!open) {
       setValues(EMPTY_INVITE)
       setTouched(false)
       setError(null)
+      setCreated(null)
     }
   }, [open])
 
+  // The link view replaces the form: move the focus to it
+  useEffect(() => {
+    if (created) requestAnimationFrame(() => doneRef.current?.focus())
+  }, [created])
+
   const email = values.email.trim()
-  const emailError = !email ? "L'email est obligatoire." : EMAIL_RE.test(email) ? null : 'Adresse email invalide.'
+  const emailError = !email ? 'L’e-mail est obligatoire.' : EMAIL_RE.test(email) ? null : 'Adresse e-mail invalide.'
   const showEmailError = touched && Boolean(emailError)
   const formId = `${uid}-form`
   const id = (name) => `${uid}-${name}`
@@ -170,26 +166,63 @@ function InviteModal({ open, onClose, onInvited }) {
     setBusy(true)
     setError(null)
     try {
-      await api('/api/admin/users', {
+      const res = await api('/api/admin/users', {
         method: 'POST',
         body: {
           email,
           fullName: values.fullName.trim() || undefined,
           role: values.role,
           isAdmin: values.isAdmin,
+          sendEmail: values.sendEmail,
         },
         signal: controller.signal,
       })
       if (!mounted.current) return
-      toast.success(`Invitation envoyée à ${email}`)
       onInvited?.()
-      onClose()
+      if (res.link) {
+        setCreated({ user: res.user, link: res.link })
+      } else {
+        toast.success(`Invitation envoyée par e-mail à ${email}`)
+        onClose()
+      }
     } catch (err) {
       if (isAbortError(err) || !mounted.current) return
       setError(err.message || "L'invitation a échoué.")
     } finally {
       if (mounted.current) setBusy(false)
     }
+  }
+
+  if (created) {
+    return (
+      <Modal
+        open={open}
+        title="Compte créé"
+        icon="✅"
+        onClose={onClose}
+        initialFocusRef={doneRef}
+        actions={
+          <>
+            <Link href={`/admin/users/${created.user.id}`} className={cx(ui.btn, s.tap)} onClick={onClose}>
+              Voir la fiche
+            </Link>
+            <button ref={doneRef} type="button" className={cx(ui.btn, ui.green, s.tap)} onClick={onClose}>
+              Terminé
+            </button>
+          </>
+        }
+      >
+        <p style={{ margin: 0 }}>
+          Envoie ce lien à <strong>{created.user.email}</strong> (par exemple dans le chat Preply) : il ouvre son compte
+          sans mot de passe.
+        </p>
+        <CopyLink
+          link={created.link}
+          label="Lien d’invitation"
+          hint="Lien personnel à usage unique. S’il expire, génère-en un nouveau depuis sa fiche (« Copier un lien de connexion »)."
+        />
+      </Modal>
+    )
   }
 
   return (
@@ -207,20 +240,21 @@ function InviteModal({ open, onClose, onInvited }) {
           </button>
           <button type="submit" form={formId} className={cx(ui.btn, ui.green, s.tap)} disabled={busy} aria-busy={busy || undefined}>
             {busy && <span className={s.spinner} aria-hidden="true" />}
-            {busy ? 'Envoi…' : "Envoyer l'invitation"}
+            {busy ? 'Création…' : values.sendEmail ? "Envoyer l'invitation" : 'Créer le compte'}
           </button>
         </>
       }
     >
       <p style={{ margin: 0 }}>
-        La personne recevra un email pour choisir son mot de passe et accéder à la plateforme.
+        L’accès se fait sur invitation, sans mot de passe : la personne se connecte avec Google ou un lien reçu par
+        e-mail.
       </p>
       <form id={formId} className={u.inviteForm} onSubmit={handleSubmit} noValidate>
         <fieldset className={u.fieldset} disabled={busy}>
           <legend className="sr-only">Nouvel utilisateur</legend>
           <div className={s.field}>
             <label htmlFor={id('email')} className={s.label}>
-              Email
+              E-mail
             </label>
             <input
               ref={emailRef}
@@ -263,15 +297,37 @@ function InviteModal({ open, onClose, onInvited }) {
             <label htmlFor={id('role')} className={s.label}>
               Rôle
             </label>
-            <select id={id('role')} className={cx(s.input, s.select)} value={values.role} onChange={set('role')}>
+            <select
+              id={id('role')}
+              className={cx(s.input, s.select)}
+              value={values.role}
+              onChange={set('role')}
+              aria-describedby={id('role-hint')}
+            >
               <option value="student">Élève</option>
               <option value="teacher">Prof</option>
             </select>
+            <p id={id('role-hint')} className={s.hint}>
+              {values.role === 'teacher'
+                ? 'Un prof voit les leçons, les profils et les notes privées de tous les élèves.'
+                : 'Un élève voit uniquement ses propres leçons.'}
+            </p>
           </div>
           <label className={s.check}>
             <input type="checkbox" checked={values.isAdmin} onChange={set('isAdmin')} />
             <span>Accès au back office (admin)</span>
           </label>
+          <div className={s.field}>
+            <label className={s.check}>
+              <input type="checkbox" checked={values.sendEmail} onChange={set('sendEmail')} aria-describedby={id('send-hint')} />
+              <span>Envoyer l’invitation par e-mail</span>
+            </label>
+            <p id={id('send-hint')} className={s.hint}>
+              {values.sendEmail
+                ? 'Supabase envoie l’e-mail d’invitation (quelques envois par heure avec le serveur d’e-mails par défaut).'
+                : 'Sinon, un lien à usage unique s’affiche : envoie-le toi-même (par exemple dans le chat Preply).'}
+            </p>
+          </div>
         </fieldset>
         {error && (
           <div className={s.alert} role="alert">
@@ -285,64 +341,32 @@ function InviteModal({ open, onClose, onInvited }) {
 }
 
 export default function AdminUsers() {
-  const router = useRouter()
   const [inviteOpen, setInviteOpen] = useState(false)
-  const [sort, setSort] = useState(null)
+  const { ready, params, setParams } = useUrlQuery(DEFAULTS)
+  const q = params.q.trim()
+  const role = ROLES.includes(params.role) ? params.role : 'all'
+  const page = toPage(params.page)
+  const sortKey = COLUMNS.some((c) => c.key === params.sort) ? params.sort : ''
+  const dir = params.dir === 'asc' || params.dir === 'desc' ? params.dir : ''
 
-  const q = router.isReady ? (firstParam(router.query.q) || '').trim() : ''
-  const roleParam = firstParam(router.query.role)
-  const role = ROLES.includes(roleParam) ? roleParam : 'all'
-  const page = Math.max(1, parseInt(firstParam(router.query.page), 10) || 1)
-
-  const url = useMemo(() => {
-    if (!router.isReady) return null
-    const params = new URLSearchParams({ role, page: String(page), perPage: String(PER_PAGE) })
-    if (q) params.set('q', q)
-    return `/api/admin/users?${params}`
-  }, [router.isReady, q, role, page])
-
+  const url = ready
+    ? `/api/admin/users${toQueryString({ q, role: role === 'all' ? '' : role, sort: sortKey, dir: sortKey ? dir : '', page, perPage: PER_PAGE })}`
+    : null
   const { data, error, loading, reload } = useAdminQuery(url)
 
-  const setParams = useCallback(
-    (patch) => {
-      const next = { q, role, page, ...patch }
-      const query = {}
-      if (next.q) query.q = next.q
-      if (next.role && next.role !== 'all') query.role = next.role
-      if (next.page > 1) query.page = String(next.page)
-      router.replace({ pathname: router.pathname, query }, undefined, { shallow: true, scroll: false })
-    },
-    [router, q, role, page]
-  )
-
-  // Out-of-range page (e.g. after deletions) → back to the last page
+  // The server clamps a page past the end (e.g. after deletions): follow it
   useEffect(() => {
-    if (!data || loading || page === 1) return
-    const lastPage = Math.max(1, Math.ceil((data.total || 0) / PER_PAGE))
-    if (page > lastPage) setParams({ page: lastPage })
-  }, [data, loading, page, setParams])
+    if (data?.page && data.page !== page && !loading && !error) setParams({ page: String(data.page) })
+  }, [data, page, loading, error, setParams])
 
-  const rows = useMemo(() => {
-    const list = Array.isArray(data?.users) ? data.users : []
-    if (!sort || !SORT_VALUE[sort.key]) return list
-    const get = SORT_VALUE[sort.key]
-    const factor = sort.dir === 'asc' ? 1 : -1
-    return [...list].sort((a, b) => {
-      const va = get(a)
-      const vb = get(b)
-      if (va < vb) return -1 * factor
-      if (va > vb) return 1 * factor
-      return 0
-    })
-  }, [data, sort])
-
+  // Shown sort: the server default is « newest first »
+  const sort = sortKey ? { key: sortKey, dir: dir || (DESC_FIRST.has(sortKey) ? 'desc' : 'asc') } : { key: 'created_at', dir: 'desc' }
   const handleSort = (key) => {
-    setSort((prev) => {
-      if (prev?.key === key) return { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
-      return { key, dir: DESC_FIRST.has(key) ? 'desc' : 'asc' }
-    })
+    const nextDir = sort.key === key ? (sort.dir === 'asc' ? 'desc' : 'asc') : DESC_FIRST.has(key) ? 'desc' : 'asc'
+    setParams({ sort: key, dir: nextDir, page: '1' })
   }
 
+  const rows = Array.isArray(data?.users) ? data.users : []
   const hasFilters = Boolean(q) || role !== 'all'
 
   return (
@@ -358,14 +382,14 @@ export default function AdminUsers() {
 
       <div className={s.toolbar}>
         <SearchInput
-          value={q}
-          onChange={(value) => setParams({ q: value, page: 1 })}
-          placeholder="Rechercher par nom ou email…"
+          value={params.q}
+          onChange={(value) => setParams({ q: value, page: '1' })}
+          placeholder="Rechercher par nom ou e-mail…"
         />
         <FilterChips
           options={ROLE_OPTIONS}
           value={role}
-          onChange={(value) => setParams({ role: value, page: 1 })}
+          onChange={(value) => setParams({ role: value, page: '1' })}
           label="Filtrer par rôle"
         />
       </div>
@@ -385,7 +409,7 @@ export default function AdminUsers() {
           <DataTable
             columns={COLUMNS}
             rows={rows}
-            loading={loading || !router.isReady}
+            loading={loading || !ready}
             sort={sort}
             onSort={handleSort}
             rowHref={(r) => `/admin/users/${r.id}`}
@@ -400,7 +424,7 @@ export default function AdminUsers() {
                   <button
                     type="button"
                     className={cx(ui.btn, ui.small, s.tap, s.blueGhost)}
-                    onClick={() => setParams({ q: '', role: 'all', page: 1 })}
+                    onClick={() => setParams({ q: '', role: 'all', page: '1' })}
                     style={{ marginTop: '0.5rem' }}
                   >
                     Effacer les filtres
@@ -415,7 +439,7 @@ export default function AdminUsers() {
               perPage={PER_PAGE}
               total={data.total || 0}
               onPage={(p) => {
-                setParams({ page: p })
+                setParams({ page: String(p) })
                 if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
               }}
               disabled={loading}

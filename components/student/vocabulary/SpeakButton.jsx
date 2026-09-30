@@ -1,7 +1,7 @@
 import styles from '@/components/student/vocabulary/Vocabulary.module.css'
 
 /**
- * Round "listen" button. Renders nothing when speech isn't supported.
+ * Round "listen" button. Renders nothing without a French voice (see useFrenchSpeech).
  * @param {{ speech: { supported: boolean, speak: Function, speakingKey: string|null },
  *   text: string, speakKey?: string, className?: string }} props
  */

@@ -12,17 +12,18 @@ function scoreStyle(pct) {
 }
 
 function masteryMessage(pct) {
-  if (pct === null) return 'Practise a lesson to see your mastery.'
+  if (pct === null) return 'Practice a lesson to see your mastery.'
   if (pct === 100) return 'Perfect — you’ve mastered everything!'
   if (pct >= 80) return 'Excellent! You know your lessons well.'
-  if (pct >= 50) return 'Good progress — keep practising!'
+  if (pct >= 50) return 'Good progress — keep practicing!'
   return 'Every practice makes it stick. Keep going!'
 }
 
 /**
  * Progress only (no streaks / XP): overall mastery, lessons + words counts,
  * and a small bar chart of best scores.
- * @param {{ stats: { lessons: number, practised: number, mastery: number|null, words: number }, history: object[] }} props
+ * @param {{ stats: { lessons: number, mastery: number|null, words: number }, history: object[] }} props
+ *   words = distinct words & expressions (same number as the Words page)
  */
 export default function ProgressCard({ stats, history }) {
   const titleId = useId()
@@ -70,7 +71,7 @@ export default function ProgressCard({ stats, history }) {
           Your scores
         </h3>
         {history.length === 0 ? (
-          <p className={styles.chartEmpty}>Your best scores will show up here after you practise.</p>
+          <p className={styles.chartEmpty}>Your best scores will show up here after you practice.</p>
         ) : (
           <ol className={styles.chart} aria-labelledby={chartId} aria-describedby={`${chartId}-desc`}>
             {history.map((lesson) => {

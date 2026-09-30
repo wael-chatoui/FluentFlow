@@ -16,7 +16,7 @@
   height: 40px;
   border-radius: 12px;
   background: var(--st-yellow-bg);
-  border: 2px solid #ffe38a;
+  border: 2px solid var(--st-yellow-line);
   font-size: 1.2rem;
   line-height: 1;
 }
@@ -44,32 +44,32 @@
   display: inline-flex;
   align-items: center;
   min-height: 24px;
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
   font-weight: 900;
   text-decoration: none;
   overflow-wrap: anywhere;
 }
 
 .link:hover {
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
   text-decoration: underline;
 }
 
 .link:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
   border-radius: 6px;
 }
 
 .none {
   font-weight: 700;
-  color: #afafaf;
+  color: var(--st-ink-soft);
 }
 
 .saved {
   font-size: 0.85rem;
   font-weight: 900;
-  color: var(--st-green-dark);
+  color: var(--st-green-ink);
 }
 
 .saved:empty {
@@ -118,7 +118,7 @@
 
 .error {
   font-weight: 800;
-  color: var(--st-red-dark);
+  color: var(--st-red-ink);
 }
 
 @media (min-width: 640px) {

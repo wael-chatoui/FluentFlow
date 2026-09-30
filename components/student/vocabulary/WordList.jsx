@@ -1,9 +1,16 @@
 import { useMemo } from 'react'
+import Link from 'next/link'
 import { accentStyle } from '@/components/ui/accents'
 import { formatLessonDate, plural } from '@/components/lesson/format'
+import { RichTextInline } from '@/components/lesson/RichText'
+import { plainText } from '@/components/practice/utils'
 import SpeakButton from '@/components/student/vocabulary/SpeakButton'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/vocabulary/Vocabulary.module.css'
+
+// Where a word comes from: its section of the lesson recap (anchors set by LessonView)
+const sectionHref = (lessonId, kind) =>
+  `/student/lessons/${encodeURIComponent(lessonId)}#recap-${kind === 'expression' ? 'expressions' : 'vocabulary'}`
 
 function groupByLesson(items) {
   const groups = []
@@ -21,38 +28,50 @@ function groupByLesson(items) {
   return groups
 }
 
+// Recap fields may highlight a key word with **…** (shown as a highlight, never raw)
 function WordItem({ item, speech, showLesson }) {
   return (
     <li className={styles.item} style={showLesson ? accentStyle(item.lessonId) : undefined}>
       <div className={styles.itemMain}>
         <p className={styles.itemFr} lang="fr">
-          {item.fr}
+          <RichTextInline text={item.fr} />
           {item.kind === 'expression' && <span className={styles.kindTag}>expression</span>}
         </p>
-        {item.en && <p className={styles.itemEn}>{item.en}</p>}
+        {item.en && (
+          <p className={styles.itemEn}>
+            <RichTextInline text={item.en} />
+          </p>
+        )}
         {item.example && (
           <p className={styles.itemExample} lang="fr">
-            {item.example}
+            <RichTextInline text={item.example} />
           </p>
         )}
         {showLesson && item.lessonTitle && (
           <p className={styles.itemLesson}>
             <span className={styles.itemLessonDot} aria-hidden="true" />
-            {item.lessonTitle}
+            {item.lessonId ? (
+              <Link href={sectionHref(item.lessonId, item.kind)} className={styles.lessonLink}>
+                {item.lessonTitle}
+              </Link>
+            ) : (
+              item.lessonTitle
+            )}
           </p>
         )}
       </div>
-      <SpeakButton speech={speech} text={item.fr} speakKey={item.key} />
+      <SpeakButton speech={speech} text={plainText(item.fr)} speakKey={item.key} />
     </li>
   )
 }
 
 /**
  * Word bank list. Grouped by lesson (newest first), or flat when `flat`
- * (search results), where each item shows its lesson instead.
- * @param {{ items: object[], flat: boolean, speech: object }} props
+ * (search results), where each item shows its lesson instead. Lesson names link
+ * to the lesson's recap; each group can start flashcards with its own words.
+ * @param {{ items: object[], flat: boolean, speech: object, onPracticeLesson: (lessonId: string) => void }} props
  */
-export default function WordList({ items, flat, speech }) {
+export default function WordList({ items, flat, speech, onPracticeLesson }) {
   const groups = useMemo(() => (flat ? [] : groupByLesson(items)), [items, flat])
 
   if (flat) {
@@ -74,13 +93,31 @@ export default function WordList({ items, flat, speech }) {
             <header className={styles.groupHead}>
               <span className={styles.groupDot} aria-hidden="true" />
               <div className={styles.groupHeadText}>
-                <h2 className={styles.groupTitle}>{g.title}</h2>
+                <h2 className={styles.groupTitle}>
+                  {g.lessonId ? (
+                    <Link href={sectionHref(g.lessonId, 'word')} className={styles.lessonLink}>
+                      {g.title}
+                    </Link>
+                  ) : (
+                    g.title
+                  )}
+                </h2>
                 <p className={styles.groupMeta}>
                   {date && <time dateTime={g.date}>{date}</time>}
                   {date && ' · '}
                   {plural(g.items.length, 'item')}
                 </p>
               </div>
+              {g.lessonId && g.items.length > 1 && onPracticeLesson && (
+                <button
+                  type="button"
+                  className={`${ui.btn} ${ui.small} ${ui.ghost} ${styles.groupPractice}`}
+                  onClick={() => onPracticeLesson(g.lessonId)}
+                  aria-label={`Practice these words with flashcards: ${g.title}`}
+                >
+                  <span aria-hidden="true">🃏</span> Practice these words
+                </button>
+              )}
             </header>
             <ul className={styles.items}>
               {g.items.map((item) => (

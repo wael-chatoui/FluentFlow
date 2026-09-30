@@ -1,0 +1,185 @@
+/* Exercise options of the import page: stepper, type toggles, AI instructions. */
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  min-width: 0;
+}
+
+.field {
+  min-width: 0;
+}
+
+/* ---- Count stepper ---- */
+.stepper {
+  display: flex;
+  align-items: stretch;
+  gap: 0.5rem;
+  max-width: 260px;
+}
+
+.stepBtn {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  min-height: 50px;
+  border: 2px solid var(--st-line);
+  border-bottom-width: 4px;
+  border-radius: var(--st-radius);
+  background: var(--st-surface);
+  color: var(--st-orange-ink);
+  font: inherit;
+  font-size: 1.6rem;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 80ms ease;
+}
+
+.stepBtn:hover:not(:disabled) {
+  background: var(--st-orange-bg);
+  border-color: var(--st-orange-line);
+}
+
+.stepBtn:active:not(:disabled) {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+}
+
+.stepBtn:focus-visible {
+  outline: 3px solid var(--st-focus);
+  outline-offset: 2px;
+}
+
+.stepBtn:disabled {
+  color: var(--st-disabled-fg);
+  cursor: not-allowed;
+}
+
+input.countInput {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: 1.25rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+}
+
+.countInput::-webkit-outer-spin-button,
+.countInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* ---- Type toggles ---- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 100%;
+  min-height: 48px;
+  padding: 0.3rem 1rem 0.3rem 0.4rem;
+  border: 2px solid var(--st-line);
+  border-bottom-width: 4px;
+  border-radius: 999px;
+  background: var(--st-surface);
+  color: var(--st-ink);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 150ms ease, border-color 150ms ease, transform 80ms ease;
+}
+
+.chip:hover:not(:disabled) {
+  background: var(--st-bg);
+}
+
+.chip:active:not(:disabled) {
+  transform: translateY(2px);
+}
+
+.chip:focus-visible {
+  outline: 3px solid var(--st-focus);
+  outline-offset: 2px;
+}
+
+.chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.chipCheck {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--st-bg);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.chipOn,
+.chipOn:hover:not(:disabled) {
+  background: var(--st-orange-bg);
+  border-color: var(--st-orange);
+  border-bottom-color: var(--st-orange-dark);
+  color: var(--st-orange-ink);
+}
+
+.chipOn .chipCheck {
+  background: var(--st-orange-strong);
+  color: var(--st-on-color);
+  font-weight: 900;
+}
+
+/* ---- Instructions ---- */
+.labelRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+}
+
+.counter {
+  margin-bottom: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--st-ink-soft);
+}
+
+.counterOver {
+  color: var(--st-red-ink);
+}
+
+textarea.instructions {
+  min-height: 96px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stepBtn,
+  .chip {
+    transition: none;
+  }
+
+  .stepBtn:active:not(:disabled),
+  .chip:active:not(:disabled) {
+    transform: none;
+  }
+}

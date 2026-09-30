@@ -1,0 +1,80 @@
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.lead {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--st-ink-soft);
+}
+
+.lead strong {
+  color: var(--st-ink);
+}
+
+.fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  padding: 0.75rem 0.9rem;
+  border: 2px solid var(--st-line);
+  border-radius: var(--st-radius);
+  cursor: pointer;
+}
+
+.check input {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 0.1rem 0 0;
+  accent-color: var(--st-blue-dark);
+}
+
+.check input:focus-visible {
+  outline: 3px solid var(--st-focus);
+  outline-offset: 2px;
+}
+
+.check > span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.checkTitle {
+  font-weight: 900;
+}
+
+.checkHint {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--st-ink-soft);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+@media (max-width: 519px) {
+  .actions > * {
+    flex: 1 1 auto;
+  }
+}

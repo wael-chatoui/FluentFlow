@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { shuffle, cx } from '@/components/practice/utils'
+import { RichTextInline } from '@/components/lesson/RichText'
+import SpeakButton from '@/components/student/vocabulary/SpeakButton'
+import { shuffle, plainText, cx } from '@/components/practice/utils'
 import styles from '@/components/practice/Exercises.module.css'
 import { playSound } from '@/utils/sound'
 
@@ -18,11 +20,12 @@ function shuffledColumns(pairs) {
 
 /**
  * Match French ↔ English. Correct pairs lock; wrong pairs flash and count a mistake.
- * Calls onDone({ mistakes }) once, when every pair is matched.
+ * Calls onDone({ mistakes }) once, when every pair is matched. French tiles get a
+ * listen button when French speech is available.
  * The columns are shuffled once per mount, in a state initializer: this component
  * is only ever rendered on the client (inside the practice player).
  */
-export default function MatchExercise({ exercise, onDone, disabled }) {
+export default function MatchExercise({ exercise, onDone, disabled, speech }) {
   const [columns] = useState(() => shuffledColumns(exercise.pairs))
   const [selLeft, setSelLeft] = useState(null)
   const [selRight, setSelRight] = useState(null)
@@ -45,6 +48,7 @@ export default function MatchExercise({ exercise, onDone, disabled }) {
   }
 
   const total = exercise.pairs.length
+  const listen = Boolean(speech?.supported)
 
   const evaluate = (l, r) => {
     setSelLeft(null)
@@ -54,7 +58,7 @@ export default function MatchExercise({ exercise, onDone, disabled }) {
       next.add(l)
       setMatched(next)
       if (next.size < total) playSound('pair')
-      setAnnounce(`Match: ${exercise.pairs[l].fr} — ${exercise.pairs[l].en}.`)
+      setAnnounce(`Match: ${plainText(exercise.pairs[l].fr)} — ${plainText(exercise.pairs[l].en)}.`)
       if (next.size === total && !doneRef.current) {
         doneRef.current = true
         later(() => onDoneRef.current({ mistakes: mistakesRef.current }), DONE_DELAY_MS)
@@ -86,12 +90,14 @@ export default function MatchExercise({ exercise, onDone, disabled }) {
     const isMatched = matched.has(item.i)
     const isSelected = side === 'left' ? selLeft === item.i : selRight === item.i
     const isWrong = wrong && (side === 'left' ? wrong.l === item.i : wrong.r === item.i)
+    const withListen = side === 'left' && listen
     return (
-      <li key={`${side}-${item.i}`}>
+      <li key={`${side}-${item.i}`} className={styles.tileSlot}>
         <button
           type="button"
           className={cx(
             styles.tile,
+            withListen && styles.tileWithListen,
             isSelected && styles.tileSelected,
             isWrong && styles.tileWrong,
             isMatched && styles.tileMatched
@@ -102,9 +108,22 @@ export default function MatchExercise({ exercise, onDone, disabled }) {
           onClick={() => tap(side, item.i)}
           lang={side === 'left' ? 'fr' : 'en'}
         >
-          {item.text}
-          {isMatched && <span className="sr-only"> (matched)</span>}
+          <RichTextInline text={item.text} />
+          {isMatched && (
+            <span className="sr-only" lang="en">
+              {' '}
+              (matched)
+            </span>
+          )}
         </button>
+        {withListen && (
+          <SpeakButton
+            speech={speech}
+            text={plainText(item.text)}
+            speakKey={`match-${exercise.id}-${item.i}`}
+            className={styles.tileListen}
+          />
+        )}
       </li>
     )
   }
@@ -113,13 +132,17 @@ export default function MatchExercise({ exercise, onDone, disabled }) {
     <div className={styles.exercise}>
       <div className={styles.matchGrid}>
         <div>
-          <h2 className={styles.matchHead} id={`${exercise.id}-fr`}>French</h2>
+          <h2 className={styles.matchHead} id={`${exercise.id}-fr`}>
+            French
+          </h2>
           <ul className={styles.matchCol} aria-labelledby={`${exercise.id}-fr`}>
             {columns.left.map((item) => renderTile('left', item))}
           </ul>
         </div>
         <div>
-          <h2 className={styles.matchHead} id={`${exercise.id}-en`}>English</h2>
+          <h2 className={styles.matchHead} id={`${exercise.id}-en`}>
+            English
+          </h2>
           <ul className={styles.matchCol} aria-labelledby={`${exercise.id}-en`}>
             {columns.right.map((item) => renderTile('right', item))}
           </ul>

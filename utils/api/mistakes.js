@@ -2,20 +2,10 @@
 // wrong. Results come from practice_sessions.answers and review_attempts; only
 // results at/after lessons.generated_at count (older ones graded a previous
 // version of the exercises). Shared by /api/student/lessons and /api/student/review.
-//
-// No `@/` imports here on purpose: computeMistakes is plain JS that can be
-// imported directly by node for quick checks.
+import { currentSince, isCurrent, micros } from '@/utils/api/progress'
 
 const PAGE_SIZE = 1000 // PostgREST's default max rows per request
-
-// Microseconds since epoch (Postgres timestamps carry 6 fractional digits); NaN if invalid
-function micros(timestamp) {
-  if (typeof timestamp !== 'string' || !timestamp) return Number.NaN
-  const ms = Date.parse(timestamp)
-  if (Number.isNaN(ms)) return Number.NaN
-  const extra = /\.\d{3}(\d{1,3})/.exec(timestamp)
-  return ms * 1000 + (extra ? Number(extra[1].padEnd(3, '0')) : 0)
-}
+const ID_CHUNK = 100 // ids per `in` filter (they travel in the URL)
 
 /**
  * @param {{ id: string, title: string, lesson_date: string, exercises: object[], generated_at: string|null }[]} lessons
@@ -25,15 +15,12 @@ function micros(timestamp) {
  */
 export function computeMistakes(lessons, sessions, reviewAttempts) {
   const lessonList = Array.isArray(lessons) ? lessons : []
-  const since = new Map(
-    lessonList.map((l) => [l.id, l.generated_at ? micros(l.generated_at) : Number.NEGATIVE_INFINITY])
-  )
+  const since = currentSince(lessonList)
   const latest = new Map() // `${lessonId}:${exerciseId}` → { at, review, correct }
 
   function record(lessonId, exerciseId, correct, timestamp, review) {
-    if (!since.has(lessonId) || typeof exerciseId !== 'string') return
+    if (typeof exerciseId !== 'string' || !isCurrent(since, lessonId, timestamp)) return
     const at = micros(timestamp)
-    if (Number.isNaN(at) || at < since.get(lessonId)) return
     const key = `${lessonId}:${exerciseId}`
     const current = latest.get(key)
     // Newest wins; on a tie a review attempt beats a practice session
@@ -75,15 +62,18 @@ async function selectAll(buildQuery) {
 }
 
 /**
- * Loads a student's graded results (all practice sessions + review attempts).
- * sessions rows also carry score/total, so callers can compute progress from them.
+ * Loads a student's graded results, light: every practice session WITHOUT its answers
+ * (score/total for progress, completed_at for "last practiced") and every review attempt.
+ * The answers are the heavy part of a session and only the newest ones can decide a
+ * mistake: withMistakeAnswers() adds those.
+ * Both queries use an index leading with student_id (0003, 0006).
  */
 export async function loadResults(admin, studentId) {
   const [sessions, reviewAttempts] = await Promise.all([
     selectAll(() =>
       admin
         .from('practice_sessions')
-        .select('id, lesson_id, score, total, answers, completed_at')
+        .select('id, lesson_id, score, total, completed_at')
         .eq('student_id', studentId)
         .order('completed_at', { ascending: true })
         .order('id', { ascending: true })
@@ -98,6 +88,77 @@ export async function loadResults(admin, studentId) {
     ),
   ])
   return { sessions, reviewAttempts }
+}
+
+/**
+ * Sessions whose answers are needed next to know the latest practice result of every
+ * exercise: per lesson, its current sessions newest first, up to the first ones not loaded
+ * yet, and none once each exercise of the lesson has a result in the loaded ones.
+ * Sessions recorded at the same instant go together (computeMistakes breaks ties among them).
+ * @param {{ id: string, exercises: object[], generated_at?: string|null }[]} lessons
+ * @param {{ id: string, lesson_id: string, completed_at: string }[]} sessions
+ * @param {Map<string, object[]>} loaded  session id → answers already loaded
+ * @param {{ all?: boolean }} [options]  all: every session not loaded yet of the lessons
+ *   still missing results, instead of only the next ones
+ * @returns {string[]} session ids
+ */
+export function answersNeeded(lessons, sessions, loaded, { all = false } = {}) {
+  const lessonList = Array.isArray(lessons) ? lessons : []
+  const since = currentSince(lessonList)
+  const byLesson = new Map()
+  for (const s of sessions || []) {
+    if (!isCurrent(since, s.lesson_id, s.completed_at)) continue
+    if (!byLesson.has(s.lesson_id)) byLesson.set(s.lesson_id, [])
+    byLesson.get(s.lesson_id).push({ s, at: micros(s.completed_at) })
+  }
+
+  const ids = []
+  for (const lesson of lessonList) {
+    const list = (byLesson.get(lesson.id) || []).sort((a, b) => b.at - a.at)
+    const missing = new Set(
+      (Array.isArray(lesson.exercises) ? lesson.exercises : []).map((e) => e?.id).filter((id) => typeof id === 'string')
+    )
+    for (let i = 0; i < list.length && missing.size > 0; ) {
+      let j = i
+      while (j < list.length && list[j].at === list[i].at) j += 1
+      const group = list.slice(i, j).map((x) => x.s)
+      const unloaded = group.filter((s) => !loaded.has(s.id))
+      if (unloaded.length) {
+        ids.push(...unloaded.map((s) => s.id))
+        if (!all) break
+      }
+      for (const s of group) for (const a of loaded.get(s.id) || []) missing.delete(a?.exerciseId)
+      i = j
+    }
+  }
+  return ids
+}
+
+/**
+ * `sessions` (from loadResults) with the answers computeMistakes needs: the newest current
+ * session of each lesson (a run answers every exercise), older ones only for lessons where
+ * some exercise still has no result. Other sessions keep no answers. Two rounds at most,
+ * so the cost follows the number of lessons, not the student's whole history.
+ */
+export async function withMistakeAnswers(admin, studentId, lessons, sessions) {
+  const loaded = new Map()
+  for (const all of [false, true]) {
+    const ids = answersNeeded(lessons, sessions, loaded, { all })
+    if (!ids.length) break
+    const chunks = []
+    for (let i = 0; i < ids.length; i += ID_CHUNK) chunks.push(ids.slice(i, i + ID_CHUNK))
+    const pages = await Promise.all(
+      chunks.map((chunk) =>
+        admin.from('practice_sessions').select('id, answers').eq('student_id', studentId).in('id', chunk)
+      )
+    )
+    for (const { data, error } of pages) {
+      if (error) throw error
+      for (const row of data || []) loaded.set(row.id, Array.isArray(row.answers) ? row.answers : [])
+    }
+    for (const id of ids) if (!loaded.has(id)) loaded.set(id, []) // deleted meanwhile
+  }
+  return (sessions || []).map((s) => (loaded.has(s.id) ? { ...s, answers: loaded.get(s.id) } : s))
 }
 
 // Columns computeMistakes needs from `lessons`
