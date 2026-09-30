@@ -5,6 +5,7 @@
 .pageEmoji {
   background: var(--st-blue-bg);
   border-color: var(--st-blue-line);
+  color: var(--st-blue-ink);
 }
 
 /* ---- Documents card ---- */
@@ -214,8 +215,7 @@
   background: var(--st-surface);
   border: 2px solid var(--sum-edge);
   border-bottom-width: 4px;
-  font-size: 1.7rem;
-  line-height: 1;
+  color: var(--sum-fg);
 }
 
 .sumBody {
@@ -241,6 +241,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
+}
+
+.countIcon {
+  vertical-align: -0.15em;
 }
 
 .sumCounts li {

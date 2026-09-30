@@ -4,6 +4,8 @@ import Dialog from '@/components/ui/Dialog'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/ConfirmDialog.module.css'
+import { CircleHelp, Trash2 } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 /**
  * Accessible confirmation dialog (replaces window.confirm): a bottom sheet on
@@ -14,7 +16,7 @@ import styles from '@/components/teacher/ConfirmDialog.module.css'
  * the trigger on close.
  *
  * @param {{ open: boolean, title: string, message?: React.ReactNode, confirmLabel?: string,
- *   cancelLabel?: string, danger?: boolean, busy?: boolean, error?: string, icon?: string,
+ *   cancelLabel?: string, danger?: boolean, busy?: boolean, error?: string, icon?: import('lucide-react').LucideIcon,
  *   onConfirm: () => void, onCancel: () => void }} props
  */
 export default function ConfirmDialog({
@@ -40,7 +42,7 @@ export default function ConfirmDialog({
 
   if (!mounted || !open) return null
 
-  const emoji = icon || (danger ? '🗑️' : '🤔')
+  const glyph = icon || (danger ? Trash2 : CircleHelp)
 
   // Rendered at the end of <body> so it inherits the app's base styles, not the caller's
   return createPortal(
@@ -54,7 +56,9 @@ export default function ConfirmDialog({
       className={`${styles.dialog} ${danger ? styles.danger : ''} no-print`}
     >
       <span className={styles.grabber} aria-hidden="true" />
-      <span className={styles.icon} aria-hidden="true">{emoji}</span>
+      <span className={styles.icon} aria-hidden="true">
+        <Icon icon={glyph} size={30} />
+      </span>
       <h2 id={titleId} className={styles.title}>{title}</h2>
       {message && (
         <div id={messageId} className={styles.message}>

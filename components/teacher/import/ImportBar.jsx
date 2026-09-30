@@ -3,6 +3,8 @@ import { RUN_CONCURRENCY } from '@/components/teacher/import/useImportRunner'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/import/Import.module.css'
+import { CircleCheck, FolderOpen, Hand, Import, RefreshCw } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 function quoteList(titles) {
   return titles.map((t) => `« ${t} »`).join(', ')
@@ -82,7 +84,7 @@ export default function ImportBar({
               'Arrêt : les leçons en cours se terminent…'
             ) : (
               <>
-                <span aria-hidden="true">✋</span> Ne pas lancer les suivantes
+                <Icon icon={Hand} size={18} /> Ne pas lancer les suivantes
               </>
             )}
           </button>
@@ -105,7 +107,7 @@ export default function ImportBar({
     <div className={`${styles.bar} no-print`}>
       <div className={styles.barInfo}>
         <p className={styles.barTitle} aria-live="polite" aria-atomic="true">
-          <span aria-hidden="true">{readyCount > 0 ? '✅ ' : '📂 '}</span>
+          <Icon icon={readyCount > 0 ? CircleCheck : FolderOpen} size={18} />
           {summary}
           {pendingCount > 0 && <span className={styles.barMuted}> · {pendingCount} à vérifier</span>}
         </p>
@@ -119,12 +121,12 @@ export default function ImportBar({
             onClick={onRetryFailed}
             disabled={retryDisabled}
           >
-            <span aria-hidden="true">🔄</span> Réessayer {retryCount > 1 ? `les ${retryCount} échecs` : "l'échec"}
+            <Icon icon={RefreshCw} size={18} /> Réessayer {retryCount > 1 ? `les ${retryCount} échecs` : "l'échec"}
           </button>
         )}
         {(readyCount > 0 || retryCount === 0) && (
           <button type="button" className={`${ui.btn} ${ui.green} ${styles.submit}`} onClick={onImport} disabled={!canImport}>
-            <span aria-hidden="true">📥</span> {readyCount > 0 ? `Importer ${plural(readyCount, 'leçon')}` : 'Importer'}
+            <Icon icon={Import} size={18} /> {readyCount > 0 ? `Importer ${plural(readyCount, 'leçon')}` : 'Importer'}
           </button>
         )}
       </div>

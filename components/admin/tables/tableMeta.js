@@ -1,16 +1,21 @@
 // Explorer helpers: per-table icons, links to the dedicated editors, CSV export.
 
+import { BookOpen, Dumbbell, LockKeyhole, MapIcon, NotebookPen, RotateCcw, ScrollText, Sparkles, Table, User } from 'lucide-react'
+
+// lucide components, rendered with <Icon>; tableIcon() falls back to a generic table
 export const TABLE_ICONS = {
-  auth_users: '🔐',
-  profiles: '👤',
-  student_notes: '🗒️',
-  lessons: '📚',
-  practice_sessions: '🏋️',
-  review_attempts: '🔁',
-  lesson_plans: '🗺️',
-  ai_generations: '🤖',
-  admin_audit_log: '🧾',
+  auth_users: LockKeyhole,
+  profiles: User,
+  student_notes: NotebookPen,
+  lessons: BookOpen,
+  practice_sessions: Dumbbell,
+  review_attempts: RotateCcw,
+  lesson_plans: MapIcon,
+  ai_generations: Sparkles,
+  admin_audit_log: ScrollText,
 }
+
+export const tableIcon = (name) => TABLE_ICONS[name] || Table
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 

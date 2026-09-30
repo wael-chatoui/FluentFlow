@@ -1,5 +1,7 @@
 import { useRef } from 'react'
 import styles from '@/components/teacher/dashboard/StudentSearch.module.css'
+import { Search, X } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 /**
  * Search box for the student list (controlled). Escape or the × button clears it.
@@ -18,7 +20,9 @@ export default function StudentSearch({ value, onChange }) {
       <label htmlFor="student-search" className="sr-only">
         Rechercher un élève par nom ou e-mail
       </label>
-      <span className={styles.icon} aria-hidden="true">🔍</span>
+      <span className={styles.icon} aria-hidden="true">
+        <Icon icon={Search} size={18} />
+      </span>
       <input
         ref={inputRef}
         id="student-search"
@@ -41,7 +45,7 @@ export default function StudentSearch({ value, onChange }) {
       />
       {value && (
         <button type="button" className={styles.clear} onClick={clear} aria-label="Effacer la recherche">
-          <span aria-hidden="true">×</span>
+          <Icon icon={X} size={20} />
         </button>
       )}
     </div>

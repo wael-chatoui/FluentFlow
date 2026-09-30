@@ -233,10 +233,8 @@ a.card:focus-visible {
 
 .chevron {
   flex: none;
+  display: flex;
   margin-left: auto;
-  font-size: 1.9rem;
-  font-weight: 900;
-  line-height: 1;
   color: var(--accent-ink);
   transition: transform 150ms ease;
 }

@@ -103,6 +103,12 @@
   margin: 0 0 0.75rem;
 }
 
+/* Leading pictogram (<Icon>) in a section title */
+.sectionTitle > svg:first-child {
+  margin-right: 0.15rem;
+  vertical-align: -0.15em;
+}
+
 /* ---- Pill / chip ---- */
 .pill {
   display: inline-flex;

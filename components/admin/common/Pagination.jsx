@@ -1,6 +1,8 @@
 import ui from '@/components/ui/ui.module.css'
 import s from '@/components/admin/common/admin.module.css'
 import { cx, formatNumber } from '@/components/admin/common/format'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 /**
  * "1–50 sur 234" + previous / next buttons. `page` is 1-based.
@@ -30,7 +32,7 @@ export default function Pagination({ page, perPage, total, onPage, disabled = fa
             disabled={disabled || current <= 1}
             aria-label="Page précédente"
           >
-            ‹ <span className="sr-only">Précédente</span>
+            <Icon icon={ChevronLeft} size={18} strokeWidth={3} /> <span className="sr-only">Précédente</span>
           </button>
           <span className={s.pagerPage}>
             Page {current} / {pages}
@@ -42,7 +44,7 @@ export default function Pagination({ page, perPage, total, onPage, disabled = fa
             disabled={disabled || current >= pages}
             aria-label="Page suivante"
           >
-            <span className="sr-only">Suivante</span> ›
+            <span className="sr-only">Suivante</span> <Icon icon={ChevronRight} size={18} strokeWidth={3} />
           </button>
         </div>
       )}

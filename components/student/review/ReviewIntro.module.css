@@ -42,8 +42,16 @@
 
 .bannerIcon {
   flex: none;
-  font-size: 2rem;
-  line-height: 1;
+  display: flex;
+  color: var(--st-blue-ink);
+}
+
+.bannerGood .bannerIcon {
+  color: var(--st-green-ink);
+}
+
+.bannerError .bannerIcon {
+  color: var(--st-red-ink);
 }
 
 .bannerText {
@@ -93,13 +101,22 @@
   border-radius: 50%;
   background: var(--st-orange-bg);
   border: 3px solid var(--st-orange-line);
-  font-size: 3.2rem;
-  line-height: 1;
+  color: var(--st-orange-ink);
 }
 
 .bigEmoji {
-  font-size: 4rem;
-  line-height: 1;
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: var(--st-yellow-bg);
+  color: var(--st-orange-ink);
+}
+
+.bigEmojiError {
+  background: var(--st-red-bg);
+  color: var(--st-red-ink);
 }
 
 .heroTitle {

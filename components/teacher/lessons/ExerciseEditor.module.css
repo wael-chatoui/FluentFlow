@@ -115,7 +115,7 @@
 }
 
 .arrow {
-  font-weight: 900;
+  display: flex;
   color: var(--st-ink-soft);
 }
 

@@ -38,3 +38,7 @@
 .pasteMessage:empty {
   display: none;
 }
+
+.labelIcon {
+  vertical-align: -0.15em;
+}

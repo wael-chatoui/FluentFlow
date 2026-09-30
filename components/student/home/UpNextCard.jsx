@@ -4,6 +4,8 @@ import { formatLessonDate, plural } from '@/components/lesson/format'
 import { exerciseCount } from '@/components/student/lessons/progress'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/home/UpNext.module.css'
+import { BookOpenText, Gift, RefreshCw, Rocket, RotateCcw, Sprout, Trophy } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const DATE_OPTS = { weekday: 'long', month: 'long', day: 'numeric' }
 
@@ -16,7 +18,7 @@ function content(upNext) {
       const date = formatLessonDate(lesson.lesson_date, DATE_OPTS)
       return {
         tone: 'green',
-        emoji: updated ? '✨' : '🎁',
+        icon: updated ? RefreshCw : Gift,
         eyebrow: updated ? 'Updated by your teacher' : 'New lesson ready',
         title: lesson.title || 'Your latest lesson',
         text: [date, plural(exerciseCount(lesson), updated ? 'new exercise' : 'exercise')].filter(Boolean).join(' · '),
@@ -27,7 +29,7 @@ function content(upNext) {
     case 'mistakes':
       return {
         tone: 'orange',
-        emoji: '🎯',
+        icon: RotateCcw,
         eyebrow: 'Up next',
         title: `${plural(upNext.count, 'mistake')} to fix`,
         text: 'Practice them again so the right answer sticks.',
@@ -37,7 +39,7 @@ function content(upNext) {
       const { lesson, pct } = upNext
       return {
         tone: 'blue',
-        emoji: '🚀',
+        icon: Rocket,
         eyebrow: 'Improve your score',
         title: lesson.title || 'Lesson recap',
         text: `Your best is ${pct}%. Can you beat it?`,
@@ -48,7 +50,7 @@ function content(upNext) {
     case 'mastered':
       return {
         tone: 'purple',
-        emoji: '🏆',
+        icon: Trophy,
         eyebrow: 'Up next',
         title: 'Everything mastered!',
         text: 'Amazing work. Keep your French fresh by reviewing your words.',
@@ -58,7 +60,7 @@ function content(upNext) {
       const { lesson } = upNext
       return {
         tone: 'pink',
-        emoji: '📖',
+        icon: BookOpenText,
         eyebrow: 'Your latest recap',
         title: lesson.title || 'Lesson recap',
         text: formatLessonDate(lesson.lesson_date, DATE_OPTS),
@@ -68,7 +70,7 @@ function content(upNext) {
     default:
       return {
         tone: 'yellow',
-        emoji: '🌱',
+        icon: Sprout,
         eyebrow: 'Welcome!',
         title: 'No lessons yet',
         text: 'Your first lesson recap will appear here after your next class with Wael.',
@@ -84,7 +86,7 @@ export default function UpNextCard({ upNext }) {
   return (
     <section className={`${styles.hero} ${styles[c.tone]}`} aria-labelledby={titleId}>
       <span className={styles.art} aria-hidden="true">
-        {c.emoji}
+        <Icon icon={c.icon} size={40} />
       </span>
       <div className={styles.body}>
         <p className={styles.eyebrow}>{c.eyebrow}</p>

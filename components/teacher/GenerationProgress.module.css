@@ -68,21 +68,20 @@
 }
 
 .robot {
-  font-size: 2.4rem;
-  line-height: 1;
+  color: var(--st-purple-ink);
   animation: bob 1.6s ease-in-out infinite;
 }
 
 .sparkle {
   position: absolute;
-  font-size: 1rem;
-  line-height: 1;
+  color: var(--st-yellow-ink);
+  fill: var(--st-yellow);
   animation: twinkle 1.8s ease-in-out infinite;
 }
 
 .s1 { top: -8px; right: -8px; }
-.s2 { bottom: -6px; left: -10px; font-size: 0.8rem; animation-delay: 0.6s; }
-.s3 { top: -6px; left: -6px; font-size: 0.75rem; animation-delay: 1.2s; }
+.s2 { bottom: -6px; left: -10px; animation-delay: 0.6s; }
+.s3 { top: -6px; left: -6px; animation-delay: 1.2s; }
 
 .headText {
   flex: 1;
@@ -157,6 +156,7 @@
   flex: none;
   display: inline-flex;
   align-items: center;
+  gap: 0.3rem;
   padding: 0.3rem 0.7rem;
   border-radius: 999px;
   background: var(--st-surface);
@@ -165,6 +165,11 @@
   font-size: 0.95rem;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
+}
+
+.currentIcon {
+  margin-right: 0.35rem;
+  vertical-align: -0.2em;
 }
 
 .current {
@@ -226,7 +231,6 @@
   border-color: var(--st-green-strong-dark);
   background: var(--st-green-strong);
   color: var(--st-on-color);
-  font-size: 0.9rem;
   animation: popIn 260ms ease-out both;
 }
 

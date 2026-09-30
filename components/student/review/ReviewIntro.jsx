@@ -4,6 +4,8 @@ import { accentStyle } from '@/components/ui/accents'
 import { formatLessonDate, plural } from '@/components/lesson/format'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/review/ReviewIntro.module.css'
+import { BookOpen, CircleAlert, Dumbbell, Library, RotateCcw, Sprout, TriangleAlert, Trophy } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 /** Groups exercises by lesson, keeping the API order (newest lessons first). */
 function groupByLesson(exercises) {
@@ -32,7 +34,7 @@ function ResultBanner({ result }) {
   return (
     <div className={`${styles.banner} ${allFixed ? styles.bannerGood : ''}`}>
       <span className={styles.bannerIcon} aria-hidden="true">
-        {allFixed ? '🏆' : score > 0 ? '💪' : '🌱'}
+        <Icon icon={allFixed ? Trophy : score > 0 ? Dumbbell : Sprout} size={28} />
       </span>
       <div className={styles.bannerText}>
         <p className={styles.bannerTitle}>
@@ -59,7 +61,7 @@ function UnsavedBanner({ unsaved, onRetry, onDiscard }) {
   return (
     <div className={`${styles.banner} ${styles.bannerError}`} role="alert">
       <span className={styles.bannerIcon} aria-hidden="true">
-        ⚠️
+        <Icon icon={TriangleAlert} size={28} />
       </span>
       <div className={styles.bannerText}>
         <p className={styles.bannerTitle}>Your last round wasn’t saved</p>
@@ -156,7 +158,9 @@ export default function ReviewIntro({
 
       {status === 'error' && (
         <div className={`${ui.card} ${styles.center}`} role="alert">
-          <div className={styles.bigEmoji} aria-hidden="true">😵‍💫</div>
+          <div className={`${styles.bigEmoji} ${styles.bigEmojiError}`} aria-hidden="true">
+            <Icon icon={CircleAlert} size={44} />
+          </div>
           <h2 className={styles.heroTitle}>Couldn’t load your mistakes</h2>
           <p className={styles.heroText}>{error}</p>
           <button type="button" className={`${ui.btn} ${ui.blue}`} onClick={onRetry}>
@@ -167,17 +171,19 @@ export default function ReviewIntro({
 
       {status === 'ready' && count === 0 && (
         <div className={`${ui.card} ${styles.center} ${styles.pop}`}>
-          <div className={`${styles.bigEmoji} ${styles.bounce}`} aria-hidden="true">🏆</div>
-          <h2 className={styles.heroTitle}>No mistakes to review 🎉</h2>
+          <div className={styles.bigEmoji} aria-hidden="true">
+            <Icon icon={Trophy} size={44} className={styles.bounce} />
+          </div>
+          <h2 className={styles.heroTitle}>No mistakes to review</h2>
           <p className={styles.heroText}>
             Every exercise you’ve practiced is correct. Keep going with a lesson or your word bank!
           </p>
           <div className={styles.emptyActions}>
             <Link href="/student/lessons" className={`${ui.btn} ${ui.blue}`}>
-              <span aria-hidden="true">📚</span> My lessons
+              <Icon icon={BookOpen} size={20} /> My lessons
             </Link>
             <Link href="/student/vocabulary" className={`${ui.btn} ${ui.green}`}>
-              <span aria-hidden="true">🔤</span> Words
+              <Icon icon={Library} size={20} /> Words
             </Link>
           </div>
         </div>
@@ -187,7 +193,7 @@ export default function ReviewIntro({
         <>
           <section className={`${ui.card} ${styles.hero} ${styles.pop}`} aria-labelledby="review-count">
             <div className={styles.target} aria-hidden="true">
-              <span className={styles.bounce}>🎯</span>
+              <Icon icon={RotateCcw} size={48} className={styles.bounce} />
             </div>
             <h2 id="review-count" className={styles.heroTitle}>
               {plural(all, 'mistake')} to fix

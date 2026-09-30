@@ -19,6 +19,7 @@ import StepLevel from '@/components/onboarding/StepLevel'
 import StepName from '@/components/onboarding/StepName'
 import StepSummary from '@/components/onboarding/StepSummary'
 import { ArrowLeftIcon } from '@/components/onboarding/Icons'
+import JoinSteps from '@/components/join/JoinSteps'
 import { clearDraft, loadDraft, saveDraft } from '@/components/onboarding/draft'
 import {
   EMPTY_ANSWERS,
@@ -358,6 +359,8 @@ export default function OnboardingPage() {
   }
 
   const step = nav.step
+  // Came from an invitation link (/join/<token>): same breadcrumb as the join page
+  const fromJoin = router.query.from === 'join'
   const validity = stepValidity(answers)
   const busy = submitting || done || deleting || signingOut
   const autoFocus = nav.dir !== 'none'
@@ -443,6 +446,7 @@ export default function OnboardingPage() {
           ) : null
         }
       >
+        {fromJoin && <JoinSteps current={done ? 'start' : 'profile'} />}
         <p className="sr-only" aria-live="polite" aria-atomic="true">
           Step {step + 1} of {STEP_COUNT}
         </p>

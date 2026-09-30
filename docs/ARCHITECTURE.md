@@ -54,7 +54,7 @@ Contents: [1. Stack and conventions](#1-stack-and-conventions) ·
 | `proxy.js` | optimistic redirects (auth, areas, pending, onboarding, back-office host) |
 | `components/<area>/` | `auth`, `onboarding`, `student`, `teacher` (+ `dashboard`, `lessons`, `students`, `import`), `admin`, `practice`, `lesson`, `ui`, `dev` |
 | `utils/ai/` | AI client, prompts, lesson pipeline, tutor plans, ledger, generation options |
-| `utils/api/` | route helpers: `errors`, `validate`, `sameOrigin`, `students`, `invites`, `studentLessons`, `progress`, `mistakes`, `background`, `audit`; `utils/api/admin/` for the back office |
+| `utils/api/` | route helpers: `errors`, `validate`, `sameOrigin`, `students`, `invites`, `studentLessons`, `progress`, `mistakes`, `background`, `audit`, `joinLinks`; `utils/api/admin/` for the back office |
 | `utils/auth/` | server guards (`server.js`), pure routing (`routing.js`), sign-in link confirmation, in-app navigation marker |
 | `utils/lesson/` | data contract (`schema.js`), grading, sample lesson |
 | `utils/import/` | import limits, Google link parser and downloader, PDF / text extraction, date and title detection |
@@ -154,10 +154,20 @@ export default async function handler(req, res) {
    Supabase setting "Allow new users to sign up" stays on) whose trigger sets `approved: false`. It
    only sees `/pending` until the teacher approves it (`…/approve`) or refuses it (`…/reject`, which
    deletes it). The email link of `/login` never creates an account (`shouldCreateUser: false`).
-4. **New sign-in link** (lost access, expired invitation): `createSignInLink()` →
+4. **Join link** (no email address needed, migration 0007, `utils/api/joinLinks.js`): the teacher
+   creates `<origin>/join/<token>` (`POST /api/teacher/join-links`, optional first name as `label`) and
+   pastes it (or the ready-made English message) in the Preply chat. Token: 32 random bytes in
+   base64url; only its SHA-256 (hex) is stored in `join_links`. Single use, expires after 14 days,
+   revocable. On `/join/<token>` the student signs in with Google or an email link **with account
+   creation allowed** (`shouldCreateUser: true`): the new account starts pending like any self
+   sign-up, then the page calls `POST /api/join/[token]/claim`, which spends the link (conditional
+   update `used_at is null and revoked_at is null and expires_at > now`) and approves the account
+   (`approveUser`, role unchanged; teachers and admins refused), and gives the profile the label as
+   `full_name` when it has none. Re-claiming by the same user is a no-op.
+5. **New sign-in link** (lost access, expired invitation): `createSignInLink()` →
    `generateLink({ type: 'magiclink' })` → `<origin>/auth/confirm?token_hash=…&type=magiclink`.
    Nothing is emailed. Links are never written to the audit log.
-5. **Suspension** (back office `banned: true` → `ban_duration: '876000h'`, `false` → `'none'`) and
+6. **Suspension** (back office `banned: true` → `ban_duration: '876000h'`, `false` → `'none'`) and
    **deletion** (back office, the teacher refusing a pending account, or the student from their
    profile): deleting the auth user cascades to all their data (§3).
 
@@ -225,7 +235,8 @@ Matcher: every path except `_next/`, `api/`, `auth/`, `favicon.ico` and files wi
 tokens included, back in the address bar after hydration. Rules, in order:
 
 1. On a back-office host (`BACKOFFICE_HOSTS`): every path that is neither shared (`/login`, `/logout`,
-   `/auth/callback`, `/auth/confirm`, `/pending`, `/admin/forbidden`) nor under `/admin` → `/admin`.
+   `/auth/callback`, `/auth/confirm`, `/pending`, `/join`, `/admin/forbidden`) nor under `/admin` → `/admin`.
+   `/join/<token>` is public (not a protected area): signed out, pending or approved.
 2. Only the protected areas are checked: `/student`, `/teacher`, `/onboarding`, `/admin` (except
    `/admin/forbidden`, which is public) and `/pending`.
 3. The user is read with `getUser()` (fresh role, approval and ban). If Supabase Auth fails or
@@ -250,7 +261,8 @@ Refreshed Supabase cookies are copied onto redirect responses.
 |---|---|
 | `/login` | « Continue with Google » (`signInWithOAuth`, `prompt: 'select_account'`, so the wrong Google account cannot silently create a pending account) and « Email me a sign-in link » (`signInWithOtp`, `shouldCreateUser: false`; the same confirmation whether or not the account exists; own messages only for rate limits, network errors and 5xx; « Resend » after 60 s). Short invite-only note. A safe `?next` is kept through `redirectTo = /auth/callback?next=…`. A signed-in visitor is sent on (`/api/me` → `pathAfterSignIn`); a suspended one is signed out with an explanation. |
 | `/auth/callback`, `/auth/confirm` | The same page (`components/auth/SignInLanding.jsx`, logic in `components/auth/landing.js`); every link format works on both: `?code` (PKCE: Google and the `/login` email links, only in the browser that asked), `?token_hash&type` with type `invite`, `magiclink`, `email`, `signup` or `recovery` (`verifyOtp`, any device), `#access_token&refresh_token` (default Supabase email templates, `setSession`), `?error…` (fixed English messages: cancelled, expired, other browser, no account, suspended, incomplete link, server unreachable with « Try again », generic; URL text is never shown). Tokens leave the address bar at once (a PKCE code once exchanged); a one-time token is never sent twice. If another account is already signed in on the browser: « Use this link » / « Keep my current account ». After a `token_hash` or `access_token` sign-in the user confirms « Is this your account? … <email> » (login-CSRF guard, `utils/auth/linkConfirm.js`, cookie `pl-link-confirm`, enforced by the proxy); « No, that's not me » signs this browser out. |
-| `/pending` | Waiting for approval: shows the email, « Check again » (also silently on arrival and when the tab comes back, at most every 30 s) and « Sign out » (→ `/logout`). |
+| `/pending` | Waiting for approval: shows the email, « Check again » (also silently on arrival and when the tab comes back, at most every 30 s) and « Sign out » (→ `/logout`). When this browser opened a join link (localStorage `pl:joinToken`): « Have an invitation link? Open it again ». |
+| `/join/[token]` | Join link (§2 lifecycle 4), English, `AuthScreen` look, breadcrumb `components/join/JoinSteps.jsx` « Welcome › Sign in › Your profile › Start learning » (`nav` + `ol`, `aria-current="step"`, check mark on done steps). Welcome (« <teacher> invited you… », what the student gets) → Sign in (`components/join/JoinSignIn.jsx`: Google, or email link with `shouldCreateUser: true`; both `redirectTo /auth/callback?next=/join/<token>`; « use the same device ») → once signed in as a student: claim, `refreshSession`, then `/onboarding?from=join` (or `/student` if already onboarded). Invalid, used, expired or revoked link: explanation + « Already have an account? Sign in ». A teacher or admin signed in sees a notice, nothing is claimed. The token is kept in localStorage `pl:joinToken` as a fallback; `<meta name="referrer" content="no-referrer">`. A sign-in failure on `/auth/callback` with `next=/join/…` offers « Back to your invitation ». `/onboarding?from=join` shows the same breadcrumb (current « Your profile », « Start learning » once done). |
 | `/logout` | Global sign-out, then `/login` (`?next` passed on). Signs out at once only when reached by an in-app navigation (`utils/auth/appNavigation.js`, marked by `pages/_app.js`); a direct page load, which any site can trigger, asks « Sign out? » first (in French with `?from=teacher` or `?from=admin`, or a French `next`). Never acts inside a frame. After a timed-out sign-out it reloads `/login` fully. Works on every host. |
 | `/` | Router. Hands sign-in parameters that Supabase sent to the Site URL (`token_hash`, `error…`, `#access_token`, and `?code` when signed out) to `/auth/confirm`. Otherwise: not signed in → `/login`; else `/api/me` → `pathAfterSignIn`. If `/api/me` fails: a guess from the session (`fallbackDestination`: students → `/student`, the proxy corrects pending or not-onboarded accounts); suspended → `/login`. |
 | `/admin/forbidden` | Public page for signed-in non-admins: shows the account, « Changer de compte » (`/logout?next=/admin`), « Se déconnecter » (`/logout`), « Retour à l'application » when `NEXT_PUBLIC_SITE_URL` is set. |
@@ -258,7 +270,8 @@ Refreshed Supabase cookies are copied onto redirect responses.
 Routing rules (`utils/auth/routing.js`, pure and tested):
 
 - `pathAfterSignIn({ role, approved, onboarded, isAdmin, next })`: teacher → `next` if under `/teacher`
-  or `/admin`, else `/teacher`; `approved === false` → `/pending`; an admin student with `next` under
+  or `/admin`, else `/teacher`; a student with `next` = `/join/<token>` (`isJoinPath`) → `next`, even
+  pending or not onboarded (the join page approves the account); `approved === false` → `/pending`; an admin student with `next` under
   `/admin` → `next`; not onboarded → `/onboarding`; else `next` if under `/student`, else `/student`.
 - `safeNext(value)`: only same-origin paths (starts with `/`, no `//`, `\`, scheme, control character
   or whitespace, ≤ 512 characters); returns the normalized path (`/teacher/../logout` is `/logout`).
@@ -275,8 +288,8 @@ lesson text uses `lang="fr"`).
 
 ## 3. Data model
 
-Postgres schema `public`, created by `supabase/migrations/0001`–`0006` (all idempotent, all applied in
-production). Every `created_at` defaults to `now()`; every `id` defaults to `gen_random_uuid()`, except
+Postgres schema `public`, created by `supabase/migrations/0001`–`0007` (all idempotent; 0001–0006 applied
+in production, **0007 not yet**). Every `created_at` defaults to `now()`; every `id` defaults to `gen_random_uuid()`, except
 `profiles.id`, which is the auth user's id.
 
 ### Tables
@@ -352,12 +365,20 @@ unique `(student_id, client_run_id) where client_run_id is not null`.
 
 **`admin_audit_log`** (0004) — `id`, `admin_id` (→ `auth.users` on delete set null), `admin_email`,
 `action` (`user.invite`, `user.update`, `user.approve`, `user.sign_in_link`, `user.delete`,
-`lesson.update`, `lesson.delete`), `entity` (`user`, `lesson`), `entity_id` text, `details` jsonb (what
+`lesson.update`, `lesson.delete`, `join_link.create`, `join_link.revoke`, `join_link.claim` — the
+latter with the student as actor, `via: 'student'`), `entity` (`user`, `lesson`, `join_link`), `entity_id` text, `details` jsonb (what
 changed; never links or private text: notes and AI context are recorded as `{ changed, length }`;
 teacher-area actions carry `via: 'teacher'`), `created_at`. Index `(created_at desc)`.
 
 **`lesson_plans`** (0006) — tutor plans: `id`, `student_id` (→ `auth.users` cascade), `focus` text,
 `content` jsonb not null (plan shape, §4), `ai_model`, `created_at`. Index `(student_id, created_at desc)`.
+
+**`join_links`** (0007) — one-time invitation links without email: `id`, `token_hash` text unique not
+null (hex SHA-256 of the token; the token itself is never stored), `label` text (student's first name,
+≤ 60), `created_by` (→ `auth.users` on delete set null), `created_at`, `expires_at` not null (+14 days),
+`used_at`, `used_by` (→ `auth.users` on delete set null), `revoked_at`. Index `(created_at desc)`. RLS on,
+no policy, revoked from `anon`/`authenticated`, granted to `service_role`. Status (computed):
+`used` > `revoked` > `expired` > `active`.
 
 **`ai_generations`** (0006) — AI ledger, one row per generation attempt, success or failure: `id`,
 `kind` (`'lesson'` or `'plan'`), `lesson_id` (→ `lessons` on delete set null), `student_id`
@@ -400,6 +421,7 @@ teacher-area actions carry `via: 'teacher'`), `created_at`. Index `(created_at d
 | `0004_backoffice.sql` | `lessons.ai_usage`, `admin_audit_log` (its admin promotion uses a placeholder email: use the script) |
 | `0005_lesson_import.sql` | `source_kind`, `source_name`, `source_text`, `generation_options` |
 | `0006_publishing_access_and_tools.sql` | `hidden`, `client_key`, `ai_context`, `client_run_id`, indexes, `lesson_plans`, `ai_generations` (+ `cost_usd`), pending trigger, lock-down, `service_role` grants |
+| `0007_join_links.sql` | `join_links` (join links without email), RLS, `service_role` grants. **Not yet applied in production.** |
 
 ---
 
@@ -650,7 +672,7 @@ only. Stored in `lesson_plans`.
 
 ## 6. API reference
 
-33 route files under `pages/api/` (`find pages/api -name '*.js'`). All take and return JSON unless
+37 route files under `pages/api/` (`find pages/api -name '*.js'`). All take and return JSON unless
 stated. Common answers, not repeated below:
 
 | Status | When |
@@ -675,6 +697,18 @@ Types used below:
 **`GET /api/me`** — `pages/api/me.js` · any signed-in user, **pending accounts included**.
 - → `{ user: { id, email }, role: 'student'|'teacher', approved: boolean, isAdmin: boolean, profile: Profile|null }`,
   `Cache-Control: private, no-store`.
+
+**`GET /api/join/[token]`** — `pages/api/join/[token]/index.js` · **public** (no sign-in),
+`Cache-Control: private, no-store`, `Referrer-Policy: no-referrer`.
+- → `{ valid: true, label: string|null, teacherName }` or
+  `{ valid: false, reason: 'unknown'|'used'|'expired'|'revoked', teacherName }` (teacher name = first
+  word of the creator's `full_name`, default `Wael`). A malformed token is `unknown`.
+
+**`POST /api/join/[token]/claim`** — `pages/api/join/[token]/claim.js` · `requireUser` with
+`allowPending: true` (English errors).
+- → `{ ok: true, alreadyClaimed: boolean }` — spends the link and approves the account (§2 lifecycle 4);
+  the browser then refreshes its session. Audit `join_link.claim` (first claim only).
+- 404 `unknown`; 410 `used` | `expired` | `revoked`; 409 `not_student` (teacher or admin account).
 
 **`POST /api/onboarding/complete`** — `pages/api/onboarding/complete.js` · students (teachers 403
 `Onboarding is for students only.`; pending → 403 `pending`).
@@ -820,6 +854,20 @@ else answers 404.
   (without the link).
 - 400: pending account (approve it first), suspended account, no email; 404 for anything but a
   student account.
+
+**`POST /api/teacher/join-links`** — `pages/api/teacher/join-links/index.js`
+- Body `{ label? (≤ 60) }`.
+- → **201** `{ link, message, joinLink: { id, label, expires_at } }` — `link` =
+  `<appOrigin>/join/<token>` (only in this answer), `message` = ready-to-paste English message.
+  Audit `join_link.create` (without the link).
+
+**`GET /api/teacher/join-links`** — same file
+- → `{ joinLinks: [{ id, label, created_at, expires_at, used_at, revoked_at,
+  status: 'active'|'used'|'expired'|'revoked', used_by: { id, name, email }|null }] }` — 20 most recent.
+
+**`DELETE /api/teacher/join-links/[id]`** — `pages/api/teacher/join-links/[id].js`
+- → `{ joinLink: { id, revoked_at } }`; revoking twice is a no-op. Audit `join_link.revoke`.
+- 400 when already used; 404 `Lien introuvable.`.
 
 **`GET /api/teacher/students/[id]/plans`** — `…/plans.js`
 - → `{ plans: [{ id, focus, content, created_at }] }` — the 10 latest (`[]` without the table).

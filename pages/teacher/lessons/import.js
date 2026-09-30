@@ -55,6 +55,8 @@ import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/NewLesson.module.css'
 import imp from '@/components/teacher/import/Import.module.css'
+import { Ban, Import, Lightbulb, Lock, Pause, RefreshCw, SearchX, UserPlus, Users } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const LEAVE_RUNNING =
   "L'import est en cours : les leçons déjà envoyées continueront d'être générées, mais les documents en attente ne seront pas importés. Quitter quand même ?"
@@ -428,7 +430,7 @@ export default function ImportLessonsPage() {
     if (extractingCount) blocker = 'Extraction du texte en cours…'
     else if (pendingCount) blocker = 'Corrige les documents à vérifier.'
     else if (retryRows.length) blocker = '« Réessayer » relance les documents en échec.'
-    else if (rows.every((r) => r.run === 'published')) blocker = 'Tout est importé ✓ Ajoute d’autres documents pour continuer.'
+    else if (rows.every((r) => r.run === 'published')) blocker = 'Tout est importé. Ajoute d’autres documents pour continuer.'
     else blocker = 'Rien de nouveau à importer : ajoute d’autres documents.'
   }
 
@@ -517,7 +519,7 @@ export default function ImportLessonsPage() {
         <div className={styles.pageHead}>
           <h1 className={styles.pageTitle}>
             <span className={`${styles.pageEmoji} ${imp.pageEmoji}`} aria-hidden="true">
-              📥
+              <Icon icon={Import} size={24} />
             </span>{' '}
             Importer des leçons
           </h1>
@@ -554,12 +556,12 @@ export default function ImportLessonsPage() {
         ) : noStudents ? (
           <>
             <EmptyNote
-              emoji="👋"
+              icon={UserPlus}
               title="Aucun élève pour l'instant"
               text="Ajoute d'abord un élève : tu pourras ensuite importer ses anciennes leçons."
             />
             <Link href="/teacher" className={`${ui.btn} ${ui.green} ${ui.block}`}>
-              <span aria-hidden="true">👥</span> Voir mes élèves
+              <Icon icon={Users} size={20} /> Voir mes élèves
             </Link>
           </>
         ) : (
@@ -567,7 +569,7 @@ export default function ImportLessonsPage() {
             {missingStudent && (
               <div className={`${bits.alert} ${bits.warning}`} role="alert">
                 <span className={bits.alertIcon} aria-hidden="true">
-                  🔍
+                  <Icon icon={SearchX} size={20} />
                 </span>
                 <span className={bits.alertBody}>
                   L&apos;élève indiqué dans le lien est introuvable. Choisis-le dans la liste.
@@ -578,7 +580,7 @@ export default function ImportLessonsPage() {
             {restoreNote && (
               <div className={`${bits.alert} ${bits.info}`} role="status">
                 <span className={bits.alertIcon} aria-hidden="true">
-                  🔁
+                  <Icon icon={RefreshCw} size={20} />
                 </span>
                 <div className={bits.alertBody}>
                   <span>
@@ -638,7 +640,7 @@ export default function ImportLessonsPage() {
               />
               {hasCreated && !running ? (
                 <p className={bits.hint}>
-                  <span aria-hidden="true">🔒 </span>
+                  <Icon icon={Lock} size={15} className={styles.inlineIcon} />{' '}
                   Des leçons ont déjà été envoyées pour cet élève. Clique sur « Importer d&apos;autres documents » ou
                   retire-les de la liste pour changer d&apos;élève.
                 </p>
@@ -670,7 +672,7 @@ export default function ImportLessonsPage() {
                 {rejected.length > 0 && (
                   <div className={`${bits.alert} ${bits.warning}`} role="alert">
                     <span className={bits.alertIcon} aria-hidden="true">
-                      🙅
+                      <Icon icon={Ban} size={20} />
                     </span>
                     <div className={bits.alertBody}>
                       {rejected.length === 1 ? (
@@ -692,7 +694,7 @@ export default function ImportLessonsPage() {
                 )}
 
                 <p className={imp.scanNote}>
-                  <span aria-hidden="true">💡 </span>
+                  <Icon icon={Lightbulb} size={15} className={styles.inlineIcon} />{' '}
                   La date et le titre sont repris du nom du fichier (ex. « Rebecca_L07_Vouloir.pdf ») ou du début du
                   document : vérifie-les. Les PDF scannés contiennent peu de texte : ouvre « Voir le texte » et colle le
                   contenu à la main.
@@ -747,7 +749,7 @@ export default function ImportLessonsPage() {
             {runner.paused && (
               <div className={`${bits.alert} ${bits.error}`} role="alert">
                 <span className={bits.alertIcon} aria-hidden="true">
-                  ⏸️
+                  <Icon icon={Pause} size={20} />
                 </span>
                 <div className={bits.alertBody}>
                   <span>

@@ -150,7 +150,7 @@ describe('« Coller » button', () => {
     expect(pasteMessage(null)).toMatch(/inaccessible/)
     expect(pasteMessage('')).toMatch(/ne contient pas de texte/)
     expect(pasteMessage('  \n')).toMatch(/ne contient pas de texte/)
-    expect(pasteMessage('Bonjour')).toMatch(/^Collé ✓/)
+    expect(pasteMessage('Bonjour')).toMatch(/^Collé \(/)
   })
 })
 

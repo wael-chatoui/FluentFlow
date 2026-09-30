@@ -5,6 +5,7 @@ import { prettyValue } from '@/components/admin/tables/tableMeta'
 import admin from '@/components/admin/common/admin.module.css'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/admin/tables/tables.module.css'
+import { Search } from 'lucide-react'
 
 const TRUNCATION = 500 // utils/api/admin/tables.js TRUNCATE_AT (cut values end with '…')
 
@@ -22,7 +23,7 @@ export default function ValueDialog({ open, title, value, onClose, onCopy }) {
     <Modal
       open={open}
       title={title}
-      icon="🔍"
+      icon={Search}
       onClose={onClose}
       initialFocusRef={closeRef}
       actions={

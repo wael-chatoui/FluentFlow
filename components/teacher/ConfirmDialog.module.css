@@ -46,13 +46,13 @@
   border: 2px solid var(--st-blue-line);
   border-bottom-width: 4px;
   background: var(--st-blue-bg);
-  font-size: 2rem;
-  line-height: 1;
+  color: var(--st-blue-ink);
 }
 
 .danger .icon {
   border-color: var(--st-red-line);
   background: var(--st-red-bg);
+  color: var(--st-red-ink);
 }
 
 .title {

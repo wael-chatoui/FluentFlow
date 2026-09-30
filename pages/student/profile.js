@@ -14,6 +14,8 @@ import { api } from '@/utils/apiClient'
 import { safeHttpsUrl } from '@/utils/lesson/schema'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/profile/Profile.module.css'
+import { ExternalLink, Folder, Languages, LockKeyhole, TriangleAlert } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 function ProfileSkeleton() {
   return (
@@ -132,7 +134,7 @@ export default function StudentProfilePage() {
               {email && <p className={styles.heroEmail}>{email}</p>}
               {level && (
                 <span className={`${ui.pill} ${styles.levelPill}`}>
-                  <span aria-hidden="true">🇫🇷</span>
+                  <Icon icon={Languages} size={16} />
                   <span className="sr-only">Your French level: </span>
                   {level}
                 </span>
@@ -146,7 +148,7 @@ export default function StudentProfilePage() {
             <section className={`${ui.card} ${styles.section}`} aria-labelledby="drive-title">
               <h2 id="drive-title" className={styles.cardTitle}>
                 <span className={`${styles.cardIcon} ${styles.iconYellow}`} aria-hidden="true">
-                  📁
+                  <Icon icon={Folder} size={20} />
                 </span>
                 Your Google Drive folder
               </h2>
@@ -157,7 +159,7 @@ export default function StudentProfilePage() {
                 rel="noopener noreferrer"
                 className={`${ui.btn} ${ui.ghost} ${ui.block}`}
               >
-                Open my folder<span aria-hidden="true"> ↗</span>
+                Open my folder <Icon icon={ExternalLink} size={18} />
                 <span className="sr-only"> (opens in a new tab)</span>
               </a>
             </section>
@@ -166,7 +168,7 @@ export default function StudentProfilePage() {
           <section className={`${ui.card} ${styles.section}`} aria-labelledby="account-title">
             <h2 id="account-title" className={styles.cardTitle}>
               <span className={`${styles.cardIcon} ${styles.iconPurple}`} aria-hidden="true">
-                🔐
+                <Icon icon={LockKeyhole} size={20} />
               </span>
               Account
             </h2>
@@ -190,7 +192,7 @@ export default function StudentProfilePage() {
           <section className={`${ui.card} ${styles.section} ${styles.danger}`} aria-labelledby="danger-title">
             <h2 id="danger-title" className={styles.cardTitle}>
               <span className={`${styles.cardIcon} ${styles.iconRed}`} aria-hidden="true">
-                ⚠️
+                <Icon icon={TriangleAlert} size={20} />
               </span>
               Danger zone
             </h2>

@@ -3,6 +3,8 @@ import { normalizeLessonContent } from '@/utils/lesson/schema'
 import RichText, { RichTextInline } from '@/components/lesson/RichText'
 import { formatLessonDate } from '@/components/lesson/format'
 import styles from '@/components/lesson/LessonView.module.css'
+import { ArrowRight, Check, ExternalLink, FileText, Library, MessageCircle, NotebookPen, Puzzle, Speech, SpellCheck, Star, Target } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 // Lesson recap renderer, shared by the student, teacher and admin pages.
 // `content` is lessons.content (see utils/lesson/schema.js); it is re-normalized
@@ -23,7 +25,7 @@ function Section({ id, anchor, icon, title, tone = 'blue', children }) {
     <section id={anchor} className={[styles.section, styles[tone]].join(' ')} aria-labelledby={id}>
       <h2 id={id} className={styles.sectionTitle}>
         <span className={styles.sectionIcon} aria-hidden="true">
-          {icon}
+          <Icon icon={icon} size={22} />
         </span>
         {title}
       </h2>
@@ -122,7 +124,7 @@ export default function LessonView({ content, title, lessonDate, studentName, te
       <div className={`lesson-view ${styles.root}`} lang="en">
         <p className={styles.empty}>
           <span className={styles.emptyIcon} aria-hidden="true">
-            📄
+            <Icon icon={FileText} size={40} />
           </span>
           This recap is empty
         </p>
@@ -140,7 +142,7 @@ export default function LessonView({ content, title, lessonDate, studentName, te
       />
 
       {(c.summary || c.topics.length > 0) && (
-        <Section id={`${uid}-summary`} anchor="recap-summary" icon="💬" title="Summary" tone="blue">
+        <Section id={`${uid}-summary`} anchor="recap-summary" icon={MessageCircle} title="Summary" tone="blue">
           {c.summary && <RichText text={c.summary} className={styles.summary} />}
           {c.topics.length > 0 && (
             <ul className={styles.topics} aria-label="Topics" role="list">
@@ -155,13 +157,13 @@ export default function LessonView({ content, title, lessonDate, studentName, te
       )}
 
       {c.vocabulary.length > 0 && (
-        <Section id={`${uid}-vocabulary`} anchor="recap-vocabulary" icon="📚" title="Vocabulary" tone="green">
+        <Section id={`${uid}-vocabulary`} anchor="recap-vocabulary" icon={Library} title="Vocabulary" tone="green">
           <WordTable rows={c.vocabulary} caption="Vocabulary: French, English, example" />
         </Section>
       )}
 
       {c.corrections.length > 0 && (
-        <Section id={`${uid}-corrections`} anchor="recap-corrections" icon="✏️" title="Corrections" tone="red">
+        <Section id={`${uid}-corrections`} anchor="recap-corrections" icon={SpellCheck} title="Corrections" tone="red">
           <ul className={styles.corrections} role="list">
             {c.corrections.map((item, i) => (
               <li key={i} className={styles.correction}>
@@ -173,7 +175,7 @@ export default function LessonView({ content, title, lessonDate, studentName, te
                     </s>
                   </span>
                   <span className={styles.arrow} aria-hidden="true">
-                    →
+                    <Icon icon={ArrowRight} size={18} strokeWidth={3} />
                   </span>
                   <span className={styles.right}>
                     <span className="sr-only">Better: </span>
@@ -192,13 +194,13 @@ export default function LessonView({ content, title, lessonDate, studentName, te
       )}
 
       {c.grammar.length > 0 && (
-        <Section id={`${uid}-grammar`} anchor="recap-grammar" icon="🧩" title="Grammar" tone="yellow">
+        <Section id={`${uid}-grammar`} anchor="recap-grammar" icon={Puzzle} title="Grammar" tone="yellow">
           <div className={styles.rules}>
             {c.grammar.map((g, i) => (
               <div key={i} className={styles.rule}>
                 <h3 className={styles.ruleTitle}>
                   <span className={styles.deco} aria-hidden="true">
-                    ⭐{' '}
+                    <Icon icon={Star} size={18} className={styles.star} />{' '}
                   </span>
                   <RichTextInline text={g.title} />
                 </h3>
@@ -219,13 +221,13 @@ export default function LessonView({ content, title, lessonDate, studentName, te
       )}
 
       {c.expressions.length > 0 && (
-        <Section id={`${uid}-expressions`} anchor="recap-expressions" icon="🗣️" title="Useful expressions" tone="purple">
+        <Section id={`${uid}-expressions`} anchor="recap-expressions" icon={Speech} title="Useful expressions" tone="purple">
           <WordTable rows={c.expressions} caption="Useful expressions: French, English, example" />
         </Section>
       )}
 
       {c.homework.length > 0 && (
-        <Section id={`${uid}-homework`} anchor="recap-homework" icon="🏠" title="Homework" tone="orange">
+        <Section id={`${uid}-homework`} anchor="recap-homework" icon={NotebookPen} title="Homework" tone="orange">
           <ol className={styles.homework} role="list">
             {c.homework.map((h, i) => (
               <li key={i} className={styles.homeworkItem}>
@@ -234,7 +236,11 @@ export default function LessonView({ content, title, lessonDate, studentName, te
                   <>
                     {' '}
                     <a href={h.link} target="_blank" rel="noopener noreferrer" className={styles.link}>
-                      Open link<span className={styles.deco} aria-hidden="true"> ↗</span>
+                      Open link
+                      <span className={styles.deco} aria-hidden="true">
+                        {' '}
+                        <Icon icon={ExternalLink} size={16} />
+                      </span>
                       <span className="sr-only"> (opens in a new tab)</span>
                     </a>
                   </>
@@ -246,12 +252,12 @@ export default function LessonView({ content, title, lessonDate, studentName, te
       )}
 
       {c.can_do.length > 0 && (
-        <Section id={`${uid}-can-do`} anchor="recap-can-do" icon="🎯" title="Now I can…" tone="green">
+        <Section id={`${uid}-can-do`} anchor="recap-can-do" icon={Target} title="Now I can…" tone="green">
           <ul className={styles.canDo} role="list">
             {c.can_do.map((item, i) => (
               <li key={i} className={styles.canDoItem}>
                 <span className={styles.check} aria-hidden="true">
-                  ✓
+                  <Icon icon={Check} size={16} strokeWidth={3} />
                 </span>
                 <RichTextInline text={stripNowICan(item)} />
               </li>

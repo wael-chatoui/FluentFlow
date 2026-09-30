@@ -4,6 +4,8 @@ import MasteryRing from '@/components/student/lessons/MasteryRing'
 import { bestPct, shortDate } from '@/components/student/lessons/progress'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/home/Progress.module.css'
+import { BookOpen, Library, TrendingUp } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 // Bars are colored by score (not by lesson) so red always means "needs work"
 function scoreStyle(pct) {
@@ -32,7 +34,7 @@ export default function ProgressCard({ stats, history }) {
   return (
     <section className={`${ui.card} ${styles.card}`} aria-labelledby={titleId}>
       <h2 id={titleId} className={styles.heading}>
-        <span aria-hidden="true">📈</span> Your progress
+        <Icon icon={TrendingUp} size={22} /> Your progress
       </h2>
 
       <div className={styles.top}>
@@ -54,13 +56,13 @@ export default function ProgressCard({ stats, history }) {
       <dl className={styles.stats}>
         <div className={`${styles.stat} ${styles.statBlue}`}>
           <dt className={styles.statLabel}>
-            <span aria-hidden="true">📚 </span>Lessons
+            <Icon icon={BookOpen} size={14} /> Lessons
           </dt>
           <dd className={styles.statValue}>{stats.lessons}</dd>
         </div>
         <div className={`${styles.stat} ${styles.statPurple}`}>
           <dt className={styles.statLabel}>
-            <span aria-hidden="true">🔤 </span>Words
+            <Icon icon={Library} size={14} /> Words
           </dt>
           <dd className={styles.statValue}>{stats.words}</dd>
         </div>

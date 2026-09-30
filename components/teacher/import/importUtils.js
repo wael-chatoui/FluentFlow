@@ -5,6 +5,7 @@ import { EXERCISE_TYPES as TYPE_IDS } from '@/utils/lesson/schema'
 import { EXERCISE_TYPE_LABELS } from '@/components/teacher/format'
 import { GENERATION_LIMITS, IMPORT_LIMITS, megabytes } from '@/utils/import/limits'
 import { prepareImportText, sanitizeSourceName } from '@/utils/import/text'
+import { ArrowLeftRight, Circle, CircleDot, TextCursorInput } from 'lucide-react'
 
 // Same parser as /api/teacher/import/resolve: a link accepted here is accepted there
 export { parseGoogleLink } from '@/utils/import/googleLinks'
@@ -19,12 +20,13 @@ export const COUNT_MAX = GENERATION_LIMITS.maxCount
 export const COUNT_DEFAULT = GENERATION_LIMITS.defaultCount
 export const EXTRACT_CONCURRENCY = 3
 
-const TYPE_ICONS = { mcq: '🔘', fill_blank: '✏️', match: '🔗' }
+// Pictograms (lucide components, rendered with <Icon>), same as the teacher exercise review
+const TYPE_ICONS = { mcq: CircleDot, fill_blank: TextCursorInput, match: ArrowLeftRight }
 
 export const EXERCISE_TYPES = TYPE_IDS.map((value) => ({
   value,
   label: EXERCISE_TYPE_LABELS[value] || value,
-  icon: TYPE_ICONS[value] || '•',
+  icon: TYPE_ICONS[value] || Circle,
 }))
 
 const NETWORK_ERROR = 'Connexion impossible. Vérifie ta connexion internet et réessaie.'

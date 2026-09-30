@@ -77,6 +77,10 @@
   gap: 0.5rem;
 }
 
+.inlineIcon {
+  vertical-align: -0.15em;
+}
+
 .resultLabel {
   font-weight: 900;
   color: var(--st-green-ink);

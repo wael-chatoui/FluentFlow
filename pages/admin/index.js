@@ -20,6 +20,8 @@ import {
 import ui from '@/components/ui/ui.module.css'
 import s from '@/components/admin/common/admin.module.css'
 import d from '@/components/admin/common/dashboard.module.css'
+import { ArrowRight, BookOpen, CircleAlert, CircleCheck, Dumbbell, GraduationCap, Hourglass, Presentation, RefreshCw, RotateCcw, Send, ShieldCheck, Sparkles, Target, TrendingUp, UserPlus, Users } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const SERIES = [
   { key: 'signups', label: 'Inscriptions', tone: d.seriesBlue },
@@ -45,7 +47,7 @@ function aiTiles(ai) {
     return [
       {
         key: 'ai',
-        emoji: '🤖',
+        icon: Sparkles,
         label: 'Coût IA (minimum)',
         value: formatUsd(ai.estimated_cost_usd),
         sub: `${plural(ai.calls || 0, 'leçon', 'leçons')} · versions actuelles seulement`,
@@ -64,7 +66,7 @@ function aiTiles(ai) {
   return [
     {
       key: 'ai',
-      emoji: '🤖',
+      icon: Sparkles,
       label: 'Coût IA',
       value: formatUsd(ai.cost_usd ?? ai.estimated_cost_usd),
       sub: `${plural(ai.calls || 0, 'génération', 'générations')} (${formatNumber(kinds.lesson || 0)} leçons, ${formatNumber(kinds.plan || 0)} plans)`,
@@ -73,7 +75,7 @@ function aiTiles(ai) {
     },
     {
       key: 'ai_failures',
-      emoji: '🧯',
+      icon: CircleAlert,
       label: 'Échecs IA',
       value: ai.failure_rate === null || ai.failure_rate === undefined ? '—' : formatPercent(ai.failure_rate),
       sub: [plural(ai.failures || 0, 'échec', 'échecs'), seconds].filter(Boolean).join(' · '),
@@ -90,19 +92,19 @@ function buildTiles(stats) {
   return [
     {
       key: 'users',
-      emoji: '👥',
+      icon: Users,
       label: 'Utilisateurs',
       value: formatNumber(t.users),
       sub: t.invites_pending ? `${plural(t.invites_pending, 'invitation', 'invitations')} en attente` : null,
       tone: d.blue,
       href: '/admin/users',
     },
-    { key: 'students', emoji: '🎓', label: 'Élèves', value: formatNumber(t.students), tone: d.blue, href: '/admin/users?role=student' },
-    { key: 'teachers', emoji: '🧑‍🏫', label: 'Profs', value: formatNumber(t.teachers), tone: d.orange, href: '/admin/users?role=teacher' },
-    { key: 'admins', emoji: '🛠️', label: 'Admins', value: formatNumber(t.admins), tone: d.purple, href: '/admin/users?role=admin' },
+    { key: 'students', icon: GraduationCap, label: 'Élèves', value: formatNumber(t.students), tone: d.blue, href: '/admin/users?role=student' },
+    { key: 'teachers', icon: Presentation, label: 'Profs', value: formatNumber(t.teachers), tone: d.orange, href: '/admin/users?role=teacher' },
+    { key: 'admins', icon: ShieldCheck, label: 'Admins', value: formatNumber(t.admins), tone: d.purple, href: '/admin/users?role=admin' },
     {
       key: 'pending',
-      emoji: '⏳',
+      icon: Hourglass,
       label: 'À approuver',
       value: formatNumber(t.pending_approval || 0),
       sub: t.pending_approval > 1 ? 'inscriptions en attente' : t.pending_approval ? 'inscription en attente' : 'aucune inscription en attente',
@@ -111,7 +113,7 @@ function buildTiles(stats) {
     },
     {
       key: 'onboarded',
-      emoji: '✅',
+      icon: CircleCheck,
       label: 'Élèves onboardés',
       value: formatNumber(t.onboarded),
       sub: onboardedPct !== null ? `${onboardedPct} % des élèves` : null,
@@ -119,7 +121,7 @@ function buildTiles(stats) {
     },
     {
       key: 'lessons',
-      emoji: '📚',
+      icon: BookOpen,
       label: 'Leçons',
       value: formatNumber(t.lessons),
       sub: t.lessons_hidden ? `dont ${formatNumber(t.lessons_hidden)} brouillon${t.lessons_hidden > 1 ? 's' : ''}` : null,
@@ -128,7 +130,7 @@ function buildTiles(stats) {
     },
     {
       key: 'published',
-      emoji: '🚀',
+      icon: Send,
       label: 'Publiées',
       value: formatNumber(t.lessons_published),
       sub: publishedPct !== null ? `${publishedPct} % des leçons` : null,
@@ -137,17 +139,17 @@ function buildTiles(stats) {
     },
     {
       key: 'failed',
-      emoji: '💥',
+      icon: CircleAlert,
       label: 'Échecs',
       value: formatNumber(t.lessons_failed),
       tone: t.lessons_failed > 0 ? d.red : undefined,
       href: '/admin/lessons?status=failed',
     },
-    { key: 'sessions', emoji: '🏋️', label: "Sessions d'exercices", value: formatNumber(t.practice_sessions), tone: d.yellow },
-    { key: 'reviews', emoji: '🔁', label: 'Révisions', value: formatNumber(t.review_attempts), tone: d.pink },
+    { key: 'sessions', icon: Dumbbell, label: "Sessions d'exercices", value: formatNumber(t.practice_sessions), tone: d.yellow },
+    { key: 'reviews', icon: RotateCcw, label: 'Révisions', value: formatNumber(t.review_attempts), tone: d.pink },
     {
       key: 'success',
-      emoji: '🎯',
+      icon: Target,
       label: 'Taux de réussite',
       value: stats?.successRate === null || stats?.successRate === undefined ? '—' : formatPercent(stats.successRate),
       sub: 'Moyenne score / total',
@@ -165,7 +167,7 @@ function Tiles({ stats }) {
         const inner = (
           <>
             <span className={d.tileLabel}>
-              <span aria-hidden="true">{tile.emoji}</span>
+              <Icon icon={tile.icon} size={15} />
               {tile.label}
             </span>
             <span className={d.tileValue}>
@@ -348,7 +350,7 @@ function RecentLessons({ lessons }) {
         <li key={l.id}>
           <Link href={`/admin/lessons/${l.id}`} className={d.item}>
             <span className={cx(d.avatar, d.lessonIcon)} aria-hidden="true">
-              📘
+              <Icon icon={BookOpen} size={20} />
             </span>
             <span className={d.itemMain}>
               <span className={d.itemTitle}>{l.title || 'Leçon sans titre'}</span>
@@ -409,7 +411,7 @@ export default function AdminDashboard() {
           disabled={loading}
           aria-busy={loading || undefined}
         >
-          {loading ? <span className={s.spinner} aria-hidden="true" /> : <span aria-hidden="true">↻</span>}
+          {loading ? <span className={s.spinner} aria-hidden="true" /> : <Icon icon={RefreshCw} size={16} />}
           Actualiser
         </button>
       }
@@ -418,7 +420,7 @@ export default function AdminDashboard() {
       <div className={s.stack} aria-busy={loading || undefined}>
         {error && (
           <div className={s.alert} role="alert">
-            <span aria-hidden="true">⚠️</span>
+            <Icon icon={CircleAlert} size={20} />
             <span className={s.alertText}>
               {data ? 'Actualisation impossible : ' : 'Impossible de charger les statistiques : '}
               {error}
@@ -435,7 +437,7 @@ export default function AdminDashboard() {
           <section className={s.section} aria-labelledby="activity-title">
             <div className={s.sectionHead}>
               <h2 id="activity-title" className={s.sectionTitle}>
-                <span aria-hidden="true">📈</span> Activité — 30 derniers jours
+                <Icon icon={TrendingUp} size={20} /> Activité — 30 derniers jours
               </h2>
             </div>
             {showSkeleton ? <ChartSkeleton /> : <ActivityChart last30={data.last30} />}
@@ -447,10 +449,10 @@ export default function AdminDashboard() {
             <section className={s.section} aria-labelledby="recent-lessons-title">
               <div className={s.sectionHead}>
                 <h2 id="recent-lessons-title" className={s.sectionTitle}>
-                  <span aria-hidden="true">📚</span> Dernières leçons
+                  <Icon icon={BookOpen} size={20} /> Dernières leçons
                 </h2>
                 <Link href="/admin/lessons" className={d.seeAll}>
-                  Tout voir →
+                  Tout voir <Icon icon={ArrowRight} size={16} />
                 </Link>
               </div>
               {showSkeleton ? <ListSkeleton /> : <RecentLessons lessons={data.recent?.lessons || []} />}
@@ -458,10 +460,10 @@ export default function AdminDashboard() {
             <section className={s.section} aria-labelledby="recent-signups-title">
               <div className={s.sectionHead}>
                 <h2 id="recent-signups-title" className={s.sectionTitle}>
-                  <span aria-hidden="true">👋</span> Derniers inscrits
+                  <Icon icon={UserPlus} size={20} /> Derniers inscrits
                 </h2>
                 <Link href="/admin/users" className={d.seeAll}>
-                  Tout voir →
+                  Tout voir <Icon icon={ArrowRight} size={16} />
                 </Link>
               </div>
               {showSkeleton ? <ListSkeleton /> : <RecentSignups signups={data.recent?.signups || []} />}

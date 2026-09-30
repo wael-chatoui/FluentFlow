@@ -2,6 +2,7 @@
 // `lesson` is one item of GET /api/student/lessons (best_score / best_total are null
 // when the current version of the lesson was never practiced).
 import { parseLessonDate, percent } from '@/components/lesson/format'
+import { Bike, BookOpen, CakeSlice, Cherry, Coffee, Croissant, Drama, Flower2, Landmark, Music, Palette, Sailboat } from 'lucide-react'
 
 export function exerciseCount(lesson) {
   return Math.max(0, Number(lesson?.exercise_count) || 0)
@@ -65,14 +66,14 @@ export function scoreHistory(lessons, max = 8) {
   return practiced.reverse()
 }
 
-// Stable, friendly emoji per lesson (same idea as accents.js)
-const LESSON_EMOJIS = ['📘', '🥐', '🗼', '🧀', '🎨', '☕', '🚲', '🌻', '🎭', '🍓', '⛵', '🎶']
+// Stable, friendly pictogram per lesson (same idea as accents.js), rendered with <Icon>
+const LESSON_ICONS = [BookOpen, Croissant, Landmark, CakeSlice, Palette, Coffee, Bike, Flower2, Drama, Cherry, Sailboat, Music]
 
-export function lessonEmoji(id) {
+export function lessonIcon(id) {
   const s = String(id || '')
   let h = 7
   for (let i = 0; i < s.length; i++) h = (h * 33 + s.charCodeAt(i)) >>> 0
-  return LESSON_EMOJIS[h % LESSON_EMOJIS.length]
+  return LESSON_ICONS[h % LESSON_ICONS.length]
 }
 
 /** 'YYYY-MM-DD' → "Sep 3" (local date), '' if invalid. */

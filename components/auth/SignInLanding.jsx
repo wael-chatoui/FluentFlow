@@ -1,9 +1,12 @@
 import Head from 'next/head'
+import { Hand, KeyRound, Lightbulb } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import LoadingScreen from '@/components/ui/LoadingScreen'
 import AuthScreen, { AuthHeader } from '@/components/auth/AuthScreen'
 import SignInProblem from '@/components/auth/SignInProblem'
 import useSignInLanding from '@/components/auth/useSignInLanding'
 import { establishSession, readLandingParams } from '@/components/auth/landing'
+import { isJoinPath } from '@/utils/auth/routing'
 import ui from '@/components/ui/ui.module.css'
 import form from '@/components/auth/AuthForm.module.css'
 
@@ -30,7 +33,13 @@ export default function SignInLanding() {
     return (
       <>
         {head}
-        <SignInProblem failure={failure} onRetry={retry} loginHref={next ? `/login?next=${encodeURIComponent(next)}` : '/login'} />
+        {/* From an invitation (join link): back to it, where a new account can sign in */}
+        <SignInProblem
+          failure={failure}
+          onRetry={retry}
+          loginHref={next && isJoinPath(next) ? next : next ? `/login?next=${encodeURIComponent(next)}` : '/login'}
+          loginLabel={next && isJoinPath(next) ? 'Back to your invitation' : undefined}
+        />
       </>
     )
   }
@@ -41,7 +50,7 @@ export default function SignInLanding() {
         {head}
         <AuthHeader
           id="switch-title"
-          emoji="👋"
+          icon={Hand}
           tone="blue"
           title="You’re already signed in"
           subtitle={
@@ -60,8 +69,8 @@ export default function SignInLanding() {
           </button>
         </div>
         <p className={form.note}>
-          <span className={form.noteIcon} aria-hidden="true">
-            💡
+          <span className={form.noteIcon}>
+            <Icon icon={Lightbulb} size={18} />
           </span>
           <span>“Use this link” signs this browser into the account the link was made for. The link works only once.</span>
         </p>
@@ -76,7 +85,7 @@ export default function SignInLanding() {
         {head}
         <AuthHeader
           id="confirm-title"
-          emoji="🔑"
+          icon={KeyRound}
           tone="green"
           title="Is this your account?"
           subtitle={
@@ -94,8 +103,8 @@ export default function SignInLanding() {
           </button>
         </div>
         <p className={form.note}>
-          <span className={form.noteIcon} aria-hidden="true">
-            💡
+          <span className={form.noteIcon}>
+            <Icon icon={Lightbulb} size={18} />
           </span>
           <span>
             A sign-in link opens the account it was made for. If this isn’t your email address, don’t continue: ask your

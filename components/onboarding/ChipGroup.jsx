@@ -1,3 +1,4 @@
+import Icon from '@/components/ui/Icon'
 import { CheckIcon } from '@/components/onboarding/Icons'
 import steps from '@/components/onboarding/Steps.module.css'
 import styles from '@/components/onboarding/ChipGroup.module.css'
@@ -28,7 +29,7 @@ export default function ChipGroup({ name, legend, labelledBy, describedBy, optio
                 onChange={() => onToggle(option.id)}
               />
               <span className={styles.emoji} aria-hidden="true">
-                {option.emoji}
+                <Icon icon={option.icon} size={17} />
               </span>
               <span className={styles.label}>{option.label}</span>
               <span className={styles.check} aria-hidden="true">

@@ -8,8 +8,8 @@
   left: 0.9rem;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 1rem;
-  line-height: 1;
+  display: flex;
+  color: var(--st-ink-soft);
   pointer-events: none;
 }
 

@@ -2,9 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import { Hourglass, Ticket } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
 import AuthScreen, { AuthHeader } from '@/components/auth/AuthScreen'
 import LoadingScreen from '@/components/ui/LoadingScreen'
+import Icon from '@/components/ui/Icon'
+import { readJoinToken } from '@/components/join/joinToken'
 import { destinationAfterSignIn } from '@/components/auth/afterSignIn'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/auth/AuthForm.module.css'
@@ -23,6 +26,7 @@ export default function PendingPage() {
   const routerRef = useRef(router)
   routerRef.current = router
   const { user, loading } = useAuth()
+  const [joinToken, setJoinToken] = useState(null)
   const [checking, setChecking] = useState(false)
   const [status, setStatus] = useState({ tone: '', text: '' })
   const checkingRef = useRef(false)
@@ -39,6 +43,11 @@ export default function PendingPage() {
   useEffect(() => {
     if (!loading && !user) routerRef.current.replace('/login')
   }, [loading, user])
+
+  // An invitation link opened in this browser (its sign-in lost the way back to it)
+  useEffect(() => {
+    setJoinToken(readJoinToken())
+  }, [])
 
   // Approved → go in; still pending → say so (only when the student asked)
   const check = useCallback(async ({ silent = false } = {}) => {
@@ -99,7 +108,7 @@ export default function PendingPage() {
       </Head>
       <AuthHeader
         id="pending-title"
-        emoji="⏳"
+        icon={Hourglass}
         tone="purple"
         title="Almost there!"
         subtitle="Your account is waiting for your teacher’s approval."
@@ -109,6 +118,17 @@ export default function PendingPage() {
           You’re signed in as <span className={styles.email}>{user.email}</span>. Your teacher sees your request in their
           dashboard. A quick message on Preply can speed things up.
         </p>
+        {joinToken && (
+          <p className={styles.note}>
+            <span className={styles.noteIcon}>
+              <Icon icon={Ticket} size={18} />
+            </span>
+            <span>
+              Have an invitation link from your teacher?{' '}
+              <Link href={`/join/${joinToken}`}>Open it again</Link> to finish joining.
+            </span>
+          </p>
+        )}
         <div role="status" aria-live="polite">
           {status.text && <p className={`${styles.message} ${styles[status.tone] || ''}`}>{status.text}</p>}
         </div>

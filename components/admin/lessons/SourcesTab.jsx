@@ -3,6 +3,8 @@ import { EXERCISE_TYPE_META } from '@/components/admin/lessons/constants'
 import { resolveGenerationOptions } from '@/utils/ai/options'
 import admin from '@/components/admin/common/admin.module.css'
 import styles from '@/components/admin/lessons/editor.module.css'
+import { FileText, Mic, Palette, Settings } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 function Source({ icon, title, text, onCopy, empty = 'Rien n’a été collé ici.' }) {
   const value = (text || '').trim()
@@ -10,7 +12,7 @@ function Source({ icon, title, text, onCopy, empty = 'Rien n’a été collé ic
     <section className={admin.section}>
       <div className={admin.sectionHead}>
         <h2 className={admin.sectionTitle}>
-          <span aria-hidden="true">{icon}</span> {title}
+          <Icon icon={icon} size={20} /> {title}
         </h2>
         <div className={styles.inlineEnd}>
           <span className={admin.sectionSub}>{value ? `${formatNumber(value.length)} caractères` : 'vide'}</span>
@@ -40,7 +42,7 @@ function Options({ options }) {
     <section className={admin.section}>
       <div className={admin.sectionHead}>
         <h2 className={admin.sectionTitle}>
-          <span aria-hidden="true">⚙️</span> Options de génération
+          <Icon icon={Settings} size={20} /> Options de génération
         </h2>
       </div>
       <dl className={styles.facts}>
@@ -75,7 +77,7 @@ export default function SourcesTab({ lesson, onCopy }) {
     <div className={admin.stack}>
       {imported ? (
         <Source
-          icon="📄"
+          icon={FileText}
           title={lesson.source_name ? `Document importé · ${lesson.source_name}` : 'Document importé'}
           text={lesson.source_text}
           onCopy={onCopy}
@@ -83,8 +85,8 @@ export default function SourcesTab({ lesson, onCopy }) {
         />
       ) : (
         <>
-          <Source icon="🎙️" title="Transcription" text={lesson.transcript} onCopy={onCopy} />
-          <Source icon="🎨" title="Notes Canva" text={lesson.canva} onCopy={onCopy} />
+          <Source icon={Mic} title="Transcription" text={lesson.transcript} onCopy={onCopy} />
+          <Source icon={Palette} title="Notes Canva" text={lesson.canva} onCopy={onCopy} />
         </>
       )}
       <Options options={lesson.generation_options} />

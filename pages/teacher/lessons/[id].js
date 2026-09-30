@@ -25,6 +25,8 @@ import { useMountedRef } from '@/components/teacher/hooks'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/LessonPage.module.css'
+import { CircleAlert, CircleCheck, Eye, EyeOff, FileText, SearchX } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 // The player is big and client-only (it shuffles in state initializers): loaded on demand,
 // fetched ahead when the pointer or the focus reaches « Tester les exercices »
@@ -61,7 +63,9 @@ function LessonSkeleton() {
 function Alert({ tone, icon, children, role = 'status' }) {
   return (
     <div className={`${bits.alert} ${bits[tone]}`} role={role}>
-      <span className={bits.alertIcon} aria-hidden="true">{icon}</span>
+      <span className={bits.alertIcon} aria-hidden="true">
+        <Icon icon={icon} size={20} />
+      </span>
       <span className={bits.alertBody}>{children}</span>
     </div>
   )
@@ -107,8 +111,8 @@ function LessonScreen({ id, initialTab, duplicate }) {
       setTab('recap')
       setNotice(
         lesson.hidden
-          ? "Leçon prête ✓ Elle est encore invisible pour l'élève : relis-la puis publie-la."
-          : "Leçon prête et publiée pour l'élève ✓"
+          ? "Leçon prête. Elle est encore invisible pour l'élève : relis-la puis publie-la."
+          : "Leçon prête et publiée pour l'élève."
       )
     }
     prevStatus.current = status
@@ -173,7 +177,7 @@ function LessonScreen({ id, initialTab, duplicate }) {
     try {
       await patch({ hidden })
       if (mounted.current) {
-        setNotice(hidden ? "Leçon retirée de l'espace élève." : "Leçon publiée : l'élève la voit maintenant ✓")
+        setNotice(hidden ? "Leçon retirée de l'espace élève." : "Leçon publiée : l'élève la voit maintenant.")
         // The button that was used is replaced by its opposite: land on the next action
         requestAnimationFrame(() => testRef.current?.focus())
       }
@@ -241,7 +245,7 @@ function LessonScreen({ id, initialTab, duplicate }) {
   if (notFound) {
     body = (
       <PageState
-        icon="🔍"
+        icon={SearchX}
         headingLevel={1}
         title="Leçon introuvable"
         text="Cette leçon n'existe pas ou a été supprimée."
@@ -293,12 +297,12 @@ function LessonScreen({ id, initialTab, duplicate }) {
         />
 
         {notice && (
-          <Alert tone="success" icon="🎉">
+          <Alert tone="success" icon={CircleCheck}>
             {notice}
           </Alert>
         )}
         {actionError && (
-          <Alert tone="error" icon="⚠️" role="alert">
+          <Alert tone="error" icon={CircleAlert} role="alert">
             {actionError}
           </Alert>
         )}
@@ -348,7 +352,7 @@ function LessonScreen({ id, initialTab, duplicate }) {
               {tab === 'recap' && (
                 <>
                   <p className={styles.previewNote}>
-                    <span aria-hidden="true">👀 </span>
+                    <Icon icon={Eye} size={16} className={styles.inlineIcon} />{' '}
                     {lesson.hidden
                       ? "Ce que l'élève verra une fois la leçon publiée."
                       : "Ce que l'élève voit sur sa page."}
@@ -377,8 +381,8 @@ function LessonScreen({ id, initialTab, duplicate }) {
                     applyLesson(saved)
                     setNotice(
                       sessions.length
-                        ? "Exercice modifié ✓ Les résultats de l'élève sur cette leçon repartent à zéro."
-                        : 'Exercice modifié ✓'
+                        ? "Exercice modifié. Les résultats de l'élève sur cette leçon repartent à zéro."
+                        : 'Exercice modifié.'
                     )
                     refresh()
                   }}
@@ -392,7 +396,7 @@ function LessonScreen({ id, initialTab, duplicate }) {
         ) : (
           <section aria-labelledby="lesson-sources-title">
             <h2 id="lesson-sources-title" className={ui.sectionTitle}>
-              <span aria-hidden="true">📄 </span>Sources
+              <Icon icon={FileText} size={22} /> Sources
             </h2>
             <LessonSources lesson={lesson} />
           </section>
@@ -428,7 +432,7 @@ function LessonScreen({ id, initialTab, duplicate }) {
         title="Retirer la leçon de l'espace élève ?"
         message="L'élève ne la verra plus, ni ses exercices dans ses révisions. Ses résultats sont conservés : tu pourras la republier à tout moment."
         confirmLabel="Retirer"
-        icon="🙈"
+        icon={EyeOff}
         onConfirm={() => setHidden(true)}
         onCancel={() => setConfirm(null)}
       />
@@ -463,7 +467,7 @@ export default function TeacherLessonPage() {
   } else if (!isValidId(id)) {
     content = (
       <PageState
-        icon="🔍"
+        icon={SearchX}
         headingLevel={1}
         title="Leçon introuvable"
         text="Ce lien ne correspond à aucune leçon."

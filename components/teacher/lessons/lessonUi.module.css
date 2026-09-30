@@ -67,8 +67,8 @@
 
 .alertIcon {
   flex: none;
-  font-size: 1.25rem;
-  line-height: 1.2;
+  display: flex;
+  padding-top: 1px;
 }
 
 .alertBody {
@@ -201,6 +201,11 @@
   color: var(--st-red-ink);
 }
 
+.fieldError > svg {
+  flex: none;
+  margin-top: 0.1em;
+}
+
 .hint {
   margin: 0.45rem 0 0;
   font-size: 0.88rem;
@@ -248,8 +253,7 @@
   margin-bottom: 0.35rem;
   border-radius: 22px;
   background: var(--empty-bg, var(--st-blue-bg));
-  font-size: 2.2rem;
-  line-height: 1;
+  color: var(--empty-fg, var(--st-blue-ink));
 }
 
 .emptyTitle {
@@ -293,8 +297,7 @@
 }
 
 .backArrow {
-  font-size: 1.5rem;
-  line-height: 1;
+  display: flex;
 }
 
 .back:hover {

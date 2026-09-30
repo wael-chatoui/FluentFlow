@@ -5,13 +5,15 @@ import { useRouter } from 'next/router'
 import { useAuth } from '@/components/AuthProvider'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/admin/AdminShell.module.css'
+import { BookOpen, Database, LayoutDashboard, Menu, ScrollText, ShieldCheck, Undo2, Users } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 export const ADMIN_NAV = [
-  { href: '/admin', label: 'Tableau de bord', icon: '📊', match: (p) => p === '/admin' },
-  { href: '/admin/users', label: 'Utilisateurs', icon: '👥', match: (p) => p.startsWith('/admin/users') },
-  { href: '/admin/lessons', label: 'Leçons', icon: '📚', match: (p) => p.startsWith('/admin/lessons') },
-  { href: '/admin/tables', label: 'Tables', icon: '🗄️', match: (p) => p.startsWith('/admin/tables') },
-  { href: '/admin/audit', label: 'Journal', icon: '🧾', match: (p) => p.startsWith('/admin/audit') },
+  { href: '/admin', label: 'Tableau de bord', icon: LayoutDashboard, match: (p) => p === '/admin' },
+  { href: '/admin/users', label: 'Utilisateurs', icon: Users, match: (p) => p.startsWith('/admin/users') },
+  { href: '/admin/lessons', label: 'Leçons', icon: BookOpen, match: (p) => p.startsWith('/admin/lessons') },
+  { href: '/admin/tables', label: 'Tables', icon: Database, match: (p) => p.startsWith('/admin/tables') },
+  { href: '/admin/audit', label: 'Journal', icon: ScrollText, match: (p) => p.startsWith('/admin/audit') },
 ]
 
 const FOCUSABLE = 'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
@@ -115,7 +117,7 @@ export default function AdminShell({ title, actions, children }) {
             className={`${styles.navLink} ${active ? styles.active : ''}`}
             aria-current={active ? 'page' : undefined}
           >
-            <span className={styles.navIcon} aria-hidden="true">{item.icon}</span>
+            <Icon icon={item.icon} size={20} className={styles.navIcon} />
             {item.label}
           </Link>
         )
@@ -126,7 +128,7 @@ export default function AdminShell({ title, actions, children }) {
   const footer = (
     <div className={styles.sideFooter}>
       <a href={teacherHref} className={styles.footerLink}>
-        <span aria-hidden="true">↩</span> Espace prof
+        <Icon icon={Undo2} size={18} /> Espace prof
       </a>
       <div className={styles.me}>
         <span className={styles.meEmail}>{user?.email}</span>
@@ -147,7 +149,9 @@ export default function AdminShell({ title, actions, children }) {
 
       <aside className={styles.sidebar}>
         <Link href="/admin" className={styles.brand}>
-          <span className={styles.brandIcon} aria-hidden="true">🛠️</span>
+          <span className={styles.brandIcon} aria-hidden="true">
+            <Icon icon={ShieldCheck} size={22} />
+          </span>
           <span>
             <strong>Back office</strong>
             <small>Preply Lessons</small>
@@ -167,11 +171,11 @@ export default function AdminShell({ title, actions, children }) {
           aria-expanded={menuOpen}
           aria-controls="admin-drawer"
         >
-          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
-            <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-          </svg>
+          <Icon icon={Menu} size={24} />
         </button>
-        <strong className={styles.mobileTitle}>🛠️ Back office</strong>
+        <strong className={styles.mobileTitle}>
+          <Icon icon={ShieldCheck} size={20} /> Back office
+        </strong>
       </header>
 
       {menuOpen && (

@@ -7,6 +7,8 @@ import { plainText } from '@/components/practice/utils'
 import SpeakButton from '@/components/student/vocabulary/SpeakButton'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/vocabulary/Vocabulary.module.css'
+import { Layers } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 // Where a word comes from: its section of the lesson recap (anchors set by LessonView)
 const sectionHref = (lessonId, kind) =>
@@ -115,7 +117,7 @@ export default function WordList({ items, flat, speech, onPracticeLesson }) {
                   onClick={() => onPracticeLesson(g.lessonId)}
                   aria-label={`Practice these words with flashcards: ${g.title}`}
                 >
-                  <span aria-hidden="true">🃏</span> Practice these words
+                  <Icon icon={Layers} size={18} /> Practice these words
                 </button>
               )}
             </header>

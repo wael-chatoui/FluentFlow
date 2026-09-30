@@ -5,6 +5,7 @@ import { useAuth } from '@/components/AuthProvider'
 import AuthScreen, { AuthHeader } from '@/components/auth/AuthScreen'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/auth/AuthForm.module.css'
+import { Lock } from 'lucide-react'
 
 // Link back to the main app when the back office runs on its own domain
 function useAppHome() {
@@ -39,7 +40,7 @@ export default function AdminForbidden() {
       </Head>
       <AuthHeader
         id="forbidden-title"
-        emoji="🔒"
+        icon={Lock}
         tone="red"
         title="Accès réservé"
         subtitle="Ce back office est réservé aux administrateurs. Connecte-toi avec un compte admin."

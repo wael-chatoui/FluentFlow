@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Dialog from '@/components/ui/Dialog'
+import Icon from '@/components/ui/Icon'
 import s from '@/components/admin/common/admin.module.css'
 import { useToastHost } from '@/components/admin/common/Toast'
 import { cx } from '@/components/admin/common/format'
@@ -18,7 +19,7 @@ const FOCUSABLE =
  * Toasts shown while it is open render inside it: the page behind is inert and below
  * the top layer.
  *
- * @param {{ open: boolean, title: string, onClose: () => void, busy?: boolean, icon?: string,
+ * @param {{ open: boolean, title: string, onClose: () => void, busy?: boolean, icon?: import('lucide-react').LucideIcon,
  *   tone?: 'danger'|'primary', initialFocusRef?: React.RefObject<HTMLElement>,
  *   returnFocusRef?: React.RefObject<HTMLElement>, describedBy?: string,
  *   children: React.ReactNode, actions?: React.ReactNode }} props
@@ -75,7 +76,7 @@ function ModalDialog({
       <div className={s.dialogHead}>
         {icon && (
           <span className={s.dialogIcon} aria-hidden="true">
-            {icon}
+            <Icon icon={icon} size={24} />
           </span>
         )}
         <h2 id={titleId} className={s.dialogTitle}>

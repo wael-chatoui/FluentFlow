@@ -2,6 +2,8 @@ import { AddButton, ChipsInput, RowControls, TextArea, TextField } from '@/compo
 import { EMPTY, LIMITS, move, removeAt, replaceAt } from '@/components/admin/lessons/editorModel'
 import admin from '@/components/admin/common/admin.module.css'
 import styles from '@/components/admin/lessons/editor.module.css'
+import { BookOpenText, Library, NotebookPen, Puzzle, Speech, SpellCheck, Target } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const HIGHLIGHT_HINT = 'Texte brut. Entoure un mot de **deux astérisques** pour le surligner.'
 
@@ -10,7 +12,7 @@ function Section({ icon, title, sub, children }) {
     <section className={admin.section}>
       <div className={admin.sectionHead}>
         <h2 className={admin.sectionTitle}>
-          <span aria-hidden="true">{icon}</span> {title}
+          <Icon icon={icon} size={20} /> {title}
         </h2>
         {sub && <p className={admin.sectionSub}>{sub}</p>}
       </div>
@@ -131,7 +133,7 @@ export default function ContentTab({ content: c, onChange, errors }) {
 
   return (
     <div className={admin.stack}>
-      <Section icon="📝" title="Récap">
+      <Section icon={BookOpenText} title="Récap">
         <TextField
           label="Titre du récap"
           value={c.title}
@@ -158,7 +160,7 @@ export default function ContentTab({ content: c, onChange, errors }) {
         />
       </Section>
 
-      <Section icon="📖" title="Vocabulaire" sub={`${c.vocabulary.length}/${LIMITS.vocabulary}`}>
+      <Section icon={Library} title="Vocabulaire" sub={`${c.vocabulary.length}/${LIMITS.vocabulary}`}>
         <WordRows
           section="vocabulary"
           label="Mot"
@@ -170,7 +172,7 @@ export default function ContentTab({ content: c, onChange, errors }) {
         />
       </Section>
 
-      <Section icon="💬" title="Expressions" sub={`${c.expressions.length}/${LIMITS.expressions}`}>
+      <Section icon={Speech} title="Expressions" sub={`${c.expressions.length}/${LIMITS.expressions}`}>
         <WordRows
           section="expressions"
           label="Expression"
@@ -182,7 +184,7 @@ export default function ContentTab({ content: c, onChange, errors }) {
         />
       </Section>
 
-      <Section icon="🩹" title="Corrections" sub={`${c.corrections.length}/${LIMITS.corrections}`}>
+      <Section icon={SpellCheck} title="Corrections" sub={`${c.corrections.length}/${LIMITS.corrections}`}>
         <Rows
           items={c.corrections}
           onChange={set('corrections')}
@@ -191,7 +193,7 @@ export default function ContentTab({ content: c, onChange, errors }) {
           renderRow={(row, i, update) => (
             <div className={styles.grid3}>
               <TextField
-                label="❌ Fautif"
+                label="Fautif"
                 value={row.wrong}
                 maxLength={300}
                 lang="fr"
@@ -199,7 +201,7 @@ export default function ContentTab({ content: c, onChange, errors }) {
                 onChange={(wrong) => update({ wrong })}
               />
               <TextField
-                label="✅ Correct"
+                label="Correct"
                 value={row.right}
                 maxLength={300}
                 lang="fr"
@@ -224,7 +226,7 @@ export default function ContentTab({ content: c, onChange, errors }) {
         </AddButton>
       </Section>
 
-      <Section icon="🧠" title="Grammaire" sub={`${c.grammar.length}/${LIMITS.grammar}`}>
+      <Section icon={Puzzle} title="Grammaire" sub={`${c.grammar.length}/${LIMITS.grammar}`}>
         <Rows
           items={c.grammar}
           onChange={set('grammar')}
@@ -275,7 +277,7 @@ export default function ContentTab({ content: c, onChange, errors }) {
         </AddButton>
       </Section>
 
-      <Section icon="🏠" title="Devoirs" sub={`${c.homework.length}/${LIMITS.homework}`}>
+      <Section icon={NotebookPen} title="Devoirs" sub={`${c.homework.length}/${LIMITS.homework}`}>
         <Rows
           items={c.homework}
           onChange={set('homework')}
@@ -310,7 +312,7 @@ export default function ContentTab({ content: c, onChange, errors }) {
         </AddButton>
       </Section>
 
-      <Section icon="🏆" title="Je sais maintenant…" sub={`${c.can_do.length}/${LIMITS.canDo}`}>
+      <Section icon={Target} title="Je sais maintenant…" sub={`${c.can_do.length}/${LIMITS.canDo}`}>
         {c.can_do.length === 0 && <p className={styles.emptyRows}>Aucune ligne.</p>}
         <StringRows
           items={c.can_do}

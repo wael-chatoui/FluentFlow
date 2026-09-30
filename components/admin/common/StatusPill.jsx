@@ -1,5 +1,7 @@
 import s from '@/components/admin/common/admin.module.css'
 import { cx } from '@/components/admin/common/format'
+import { Ban, FilePen, GraduationCap, Hourglass, Mail, Presentation, ShieldCheck } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const TONES = {
   green: s.pillGreen,
@@ -18,12 +20,12 @@ export const LESSON_STATUS = {
 }
 
 export const ROLE_META = {
-  student: { label: 'Élève', tone: 'blue', icon: '🎓' },
-  teacher: { label: 'Prof', tone: 'orange', icon: '🧑‍🏫' },
-  admin: { label: 'Admin', tone: 'purple', icon: '🛠️' },
-  banned: { label: 'Banni', tone: 'red', icon: '⛔' },
-  pending: { label: 'En attente d’approbation', tone: 'yellow', icon: '⏳' },
-  invited: { label: 'Invitation en attente', tone: 'gray', icon: '✉️' },
+  student: { label: 'Élève', tone: 'blue', icon: GraduationCap },
+  teacher: { label: 'Prof', tone: 'orange', icon: Presentation },
+  admin: { label: 'Admin', tone: 'purple', icon: ShieldCheck },
+  banned: { label: 'Banni', tone: 'red', icon: Ban },
+  pending: { label: 'En attente d’approbation', tone: 'yellow', icon: Hourglass },
+  invited: { label: 'Invitation en attente', tone: 'gray', icon: Mail },
 }
 
 /**
@@ -47,7 +49,7 @@ export default function StatusPill({ status, role, tone, dot, children, title })
   return (
     <span className={cx(s.pill, TONES[finalTone] || s.pillGray, meta.pulse && s.pillPulse)} title={title}>
       {meta.dot && <span className={s.pillDot} aria-hidden="true" />}
-      {meta.icon && <span aria-hidden="true">{meta.icon}</span>}
+      {meta.icon && <Icon icon={meta.icon} size={13} />}
       {children ?? meta.label}
     </span>
   )
@@ -82,7 +84,7 @@ export function LessonStatusPills({ lesson }) {
   const { status, hidden, stale } = lesson || {}
   const draft = (
     <StatusPill tone="orange" title="L’élève ne voit pas cette leçon (à relire avant de la publier, ou retirée de son espace)">
-      <span aria-hidden="true">🙈</span> Brouillon
+      <Icon icon={FilePen} size={13} /> Brouillon
     </StatusPill>
   )
   let main = <StatusPill status={status} />

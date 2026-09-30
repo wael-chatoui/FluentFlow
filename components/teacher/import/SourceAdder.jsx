@@ -4,6 +4,8 @@ import { IMPORT_LIMITS, megabytes } from '@/utils/import/limits'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/import/SourceAdder.module.css'
+import { CircleAlert, FileText, Import, LinkIcon } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 function hasFiles(e) {
   return Array.from(e.dataTransfer?.types || []).includes('Files')
@@ -96,7 +98,9 @@ export default function SourceAdder({ disabled = false, full = false, onFiles, o
           disabled={off}
           aria-describedby={`${uid}-zone-hint`}
         >
-          <span className={styles.zoneIcon} aria-hidden="true">{dragging ? '📥' : '📄'}</span>
+          <span className={styles.zoneIcon} aria-hidden="true">
+            <Icon icon={dragging ? Import : FileText} size={28} />
+          </span>
           <span className={styles.zoneTitle}>
             {dragging ? 'Lâche tes fichiers ici !' : 'Glisse tes PDF ici'}
           </span>
@@ -148,12 +152,12 @@ export default function SourceAdder({ disabled = false, full = false, onFiles, o
             className={`${ui.btn} ${ui.blue} ${styles.linkButton}`}
             disabled={off || !link.trim()}
           >
-            <span aria-hidden="true">🔗</span> Ajouter
+            <Icon icon={LinkIcon} size={18} /> Ajouter
           </button>
         </div>
         {linkError ? (
           <p id={linkErrorId} className={bits.fieldError} role="alert">
-            <span aria-hidden="true">⚠️</span> {linkError}
+            <Icon icon={CircleAlert} size={16} /> {linkError}
           </p>
         ) : (
           <p id={`${uid}-link-hint`} className={bits.hint}>

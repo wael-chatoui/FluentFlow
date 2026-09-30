@@ -43,9 +43,13 @@ export function safeNext(next) {
   }
 }
 
+/** True for a join-link page (/join/<token>): public, and where a new student finishes joining. */
+export const isJoinPath = (path) => inArea(path, '/join') && String(path).split(/[?#]/)[0].length > '/join/'.length
+
 /**
  * Where to send a user right after sign-in (or when they land on '/' or /login signed in).
- * `next` is only honoured inside the user's own area, and never before approval/onboarding.
+ * `next` is only honoured inside the user's own area, and never before approval/onboarding,
+ * except a join link (/join/<token>): a student, approved or not, goes back to it to claim it.
  * @param {{ role?: 'teacher'|'student'|null, approved?: boolean, onboarded?: boolean,
  *           isAdmin?: boolean, next?: unknown }} input
  * @returns {string}
@@ -55,6 +59,8 @@ export function pathAfterSignIn({ role, approved = true, onboarded = false, isAd
   if (role === 'teacher') {
     return target && (inArea(target, '/teacher') || inArea(target, '/admin')) ? target : '/teacher'
   }
+  // The join page approves the account (POST /api/join/[token]/claim)
+  if (target && isJoinPath(target)) return target
   // Missing flag = approved (accounts created before invite-only access), like the server
   if (approved === false) return '/pending'
   if (isAdmin && target && inArea(target, '/admin')) return target
