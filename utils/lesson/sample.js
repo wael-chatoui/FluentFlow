@@ -1,6 +1,7 @@
 // Canonical example of a generated lesson, in the raw shape the AI is asked to
 // return (see utils/lesson/schema.js). Used as the AI demo-mode output, as a
-// format example in the prompt, and by the dev preview page.
+// format example in the prompt, and by the dev preview page. Every exercise type
+// has at least 4 items so demo mode can honour type-restricted options.
 
 export const SAMPLE_LESSON = {
   title: 'Weekend plans & the passé composé',
@@ -48,5 +49,9 @@ export const SAMPLE_LESSON = {
     { type: 'match', prompt: 'Match the words', pairs: [ { fr: 'la veille', en: 'the day before' }, { fr: 'rentrer', en: 'to go back home' }, { fr: 'complet', en: 'sold out' }, { fr: 'se promener', en: 'to go for a walk' } ], explanation: '' },
     { type: 'mcq', prompt: 'Which sentence is correct?', sentence: 'Pick the correct sentence.', choices: ['Ils sont partis tôt.', 'Ils ont partis tôt.', 'Ils sont parti tôt.'], answer: 0, explanation: 'Partir uses être and agrees with ils: partis.' },
     { type: 'fill_blank', prompt: 'Translate the expression', sentence: 'It was worth it → Ça ___ le coup.', answers: ['valait'], hint: 'valoir, imparfait', explanation: 'Ça valait le coup = it was worth it.' },
+    { type: 'match', prompt: 'Match the expressions', pairs: [ { fr: "C'était génial !", en: 'It was great!' }, { fr: 'Ça valait le coup.', en: 'It was worth it.' }, { fr: 'un bouchon', en: 'a traditional Lyon restaurant' } ], explanation: '' },
+    { type: 'fill_blank', prompt: 'Complete with the passé composé of "partir"', sentence: 'Ils ___ tôt le matin.', answers: ['sont partis'], hint: 'partir → être + agreement', explanation: 'Partir uses être, and with ils the participle takes -s: ils sont partis.' },
+    { type: 'match', prompt: 'Match the verbs of movement', pairs: [ { fr: 'partir', en: 'to leave' }, { fr: 'arriver', en: 'to arrive' }, { fr: 'rester', en: 'to stay' }, { fr: 'tomber', en: 'to fall' } ], explanation: 'All these verbs use **être** in the passé composé.' },
+    { type: 'match', prompt: 'Match the sentences', pairs: [ { fr: 'Je suis allé', en: 'I went' }, { fr: "J'ai mangé", en: 'I ate' }, { fr: 'Elle est partie', en: 'She left' }, { fr: 'Nous sommes rentrés', en: 'We went back home' } ], explanation: '' },
   ],
 }
