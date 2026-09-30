@@ -42,12 +42,12 @@
   scroll-margin-top: 5rem; /* #recap-… anchors land below sticky headers */
 }
 
-.blue { --c: var(--st-blue); --c-dark: var(--st-blue-dark); --c-bg: var(--st-blue-bg); }
-.green { --c: var(--st-green); --c-dark: var(--st-green-dark); --c-bg: var(--st-green-bg); }
-.red { --c: var(--st-red); --c-dark: var(--st-red-dark); --c-bg: var(--st-red-bg); }
-.yellow { --c: var(--st-yellow); --c-dark: var(--st-yellow-dark); --c-bg: var(--st-yellow-bg); }
-.purple { --c: var(--st-purple); --c-dark: var(--st-purple-dark); --c-bg: var(--st-purple-bg); }
-.orange { --c: var(--st-orange); --c-dark: var(--st-orange-dark); --c-bg: var(--st-orange-bg); }
+.blue { --c: var(--st-blue); --c-dark: var(--st-blue-dark); --c-bg: var(--st-blue-bg); --c-ink: var(--st-blue-ink); }
+.green { --c: var(--st-green); --c-dark: var(--st-green-dark); --c-bg: var(--st-green-bg); --c-ink: var(--st-green-ink); }
+.red { --c: var(--st-red); --c-dark: var(--st-red-dark); --c-bg: var(--st-red-bg); --c-ink: var(--st-red-ink); }
+.yellow { --c: var(--st-yellow); --c-dark: var(--st-yellow-dark); --c-bg: var(--st-yellow-bg); --c-ink: var(--st-yellow-ink); }
+.purple { --c: var(--st-purple); --c-dark: var(--st-purple-dark); --c-bg: var(--st-purple-bg); --c-ink: var(--st-purple-ink); }
+.orange { --c: var(--st-orange); --c-dark: var(--st-orange-dark); --c-bg: var(--st-orange-bg); --c-ink: var(--st-orange-ink); }
 
 /* Fills behind white text (homework numbers, ✓). Yellow has no -strong shade: blue default */
 .green { --c-strong: var(--st-green-strong); --c-strong-dark: var(--st-green-strong-dark); }
@@ -76,8 +76,7 @@
   background: var(--c-bg);
   border: 2px solid var(--c);
   border-bottom-width: 4px;
-  font-size: 1.25rem;
-  line-height: 1;
+  color: var(--c-ink);
 }
 
 /* ---- Empty recap ---- */
@@ -90,8 +89,9 @@
 }
 
 .emptyIcon {
-  display: block;
-  font-size: 2.5rem;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
 }
 
 /* Shown only when printing (see @media print) */
@@ -303,8 +303,9 @@
 }
 
 .arrow {
+  display: inline-flex;
+  align-self: center;
   color: var(--lv-soft);
-  font-weight: 900;
 }
 
 .right {
@@ -336,6 +337,15 @@
   border-left-width: 6px;
   border-radius: var(--lv-radius-sm);
   padding: 0.9rem 1rem;
+}
+
+.deco svg {
+  vertical-align: -0.15em;
+}
+
+.ruleTitle .star {
+  color: var(--st-yellow-ink);
+  fill: var(--st-yellow);
 }
 
 .ruleTitle {
@@ -467,8 +477,6 @@
   background: var(--c-strong);
   box-shadow: inset 0 -3px 0 var(--c-strong-dark);
   color: var(--st-on-color);
-  font-size: 0.85rem;
-  font-weight: 900;
 }
 
 @keyframes lvRise {

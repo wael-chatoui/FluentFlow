@@ -4,6 +4,8 @@ import { useMountedRef } from '@/components/teacher/hooks'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/DriveLinkEditor.module.css'
+import { Check, ExternalLink, Folder } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 /**
  * Inline editor for a lesson's Google Drive link.
@@ -82,19 +84,26 @@ export default function DriveLinkEditor({ value, onSave, disabled = false }) {
     const href = safeDriveUrl(value)
     return (
       <div className={styles.view}>
-        <span className={styles.icon} aria-hidden="true">📁</span>
+        <span className={styles.icon} aria-hidden="true">
+          <Icon icon={Folder} size={20} />
+        </span>
         <span className={styles.text}>
           <span className={styles.label}>Document Drive</span>
           {href ? (
             <a href={href} target="_blank" rel="noopener noreferrer" className={styles.link}>
-              Ouvrir le document<span className="sr-only"> (nouvel onglet)</span> <span aria-hidden="true">↗</span>
+              Ouvrir le document<span className="sr-only"> (nouvel onglet)</span>{' '}
+              <Icon icon={ExternalLink} size={15} className={styles.linkIcon} />
             </a>
           ) : (
             <span className={styles.none}>Aucun lien</span>
           )}
         </span>
         <span className={styles.saved} role="status" aria-live="polite">
-          {justSaved ? 'Enregistré ✓' : ''}
+          {justSaved && (
+            <>
+              Enregistré <Icon icon={Check} size={15} strokeWidth={3} className={styles.linkIcon} />
+            </>
+          )}
         </span>
         <button
           ref={editButtonRef}
@@ -113,7 +122,7 @@ export default function DriveLinkEditor({ value, onSave, disabled = false }) {
   return (
     <form className={styles.form} onSubmit={submit} noValidate>
       <label htmlFor={`${uid}-drive`} className={bits.label}>
-        <span aria-hidden="true">📁 </span>Lien du document Google Drive
+        <Icon icon={Folder} size={15} className={styles.linkIcon} /> Lien du document Google Drive
       </label>
       <div className={styles.inputRow}>
         <input

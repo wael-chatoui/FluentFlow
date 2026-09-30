@@ -9,6 +9,7 @@ import { reachedFromApp } from '@/utils/auth/appNavigation'
 import { pageLang, safeNext } from '@/utils/auth/routing'
 import ui from '@/components/ui/ui.module.css'
 import form from '@/components/auth/AuthForm.module.css'
+import { LogOut } from 'lucide-react'
 
 const TEXT = {
   en: {
@@ -118,7 +119,7 @@ export default function LogoutPage() {
           <>
             <AuthHeader
               id="logout-title"
-              emoji="👋"
+              icon={LogOut}
               tone="blue"
               title={text.ask}
               subtitle={

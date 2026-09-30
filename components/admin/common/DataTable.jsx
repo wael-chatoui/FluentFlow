@@ -3,6 +3,8 @@ import Link from 'next/link'
 import ui from '@/components/ui/ui.module.css'
 import s from '@/components/admin/common/admin.module.css'
 import { cx } from '@/components/admin/common/format'
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const INTERACTIVE = 'a, button, input, select, textarea, label, summary, [role="button"]'
 const SKELETON_ROWS = 6
@@ -129,7 +131,7 @@ export default function DataTable({
                         >
                           {col.label}
                           <span className={s.sortArrow} aria-hidden="true">
-                            {active ? (sort.dir === 'asc' ? '▲' : '▼') : '↕'}
+                            <Icon icon={active ? (sort.dir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown} size={14} />
                           </span>
                         </button>
                       ) : (
@@ -207,7 +209,11 @@ export default function DataTable({
                         title
                       )}
                     </div>
-                    {(href || onRowClick) && <span className={s.dtChevron} aria-hidden="true">›</span>}
+                    {(href || onRowClick) && (
+                      <span className={s.dtChevron} aria-hidden="true">
+                        <Icon icon={ChevronRight} size={20} strokeWidth={3} />
+                      </span>
+                    )}
                   </div>
                   {cardCols.length > 0 && (
                     <dl className={s.dtCardFields}>

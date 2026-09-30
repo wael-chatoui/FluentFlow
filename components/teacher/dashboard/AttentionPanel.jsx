@@ -7,13 +7,15 @@ import { useMountedRef } from '@/components/teacher/hooks'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/dashboard/Overview.module.css'
+import { Check, CircleAlert, FilePen, Hourglass, Inbox, PartyPopper, RefreshCw, TriangleAlert, UserCheck } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 // Lesson groups of GET /api/teacher/overview `attention`, in display order
 const LESSON_GROUPS = [
-  { key: 'failed', title: 'Générations échouées', icon: '😵', action: 'regenerate' },
-  { key: 'stale', title: 'Générations bloquées', icon: '⏳', action: 'regenerate' },
-  { key: 'regenFailed', title: 'Régénérations échouées', icon: '⚠️', action: 'regenerate', hint: "L'ancienne version reste en ligne." },
-  { key: 'drafts', title: 'Brouillons à publier', icon: '🙈', action: 'publish', hint: "Invisibles pour l'élève tant que tu ne les publies pas." },
+  { key: 'failed', title: 'Générations échouées', icon: CircleAlert, action: 'regenerate' },
+  { key: 'stale', title: 'Générations bloquées', icon: Hourglass, action: 'regenerate' },
+  { key: 'regenFailed', title: 'Régénérations échouées', icon: TriangleAlert, action: 'regenerate', hint: "L'ancienne version reste en ligne." },
+  { key: 'drafts', title: 'Brouillons à publier', icon: FilePen, action: 'publish', hint: "Invisibles pour l'élève tant que tu ne les publies pas." },
 ]
 
 const PROVIDERS = { google: 'avec Google', email: 'par e-mail' }
@@ -114,7 +116,7 @@ export default function AttentionPanel({ overview, loading, error, onRetry, onUp
     return (
       <section className={styles.panel} aria-labelledby="todo-title" aria-busy="true">
         <h2 id="todo-title" className={styles.panelTitle}>
-          <span aria-hidden="true">📌</span> À traiter
+          <Icon icon={Inbox} size={22} /> À traiter
         </h2>
         <Skeleton />
       </section>
@@ -125,10 +127,12 @@ export default function AttentionPanel({ overview, loading, error, onRetry, onUp
     return (
       <section className={styles.panel} aria-labelledby="todo-title">
         <h2 id="todo-title" className={styles.panelTitle}>
-          <span aria-hidden="true">📌</span> À traiter
+          <Icon icon={Inbox} size={22} /> À traiter
         </h2>
         <div className={`${bits.alert} ${bits.error}`} role="alert">
-          <span className={bits.alertIcon} aria-hidden="true">😕</span>
+          <span className={bits.alertIcon} aria-hidden="true">
+            <Icon icon={CircleAlert} size={20} />
+          </span>
           <div className={bits.alertBody}>
             <span>{error}</span>
             <div className={bits.alertActions}>
@@ -149,7 +153,7 @@ export default function AttentionPanel({ overview, loading, error, onRetry, onUp
   return (
     <section className={`${styles.panel} ${total ? styles.panelTodo : ''}`} aria-labelledby="todo-title">
       <h2 id="todo-title" ref={titleRef} tabIndex={-1} className={styles.panelTitle}>
-        <span aria-hidden="true">📌</span> À traiter
+        <Icon icon={Inbox} size={22} /> À traiter
         {total > 0 && <span className={styles.badge}>{total}</span>}
       </h2>
       <span className="sr-only" role="status" aria-live="polite">
@@ -158,14 +162,15 @@ export default function AttentionPanel({ overview, loading, error, onRetry, onUp
 
       {total === 0 ? (
         <p className={styles.allGood}>
-          <span aria-hidden="true">🎉 </span>Rien à traiter : tout est à jour.
+          <Icon icon={PartyPopper} size={16} className={styles.inlineIcon} />{' '}
+          Rien à traiter : tout est à jour.
         </p>
       ) : (
         <div className={styles.groups}>
           {pending.length > 0 && (
             <div className={styles.group}>
               <h3 className={styles.groupTitle}>
-                <span aria-hidden="true">🙋 </span>Demandes d&apos;accès
+                <Icon icon={UserCheck} size={15} className={styles.inlineIcon} /> Demandes d&apos;accès
               </h3>
               <p className={styles.groupHint}>Comptes créés sans invitation : accepte seulement tes élèves.</p>
               <ul className={styles.items}>
@@ -211,7 +216,7 @@ export default function AttentionPanel({ overview, loading, error, onRetry, onUp
           {groups.map((group) => (
             <div key={group.key} className={styles.group}>
               <h3 className={styles.groupTitle}>
-                <span aria-hidden="true">{group.icon} </span>
+                <Icon icon={group.icon} size={15} className={styles.inlineIcon} />{' '}
                 {group.title}
               </h3>
               {group.hint && <p className={styles.groupHint}>{group.hint}</p>}
@@ -238,7 +243,7 @@ export default function AttentionPanel({ overview, loading, error, onRetry, onUp
                       <div className={styles.itemActions}>
                         {state?.done ? (
                           <Link href={`/teacher/lessons/${lesson.id}`} className={`${ui.btn} ${ui.small} ${bits.blueGhost} ${bits.tap}`}>
-                            <span aria-hidden="true">✓</span> {state.done} · Suivre
+                            <Icon icon={Check} size={16} strokeWidth={3} /> {state.done} · Suivre
                           </Link>
                         ) : group.action === 'publish' ? (
                           <button
@@ -258,7 +263,7 @@ export default function AttentionPanel({ overview, loading, error, onRetry, onUp
                               onClick={() => regenerate(group.key, lesson)}
                               disabled={state?.busy}
                             >
-                              {state?.busy ? <span className={bits.spinner} aria-hidden="true" /> : <span aria-hidden="true">🔄</span>}{' '}
+                              {state?.busy ? <span className={bits.spinner} aria-hidden="true" /> : <Icon icon={RefreshCw} size={16} />}{' '}
                               Régénérer<span className="sr-only"> « {title} »</span>
                             </button>
                             {group.key === 'regenFailed' && (

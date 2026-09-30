@@ -279,11 +279,16 @@
 
 .pairArrow {
   align-self: center;
+  display: flex;
   color: var(--st-purple-ink);
-  font-weight: 900;
 }
 
 /* ---- Explanation ---- */
+.inlineIcon {
+  margin-right: 0.3rem;
+  vertical-align: -0.2em;
+}
+
 .explanation {
   margin: 0;
   padding: 0.7rem 0.85rem;

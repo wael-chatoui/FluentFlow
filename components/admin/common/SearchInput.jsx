@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import s from '@/components/admin/common/admin.module.css'
 import { cx } from '@/components/admin/common/format'
+import { Search, X } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 /**
  * Search field that calls `onChange(text)` 300 ms after the user stops typing.
@@ -51,10 +53,7 @@ export default function SearchInput({ value, onChange, placeholder = 'Rechercher
       <label htmlFor={id} className="sr-only">
         {label || placeholder}
       </label>
-      <svg className={s.searchIcon} viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-        <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="2.5" />
-        <path d="m20 20-4-4" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-      </svg>
+      <Icon icon={Search} size={18} className={s.searchIcon} />
       <input
         id={id}
         type="search"
@@ -79,7 +78,7 @@ export default function SearchInput({ value, onChange, placeholder = 'Rechercher
       />
       {text && (
         <button type="button" className={s.searchClear} onClick={clear} aria-label="Effacer la recherche">
-          ×
+          <Icon icon={X} size={18} />
         </button>
       )}
     </div>

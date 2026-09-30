@@ -225,9 +225,23 @@
   overflow-wrap: anywhere;
 }
 
+.inlineIcon {
+  vertical-align: -0.15em;
+}
+
+.okIcon {
+  color: var(--st-green-ink);
+  vertical-align: middle;
+}
+
 .stateIcon {
-  font-size: 2.2rem;
-  line-height: 1;
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--st-bg);
+  color: var(--st-ink-soft);
 }
 
 .empty {
@@ -584,8 +598,8 @@
 
 .dtChevron {
   flex: none;
+  display: flex;
   color: var(--st-ink-soft);
-  font-weight: 900;
 }
 
 .dtCardFields {
@@ -728,9 +742,8 @@
 }
 
 .sortArrow {
-  display: inline-block;
-  width: 0.8em;
-  font-size: 0.9em;
+  display: inline-flex;
+  vertical-align: -0.15em;
   opacity: 0.35;
 }
 
@@ -900,13 +913,13 @@
   border: 2px solid var(--st-blue-line);
   border-bottom-width: 4px;
   background: var(--st-blue-bg);
-  font-size: 1.5rem;
-  line-height: 1;
+  color: var(--st-blue-ink);
 }
 
 .danger .dialogIcon {
   border-color: var(--st-red-line);
   background: var(--st-red-bg);
+  color: var(--st-red-ink);
 }
 
 .dialogTitle {

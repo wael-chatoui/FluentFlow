@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { cx } from '@/components/admin/common/format'
 import styles from '@/components/admin/lessons/editor.module.css'
+import Icon from '@/components/ui/Icon'
 
 /**
  * Accessible tab list (arrow keys / Home / End). Panels are rendered by the page
@@ -46,7 +47,7 @@ export default function EditorTabs({ tabs, value, onChange, idPrefix }) {
               onClick={() => onChange(tab.value)}
               onKeyDown={(e) => onKeyDown(e, i)}
             >
-              {tab.icon && <span aria-hidden="true">{tab.icon}</span>}
+              {tab.icon && <Icon icon={tab.icon} size={16} />}
               {tab.label}
               {tab.count !== undefined && <span className={styles.tabCount}>{tab.count}</span>}
               {tab.errors > 0 && (

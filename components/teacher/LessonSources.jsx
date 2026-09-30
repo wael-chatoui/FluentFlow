@@ -1,5 +1,7 @@
 import { EXERCISE_TYPE_LABELS, formatCount } from '@/components/teacher/format'
 import styles from '@/components/teacher/lessons/LessonSources.module.css'
+import { FileText, Mic, Palette, Sparkles } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 function Source({ title, icon, tone, text, open }) {
   const value = (text || '').trim()
@@ -7,7 +9,9 @@ function Source({ title, icon, tone, text, open }) {
   return (
     <details className={`${styles.source} ${styles[tone]}`} open={open}>
       <summary className={styles.summary}>
-        <span className={styles.icon} aria-hidden="true">{icon}</span>
+        <span className={styles.icon} aria-hidden="true">
+          <Icon icon={icon} size={20} />
+        </span>
         <span className={styles.title}>{title}</span>
         {value ? (
           <span className={styles.count}>
@@ -53,15 +57,15 @@ export default function LessonSources({ lesson, defaultOpen = false }) {
       {imported ? (
         <Source
           title={`Document importé${lesson.source_name ? ` : ${lesson.source_name}` : ''}`}
-          icon="📄"
+          icon={FileText}
           tone="blue"
           text={lesson.source_text}
           open={defaultOpen}
         />
       ) : (
         <>
-          <Source title="Transcription" icon="🎙️" tone="blue" text={lesson.transcript} open={defaultOpen} />
-          <Source title="Notes Canva" icon="🎨" tone="pink" text={lesson.canva} open={defaultOpen} />
+          <Source title="Transcription" icon={Mic} tone="blue" text={lesson.transcript} open={defaultOpen} />
+          <Source title="Notes Canva" icon={Palette} tone="pink" text={lesson.canva} open={defaultOpen} />
         </>
       )}
       {(summary || instructions) && (
@@ -82,7 +86,7 @@ export default function LessonSources({ lesson, defaultOpen = false }) {
       )}
       {lesson.ai_model && (
         <p className={styles.aiModel}>
-          <span aria-hidden="true">🤖</span> Modèle IA : {lesson.ai_model}
+          <Icon icon={Sparkles} size={14} className={styles.aiIcon} /> Modèle IA : {lesson.ai_model}
         </p>
       )}
     </div>

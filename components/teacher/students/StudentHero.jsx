@@ -11,6 +11,8 @@ import {
 } from '@/components/teacher/format'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/teacher/students/StudentHero.module.css'
+import { Folder, Import, Languages, MapIcon, Sparkles } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 /**
  * « #plan » / « #compte » shortcuts: scroll to the section and move the focus there, without
@@ -54,33 +56,33 @@ export default function StudentHero({ student, newLessonHref }) {
 
       <div className={styles.pills}>
         <span className={`${styles.pill} ${level ? styles.pillLevel : ''}`}>
-          <span aria-hidden="true">🇫🇷</span>
+          <Icon icon={Languages} size={16} />
           <span className="sr-only">Niveau : </span>
           {LEVEL_LABELS[student.level] || LEVEL_LABELS.unknown}
         </span>
         {state === 'active' ? (
           <span className={`${styles.pill} ${styles.pillOk}`}>
-            <span aria-hidden="true">{ACCOUNT_STATE_LABELS.active.icon}</span> {ACCOUNT_STATE_LABELS.active.label}
+            <Icon icon={ACCOUNT_STATE_LABELS.active.icon} size={16} /> {ACCOUNT_STATE_LABELS.active.label}
           </span>
         ) : (
           <a href="#compte" className={`${styles.pill} ${styles.pillPending}`} onClick={(e) => jumpTo(e, 'compte')}>
-            <span aria-hidden="true">{ACCOUNT_STATE_LABELS[state].icon}</span> {ACCOUNT_STATE_LABELS[state].label}
+            <Icon icon={ACCOUNT_STATE_LABELS[state].icon} size={16} /> {ACCOUNT_STATE_LABELS[state].label}
           </a>
         )}
       </div>
 
       <div className={styles.actions}>
         <Link href={newLessonHref} className={`${ui.btn} ${ui.green} ${styles.primary}`}>
-          <span aria-hidden="true">✨</span> Nouvelle leçon
+          <Icon icon={Sparkles} size={20} /> Nouvelle leçon
         </Link>
         <a href="#plan" className={`${ui.btn} ${ui.ghost} ${styles.secondary}`} onClick={(e) => jumpTo(e, 'plan')}>
-          <span aria-hidden="true">🗺️</span> Préparer le prochain cours
+          <Icon icon={MapIcon} size={20} /> Préparer le prochain cours
         </a>
         <Link
           href={`/teacher/lessons/import?student=${encodeURIComponent(student.id)}`}
           className={`${ui.btn} ${ui.ghost} ${styles.secondary}`}
         >
-          <span aria-hidden="true">📥</span> Importer des leçons
+          <Icon icon={Import} size={20} /> Importer des leçons
         </Link>
         {driveUrl && (
           <a
@@ -89,7 +91,7 @@ export default function StudentHero({ student, newLessonHref }) {
             rel="noopener noreferrer"
             className={`${ui.btn} ${ui.ghost} ${styles.secondary}`}
           >
-            <span aria-hidden="true">📁</span> Dossier Drive
+            <Icon icon={Folder} size={20} /> Dossier Drive
             <span className="sr-only"> (nouvel onglet)</span>
           </a>
         )}

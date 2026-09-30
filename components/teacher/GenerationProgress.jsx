@@ -2,10 +2,12 @@ import { useId } from 'react'
 import { useElapsedSeconds } from '@/components/teacher/hooks'
 import { formatElapsed } from '@/components/teacher/format'
 import styles from '@/components/teacher/GenerationProgress.module.css'
+import { BookOpen, Check, Clock, FileText, IdCard, ListChecks, Mic, Palette, PenLine, Save, ScrollText, Sparkle, Sparkles, Star, Turtle } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 // The AI call is one opaque request: steps only illustrate the usual timing
 // (step i becomes active once `from` seconds have elapsed).
-const CLOSING = { from: 75, label: 'Vérification et enregistrement…', icon: '💾' }
+const CLOSING = { from: 75, label: 'Vérification et enregistrement…', icon: Save }
 
 /**
  * Step list for a generation.
@@ -14,28 +16,28 @@ const CLOSING = { from: 75, label: 'Vérification et enregistrement…', icon: '
 export function generationSteps({ mode = 'transcript', hasTranscript = true, hasCanva = true } = {}) {
   if (mode === 'plan') {
     return [
-      { from: 0, label: "Lecture du profil de l'élève…", icon: '🗂️' },
-      { from: 8, label: 'Analyse des dernières leçons…', icon: '📚' },
-      { from: 20, label: 'Rédaction du plan de cours…', icon: '✍️' },
-      { from: 55, label: 'Mise en forme…', icon: '🧾' },
+      { from: 0, label: "Lecture du profil de l'élève…", icon: IdCard },
+      { from: 8, label: 'Analyse des dernières leçons…', icon: BookOpen },
+      { from: 20, label: 'Rédaction du plan de cours…', icon: PenLine },
+      { from: 55, label: 'Mise en forme…', icon: ScrollText },
     ]
   }
   if (mode === 'import') {
     return [
-      { from: 0, label: 'Lecture du document…', icon: '📄' },
-      { from: 15, label: 'Mise en forme du bilan…', icon: '✍️' },
-      { from: 40, label: 'Création des exercices…', icon: '🧩' },
+      { from: 0, label: 'Lecture du document…', icon: FileText },
+      { from: 15, label: 'Mise en forme du bilan…', icon: PenLine },
+      { from: 40, label: 'Création des exercices…', icon: ListChecks },
       CLOSING,
     ]
   }
   const reading = [
-    hasTranscript && { label: 'Lecture de la transcription…', icon: '📖' },
-    hasCanva && { label: 'Lecture des notes Canva…', icon: '🎨' },
+    hasTranscript && { label: 'Lecture de la transcription…', icon: Mic },
+    hasCanva && { label: 'Lecture des notes Canva…', icon: Palette },
   ].filter(Boolean)
   return [
-    ...(reading.length ? reading : [{ label: 'Lecture des sources…', icon: '📖' }]).map((s, i) => ({ ...s, from: i * 8 })),
-    { from: 20, label: 'Rédaction du bilan…', icon: '✍️' },
-    { from: 40, label: 'Création des exercices…', icon: '🧩' },
+    ...(reading.length ? reading : [{ label: 'Lecture des sources…', icon: FileText }]).map((s, i) => ({ ...s, from: i * 8 })),
+    { from: 20, label: 'Rédaction du bilan…', icon: PenLine },
+    { from: 40, label: 'Création des exercices…', icon: ListChecks },
     CLOSING,
   ]
 }
@@ -49,11 +51,11 @@ function currentStep(steps, elapsed) {
 }
 
 /**
- * Playful progress card shown while the AI works (30–120 s): bouncing robot,
+ * Playful progress card shown while the AI works (30–120 s): bouncing AI pictogram,
  * chunky progress bar, step checklist and elapsed timer.
  * All motion is disabled under prefers-reduced-motion.
  * @param {{ startedAt: number | null, heading?: string, sub?: React.ReactNode,
- *   steps?: { from: number, label: string, icon: string }[], note?: React.ReactNode }} props
+ *   steps?: { from: number, label: string, icon: import('lucide-react').LucideIcon }[], note?: React.ReactNode }} props
  */
 export default function GenerationProgress({
   startedAt,
@@ -72,10 +74,10 @@ export default function GenerationProgress({
     <section className={styles.panel} aria-labelledby={headingId}>
       <div className={styles.top}>
         <div className={styles.mascot} aria-hidden="true">
-          <span className={styles.robot}>🤖</span>
-          <span className={`${styles.sparkle} ${styles.s1}`}>✨</span>
-          <span className={`${styles.sparkle} ${styles.s2}`}>✨</span>
-          <span className={`${styles.sparkle} ${styles.s3}`}>⭐</span>
+          <Icon icon={Sparkles} size={38} className={styles.robot} />
+          <Icon icon={Sparkle} size={16} className={`${styles.sparkle} ${styles.s1}`} />
+          <Icon icon={Sparkle} size={13} className={`${styles.sparkle} ${styles.s2}`} />
+          <Icon icon={Star} size={12} className={`${styles.sparkle} ${styles.s3}`} />
         </div>
         <div className={styles.headText}>
           <h2 id={headingId} className={styles.heading}>{heading}</h2>
@@ -95,14 +97,14 @@ export default function GenerationProgress({
           <div className={styles.barFill} style={{ width: `${Math.max(percent, 6)}%` }} />
         </div>
         <span className={styles.timer}>
-          <span aria-hidden="true">⏱️ </span>
+          <Icon icon={Clock} size={16} />
           <span className="sr-only">Temps écoulé : </span>
           {formatElapsed(elapsed)}
         </span>
       </div>
 
       <p className={styles.current} role="status" aria-live="polite">
-        <span aria-hidden="true">{steps[active].icon} </span>
+        <Icon icon={steps[active].icon} size={18} className={styles.currentIcon} />
         {steps[active].label}
       </p>
 
@@ -112,7 +114,7 @@ export default function GenerationProgress({
           return (
             <li key={step.label} className={`${styles.step} ${styles[state] || ''}`}>
               <span className={styles.dot} aria-hidden="true">
-                {state === 'done' ? '✓' : state === 'active' ? <span className={styles.pulse} /> : i + 1}
+                {state === 'done' ? <Icon icon={Check} size={16} strokeWidth={3} /> : state === 'active' ? <span className={styles.pulse} /> : i + 1}
               </span>
               <span className={styles.stepLabel}>
                 {step.label.replace('…', '')}
@@ -127,7 +129,7 @@ export default function GenerationProgress({
 
       {elapsed >= 150 && (
         <p className={styles.slow}>
-          <span aria-hidden="true">🐢 </span>
+          <Icon icon={Turtle} size={16} className={styles.currentIcon} />
           C&apos;est plus long que d&apos;habitude… La génération continue, merci de patienter encore un peu.
         </p>
       )}

@@ -1,4 +1,6 @@
 import styles from '@/components/student/vocabulary/Vocabulary.module.css'
+import { Volume1, Volume2 } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 /**
  * Round "listen" button. Renders nothing without a French voice (see useFrenchSpeech).
@@ -19,7 +21,7 @@ export default function SpeakButton({ speech, text, speakKey, className }) {
       }}
       aria-label={`Listen: ${text}`}
     >
-      <span aria-hidden="true">{speaking ? '🔊' : '🔈'}</span>
+      <Icon icon={speaking ? Volume2 : Volume1} size={20} />
     </button>
   )
 }

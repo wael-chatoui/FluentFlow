@@ -8,6 +8,8 @@ import {
   formatCount,
 } from '@/components/teacher/import/importUtils'
 import styles from '@/components/teacher/import/ExerciseOptions.module.css'
+import { Check, CircleAlert, Minus, Plus } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 /** Parses the count field → integer in range, or null. */
 export function parseCount(value) {
@@ -86,7 +88,7 @@ export default function ExerciseOptions({
             aria-label="Un exercice de moins"
             aria-controls={countId}
           >
-            −
+            <Icon icon={Minus} size={20} strokeWidth={3} />
           </button>
           <input
             id={countId}
@@ -116,12 +118,12 @@ export default function ExerciseOptions({
             aria-label="Un exercice de plus"
             aria-controls={countId}
           >
-            +
+            <Icon icon={Plus} size={20} strokeWidth={3} />
           </button>
         </div>
         {errors.count ? (
           <p id={`${countId}-error`} className={bits.fieldError}>
-            <span aria-hidden="true">⚠️</span> {errors.count}
+            <Icon icon={CircleAlert} size={16} /> {errors.count}
           </p>
         ) : (
           <p id={`${countId}-hint`} className={bits.hint}>
@@ -151,7 +153,9 @@ export default function ExerciseOptions({
                 onClick={() => toggleType(t.value)}
                 disabled={disabled}
               >
-                <span className={styles.chipCheck} aria-hidden="true">{on ? '✓' : t.icon}</span>
+                <span className={styles.chipCheck} aria-hidden="true">
+                  <Icon icon={on ? Check : t.icon} size={18} strokeWidth={on ? 3 : 2.25} />
+                </span>
                 {t.label}
               </button>
             )
@@ -159,7 +163,7 @@ export default function ExerciseOptions({
         </div>
         {errors.types && (
           <p id={`${typesId}-error`} className={bits.fieldError} role="alert">
-            <span aria-hidden="true">⚠️</span> {errors.types}
+            <Icon icon={CircleAlert} size={16} /> {errors.types}
           </p>
         )}
       </div>

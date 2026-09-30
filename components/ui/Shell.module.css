@@ -68,7 +68,15 @@
 }
 
 .brandFlag {
-  font-size: 1.5rem;
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--st-pink);
+  color: var(--st-on-color);
+  box-shadow: 0 3px 0 var(--st-pink-dark);
 }
 
 .brandName {
@@ -220,7 +228,7 @@
 }
 
 .tabIcon {
-  font-size: 1.35rem;
+  display: inline-flex;
   line-height: 1;
   padding: 4px 12px;
   border: 2px solid transparent;

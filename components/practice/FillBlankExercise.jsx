@@ -3,6 +3,8 @@ import { RichTextInline } from '@/components/lesson/RichText'
 import BlankSentence from '@/components/practice/BlankSentence'
 import { splitBlank, speakable, plainText, cx } from '@/components/practice/utils'
 import styles from '@/components/practice/Exercises.module.css'
+import { Lightbulb } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const ACCENTS = ['é', 'è', 'ê', 'à', 'ç', 'ù', 'â', 'î', 'ô', 'ë', 'ï', 'œ']
 
@@ -107,7 +109,7 @@ export default function FillBlankExercise({ exercise, value, onChange, onSubmit,
             aria-controls={hintId}
             onClick={() => setShowHint((s) => !s)}
           >
-            <span aria-hidden="true">💡 </span>
+            <Icon icon={Lightbulb} size={18} />
             {showHint ? 'Hide hint' : 'Show hint'}
           </button>
           <p id={hintId} className={styles.hint} hidden={!showHint}>

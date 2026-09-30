@@ -8,6 +8,8 @@ import { ActionPill, DetailsCell } from '@/components/admin/audit/AuditCells'
 import { toQueryString } from '@/components/admin/tables/useUrlQuery'
 import ui from '@/components/ui/ui.module.css'
 import s from '@/components/admin/common/admin.module.css'
+import { ArrowRight, ScrollText } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const LIMIT = 10
 
@@ -41,12 +43,12 @@ export default function HistorySection({ entity, entityId, refreshKey }) {
     <section className={s.section} aria-labelledby={uid}>
       <div className={s.sectionHead}>
         <h2 id={uid} className={s.sectionTitle}>
-          <span aria-hidden="true">🧾</span> Historique
+          <Icon icon={ScrollText} size={20} /> Historique
           {data && <StatusPill tone="gray">{formatNumber(total)}</StatusPill>}
         </h2>
         {total > LIMIT && (
           <Link href={`/admin/audit${toQueryString({ entity, entityId })}`} className={s.link}>
-            Tout voir →
+            Tout voir <Icon icon={ArrowRight} size={16} />
           </Link>
         )}
       </div>

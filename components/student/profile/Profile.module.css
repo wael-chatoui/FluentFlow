@@ -100,14 +100,13 @@
   border: 2px solid var(--tone);
   border-bottom-width: 4px;
   background: var(--tone-bg);
-  font-size: 1.2rem;
-  line-height: 1;
+  color: var(--tone-ink);
 }
 
-.iconBlue { --tone: var(--st-blue); --tone-bg: var(--st-blue-bg); }
-.iconYellow { --tone: var(--st-yellow); --tone-bg: var(--st-yellow-bg); }
-.iconPurple { --tone: var(--st-purple); --tone-bg: var(--st-purple-bg); }
-.iconRed { --tone: var(--st-red); --tone-bg: var(--st-red-bg); }
+.iconBlue { --tone: var(--st-blue); --tone-bg: var(--st-blue-bg); --tone-ink: var(--st-blue-ink); }
+.iconYellow { --tone: var(--st-yellow); --tone-bg: var(--st-yellow-bg); --tone-ink: var(--st-yellow-ink); }
+.iconPurple { --tone: var(--st-purple); --tone-bg: var(--st-purple-bg); --tone-ink: var(--st-purple-ink); }
+.iconRed { --tone: var(--st-red); --tone-bg: var(--st-red-bg); --tone-ink: var(--st-red-ink); }
 
 .cardHelp {
   margin: 0.5rem 0 1rem;
@@ -203,13 +202,17 @@
 }
 
 .selectWrap::after {
-  content: '▾';
+  /* lucide chevron-down, tinted with background-color */
+  content: '';
   position: absolute;
-  right: 0.95rem;
+  right: 0.85rem;
   top: 50%;
+  width: 18px;
+  height: 18px;
   transform: translateY(-50%);
-  font-size: 1.1rem;
-  color: var(--st-ink-soft);
+  background-color: var(--st-ink-soft);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat;
   pointer-events: none;
 }
 
@@ -259,6 +262,9 @@
 }
 
 .savedMsg {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   color: var(--st-green-ink);
   animation: rise 200ms ease-out both;
 }
@@ -334,9 +340,13 @@
 }
 
 .dialogEmoji {
-  display: block;
-  font-size: 3rem;
-  line-height: 1;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--st-red-bg);
+  color: var(--st-red-ink);
 }
 
 .dialogTitle {

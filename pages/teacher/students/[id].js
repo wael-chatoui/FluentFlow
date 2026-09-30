@@ -17,6 +17,8 @@ import { isStaleGeneration, isValidId, studentDisplayName } from '@/components/t
 import { useApiResource, usePolling } from '@/components/teacher/hooks'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/teacher/StudentPage.module.css'
+import { BookOpen, CircleAlert, IdCard, SearchX, Sparkles } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 // Anchors other pages link to (dashboard « Préparer », hero pills)
 const ANCHORS = ['#plan', '#compte']
@@ -69,7 +71,7 @@ export default function TeacherStudentPage() {
   if (invalid || notFound) {
     content = (
       <PageState
-        icon="🔍"
+        icon={SearchX}
         tone="purple"
         headingLevel={1}
         title="Élève introuvable"
@@ -81,7 +83,7 @@ export default function TeacherStudentPage() {
     content = (
       <PageState
         role="alert"
-        icon="😕"
+        icon={CircleAlert}
         headingLevel={1}
         title="Impossible de charger l'élève"
         text={error}
@@ -100,7 +102,7 @@ export default function TeacherStudentPage() {
         <section aria-labelledby="lessons-title" aria-busy={loading}>
           <div className={styles.sectionHead}>
             <h2 id="lessons-title" className={`${ui.sectionTitle} ${styles.sectionTitle}`}>
-              <span aria-hidden="true">📚</span> Leçons
+              <Icon icon={BookOpen} size={22} /> Leçons
             </h2>
             {!loading && (
               <span className={styles.count}>
@@ -113,14 +115,14 @@ export default function TeacherStudentPage() {
             <LessonListSkeleton />
           ) : lessons.length === 0 ? (
             <PageState
-              icon="📝"
+              icon={BookOpen}
               tone="green"
               headingLevel={3}
               title="Aucune leçon pour l’instant"
               text="Après ton prochain cours, colle la transcription et les notes Canva pour générer le bilan."
               action={
                 <Link href={newLessonHref} className={`${ui.btn} ${ui.green}`}>
-                  <span aria-hidden="true">✨</span> Créer la première leçon
+                  <Icon icon={Sparkles} size={20} /> Créer la première leçon
                 </Link>
               }
             />
@@ -134,7 +136,7 @@ export default function TeacherStudentPage() {
         <section className={`${ui.card} ${styles.profileCard}`} aria-labelledby="profile-title">
           <div className={styles.sectionHead}>
             <h2 id="profile-title" className={`${ui.sectionTitle} ${styles.sectionTitle}`}>
-              <span aria-hidden="true">🗂️</span> Fiche élève
+              <Icon icon={IdCard} size={22} /> Fiche élève
             </h2>
           </div>
           {loading ? (

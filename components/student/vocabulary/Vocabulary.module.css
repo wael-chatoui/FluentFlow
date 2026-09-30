@@ -88,7 +88,8 @@
   left: 0.9rem;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 1.05rem;
+  display: flex;
+  color: var(--st-ink-soft);
   pointer-events: none;
 }
 
@@ -212,6 +213,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.searchPill span svg {
+  vertical-align: -0.2em;
 }
 
 /* Flashcards deck: all lessons or one lesson */
@@ -475,8 +480,18 @@
 }
 
 .stateEmoji {
-  font-size: 3.6rem;
-  line-height: 1;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: var(--st-blue-bg);
+  color: var(--st-blue-ink);
+}
+
+.stateEmojiError {
+  background: var(--st-red-bg);
+  color: var(--st-red-ink);
 }
 
 .stateTitle {

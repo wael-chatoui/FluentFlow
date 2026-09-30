@@ -129,8 +129,6 @@ input.countInput {
   height: 32px;
   border-radius: 50%;
   background: var(--st-bg);
-  font-size: 0.95rem;
-  line-height: 1;
 }
 
 .chipOn,

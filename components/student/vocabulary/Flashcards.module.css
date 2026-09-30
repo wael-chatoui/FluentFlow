@@ -340,8 +340,13 @@
 }
 
 .endEmoji {
-  font-size: 4rem;
-  line-height: 1;
+  display: grid;
+  place-items: center;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: var(--st-yellow-bg);
+  color: var(--st-orange-ink);
   animation: bounce 240ms ease-out 100ms both;
 }
 

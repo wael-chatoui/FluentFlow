@@ -1,5 +1,7 @@
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import { Languages } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/ui/Shell.module.css'
 
@@ -19,7 +21,7 @@ const LABELS = {
  * node is rendered right after the button so it follows it in the tab order.
  *
  * @param {{
- *   tabs: { href: string, label: React.ReactNode, icon: React.ReactNode, match: (pathname: string) => boolean }[],
+ *   tabs: { href: string, label: React.ReactNode, icon: import('lucide-react').LucideIcon, match: (pathname: string) => boolean }[],
  *   homeHref: string,
  *   lang?: 'en' | 'fr',               // language of the chrome labels (default 'en')
  *   badge?: React.ReactNode,          // small label next to the brand (e.g. "Prof")
@@ -82,7 +84,9 @@ export default function Shell({ tabs, homeHref, lang = 'en', badge, avatar, wide
         <div className={styles.topbarInner}>
           {/* No aria-label: the visible "Preply Lessons" (+ badge) is the link name */}
           <Link href={homeHref} className={styles.brand}>
-            <span className={styles.brandFlag} aria-hidden="true">🇫🇷</span>
+            <span className={styles.brandFlag} aria-hidden="true">
+              <Icon icon={Languages} size={18} strokeWidth={2.5} />
+            </span>
             <span className={styles.brandName}>Preply Lessons</span>
             {badge}
           </Link>
@@ -96,7 +100,7 @@ export default function Shell({ tabs, homeHref, lang = 'en', badge, avatar, wide
                   className={`${styles.topnavLink} ${active ? styles.active : ''}`}
                   aria-current={active ? 'page' : undefined}
                 >
-                  <span aria-hidden="true">{tab.icon}</span> {tab.label}
+                  <Icon icon={tab.icon} size={20} /> {tab.label}
                 </Link>
               )
             })}
@@ -119,7 +123,9 @@ export default function Shell({ tabs, homeHref, lang = 'en', badge, avatar, wide
               className={`${styles.tab} ${active ? styles.active : ''}`}
               aria-current={active ? 'page' : undefined}
             >
-              <span className={styles.tabIcon} aria-hidden="true">{tab.icon}</span>
+              <span className={styles.tabIcon} aria-hidden="true">
+                <Icon icon={tab.icon} size={24} />
+              </span>
               <span className={styles.tabLabel}>{tab.label}</span>
             </Link>
           )

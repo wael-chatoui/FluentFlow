@@ -70,8 +70,6 @@
   background: var(--st-surface);
   border: 2px solid currentColor;
   border-bottom-width: 4px;
-  font-size: 1.8rem;
-  line-height: 1;
 }
 
 .zoneTitle {

@@ -1,3 +1,4 @@
+import { ArrowLeftRight, CircleDot, TextCursorInput } from 'lucide-react'
 // Labels shared by the back-office lesson pages (French UI).
 
 export const LESSON_STATUS_LABELS = {
@@ -14,9 +15,9 @@ export const LESSON_STATUS_FILTERS = [
 ]
 
 export const EXERCISE_TYPE_META = {
-  mcq: { label: 'QCM', icon: '🔘', tone: 'blue' },
-  fill_blank: { label: 'Texte à trous', icon: '✏️', tone: 'orange' },
-  match: { label: 'Association', icon: '🔗', tone: 'purple' },
+  mcq: { label: 'QCM', icon: CircleDot, tone: 'blue' },
+  fill_blank: { label: 'Texte à trous', icon: TextCursorInput, tone: 'orange' },
+  match: { label: 'Association', icon: ArrowLeftRight, tone: 'purple' },
 }
 
 export function lessonTitle(lesson) {

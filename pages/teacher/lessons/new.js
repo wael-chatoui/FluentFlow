@@ -29,6 +29,8 @@ import { useApiResource, useMountedRef } from '@/components/teacher/hooks'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/NewLesson.module.css'
+import { CircleAlert, Eraser, FilePen, Files, Lightbulb, Mic, Palette, Save, SearchX, Send, Sparkles, TriangleAlert } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const REVIEW_PREF = 'reviewBeforePublish'
 const LEAVE_WHILE_SENDING = "La leçon est en cours d'envoi. Quitter maintenant peut l'interrompre. Quitter quand même ?"
@@ -49,7 +51,9 @@ function formatSavedAt(ts) {
 function Banner({ tone, icon, children, actions, role = 'status' }) {
   return (
     <div className={`${bits.alert} ${bits[tone]}`} role={role}>
-      <span className={bits.alertIcon} aria-hidden="true">{icon}</span>
+      <span className={bits.alertIcon} aria-hidden="true">
+        <Icon icon={icon} size={20} />
+      </span>
       <div className={bits.alertBody}>
         <span>{children}</span>
         {actions && <div className={bits.alertActions}>{actions}</div>}
@@ -197,9 +201,9 @@ export default function NewLessonPage() {
   const draftPill = !form
     ? null
     : draft.storageFailed
-      ? { tone: styles.pillWarn, icon: '⚠️', text: 'Brouillon non enregistré (stockage du navigateur indisponible)' }
+      ? { tone: styles.pillWarn, icon: TriangleAlert, text: 'Brouillon non enregistré (stockage du navigateur indisponible)' }
       : draft.savedAt && hasContent
-        ? { tone: '', icon: '💾', text: `Brouillon enregistré à ${formatTime(draft.savedAt)}` }
+        ? { tone: '', icon: Save, text: `Brouillon enregistré à ${formatTime(draft.savedAt)}` }
         : null
   const notToday = form && form.lessonDate !== todayLocal()
 
@@ -214,7 +218,10 @@ export default function NewLessonPage() {
       <div className={styles.page}>
         <div className={styles.pageHead}>
           <h1 className={styles.pageTitle}>
-            <span className={styles.pageEmoji} aria-hidden="true">✨</span> Nouvelle leçon
+            <span className={styles.pageEmoji} aria-hidden="true">
+              <Icon icon={Sparkles} size={24} />
+            </span>{' '}
+            Nouvelle leçon
           </h1>
           <p className={styles.pageSub}>
             Colle la transcription et tes notes Canva : l&apos;IA prépare le bilan et les exercices.
@@ -223,7 +230,7 @@ export default function NewLessonPage() {
             <div className={styles.draftRow}>
               {draftPill && (
                 <span className={`${styles.draftPill} ${draftPill.tone}`}>
-                  <span aria-hidden="true">{draftPill.icon}</span> {draftPill.text}
+                  <Icon icon={draftPill.icon} size={16} /> {draftPill.text}
                 </span>
               )}
               {/* During a draft conflict the banner's two choices come first */}
@@ -233,7 +240,7 @@ export default function NewLessonPage() {
                   className={`${ui.btn} ${ui.small} ${bits.redGhost} ${bits.tap}`}
                   onClick={() => setConfirmClear(true)}
                 >
-                  <span aria-hidden="true">🧹</span> Vider le formulaire
+                  <Icon icon={Eraser} size={16} /> Vider le formulaire
                 </button>
               )}
             </div>
@@ -270,7 +277,7 @@ export default function NewLessonPage() {
                 restored.submittedAt ? (
                   <Banner
                     tone="warning"
-                    icon="📨"
+                    icon={Send}
                     actions={
                       <button type="button" className={`${ui.btn} ${ui.small} ${bits.redGhost} ${bits.tap}`} onClick={() => setConfirmClear(true)}>
                         Effacer le brouillon
@@ -284,7 +291,7 @@ export default function NewLessonPage() {
                 ) : (
                   <Banner
                     tone="info"
-                    icon="📝"
+                    icon={FilePen}
                     actions={
                       <>
                         {notToday && (
@@ -308,7 +315,7 @@ export default function NewLessonPage() {
               {conflict && (
                 <Banner
                   tone="warning"
-                  icon="🗂️"
+                  icon={Files}
                   actions={
                     <>
                       <button
@@ -341,7 +348,7 @@ export default function NewLessonPage() {
               )}
 
               {draft.missingStudent && (
-                <Banner tone="warning" icon="🔍" role="alert">
+                <Banner tone="warning" icon={SearchX} role="alert">
                   L&apos;élève indiqué dans le lien est introuvable. Choisis-le dans la liste.
                 </Banner>
               )}
@@ -366,7 +373,7 @@ export default function NewLessonPage() {
                 />
                 {showErrors && errors.student && (
                   <p id={fieldId('student-error')} className={bits.fieldError}>
-                    <span aria-hidden="true">⚠️</span> {errors.student}
+                    <Icon icon={CircleAlert} size={16} /> {errors.student}
                   </p>
                 )}
                 {selected && (
@@ -393,7 +400,7 @@ export default function NewLessonPage() {
                     />
                     {showErrors && errors.date && (
                       <p id={fieldId('date-error')} className={bits.fieldError}>
-                        <span aria-hidden="true">⚠️</span> {errors.date}
+                        <Icon icon={CircleAlert} size={16} /> {errors.date}
                       </p>
                     )}
                   </div>
@@ -422,7 +429,7 @@ export default function NewLessonPage() {
                 htmlFor={fieldId('transcript')}
                 sub={
                   <>
-                    <span aria-hidden="true">📋 </span>Colle ici la transcription Preply
+                    <Icon icon={Mic} size={14} className={styles.inlineIcon} /> Colle ici la transcription Preply
                   </>
                 }
                 aside={<SourceCounter value={form.transcript} max={SOURCE_LIMITS.transcript} />}
@@ -454,7 +461,7 @@ export default function NewLessonPage() {
                 htmlFor={fieldId('canva')}
                 sub={
                   <>
-                    <span aria-hidden="true">🎨 </span>Colle ici le texte de tes notes Canva
+                    <Icon icon={Palette} size={14} className={styles.inlineIcon} /> Colle ici le texte de tes notes Canva
                   </>
                 }
                 aside={<SourceCounter value={form.canva} max={SOURCE_LIMITS.canva} />}
@@ -480,13 +487,13 @@ export default function NewLessonPage() {
 
               <div className={styles.sourcesNote}>
                 <p id={fieldId('sources-hint')} className={styles.sourcesHint}>
-                  <span aria-hidden="true">💡 </span>
+                  <Icon icon={Lightbulb} size={16} className={styles.inlineIcon} />{' '}
                   Au moins l&apos;un des deux est nécessaire ({SOURCE_MIN_CHARS} caractères minimum, hors espaces). Ton
                   texte est enregistré automatiquement sur cet appareil jusqu&apos;à l&apos;envoi.
                 </p>
                 {showErrors && errors.sources && (
                   <p id={fieldId('sources-error')} className={bits.fieldError}>
-                    <span aria-hidden="true">⚠️</span> {errors.sources}
+                    <Icon icon={CircleAlert} size={16} /> {errors.sources}
                   </p>
                 )}
               </div>
@@ -514,7 +521,7 @@ export default function NewLessonPage() {
           )}
 
           {submitError && (
-            <Banner tone="error" icon="⚠️" role="alert">
+            <Banner tone="error" icon={CircleAlert} role="alert">
               {submitError}
             </Banner>
           )}
@@ -534,7 +541,7 @@ export default function NewLessonPage() {
                   </>
                 ) : (
                   <>
-                    <span aria-hidden="true">✨</span> {review ? 'Générer en brouillon' : 'Générer et publier'}
+                    <Icon icon={Sparkles} size={20} /> {review ? 'Générer en brouillon' : 'Générer et publier'}
                   </>
                 )}
               </button>
@@ -551,7 +558,7 @@ export default function NewLessonPage() {
         title="Vider le formulaire ?"
         message="Le titre, la transcription, les notes Canva et les options seront effacés, ainsi que le brouillon enregistré."
         confirmLabel="Vider"
-        icon="🧹"
+        icon={Eraser}
         danger
         onConfirm={clearForm}
         onCancel={() => setConfirmClear(false)}

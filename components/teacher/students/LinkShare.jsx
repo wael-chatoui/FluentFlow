@@ -11,7 +11,7 @@ function firstName(name) {
  *   link null = an invitation email was sent by the app instead.
  */
 export function shareMessage({ kind, name, email, link }) {
-  const hello = `Hi${firstName(name) ? ` ${firstName(name)}` : ''}! 👋`
+  const hello = `Hi${firstName(name) ? ` ${firstName(name)}` : ''}!`
   if (kind === 'signin') {
     return `${hello}\nHere is a new link to sign in to your lesson space: ${link}\nIt works only once. Next time you can sign in with Google or ask for a sign-in link sent to ${email}.`
   }

@@ -14,6 +14,8 @@ import { LESSON_STATUS_FILTERS, lessonTitle } from '@/components/admin/lessons/c
 import { isStaleGeneration } from '@/utils/lesson/schema'
 import admin from '@/components/admin/common/admin.module.css'
 import ui from '@/components/ui/ui.module.css'
+import { RefreshCw, X } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const PER_PAGE = 50
 const DEFAULTS = { q: '', status: '', studentId: '', page: '1' }
@@ -104,7 +106,7 @@ export default function AdminLessonsPage() {
       title="Leçons"
       actions={
         <button type="button" className={cx(ui.btn, ui.small, admin.tap, admin.blueGhost)} onClick={reload} disabled={loading}>
-          <span aria-hidden="true">↻</span> Actualiser
+          <Icon icon={RefreshCw} size={16} /> Actualiser
         </button>
       }
     >
@@ -132,7 +134,7 @@ export default function AdminLessonsPage() {
                 onClick={() => setParams({ studentId: '', page: '1' })}
                 aria-label={`Retirer le filtre élève${studentName ? ` (${studentName})` : ''}`}
               >
-                Élève : {studentName || 'sélectionné'} <span aria-hidden="true">✕</span>
+                Élève : {studentName || 'sélectionné'} <Icon icon={X} size={14} />
               </button>
             </span>
           )}

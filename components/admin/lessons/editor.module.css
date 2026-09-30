@@ -394,6 +394,7 @@
 .insertBtn {
   display: inline-flex;
   align-items: center;
+  gap: 0.35rem;
   flex: none;
   min-height: 44px;
   padding: 0 0.8rem;
@@ -617,7 +618,7 @@
 }
 
 .pairArrow {
-  font-weight: 900;
+  display: flex;
   color: var(--st-ink-soft);
 }
 

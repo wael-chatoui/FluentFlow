@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import s from '@/components/admin/common/admin.module.css'
 import { cx } from '@/components/admin/common/format'
+import { CircleAlert, CircleCheck, X } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 // Module-level store: toasts survive client-side navigation (e.g. "deleted" toast
 // shown on the list page after router.push). No provider needed.
@@ -97,10 +99,10 @@ export function ToastViewport() {
 
   const renderToast = (t) => (
     <div key={t.id} className={cx(s.toast, t.type === 'error' ? s.toastError : s.toastSuccess)}>
-      <span aria-hidden="true">{t.type === 'error' ? '⚠️' : '✅'}</span>
+      <Icon icon={t.type === 'error' ? CircleAlert : CircleCheck} size={20} />
       <span className={s.toastMsg}>{t.message}</span>
       <button type="button" className={s.toastClose} onClick={() => dismiss(t.id)} aria-label="Fermer la notification">
-        ×
+        <Icon icon={X} size={18} />
       </button>
     </div>
   )

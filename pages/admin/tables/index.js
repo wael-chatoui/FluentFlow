@@ -2,10 +2,12 @@ import Link from 'next/link'
 import AdminShell from '@/components/admin/AdminShell'
 import useAdminQuery from '@/components/admin/common/useAdminQuery'
 import { cx, formatNumber } from '@/components/admin/common/format'
-import { TABLE_ICONS } from '@/components/admin/tables/tableMeta'
+import { tableIcon } from '@/components/admin/tables/tableMeta'
 import admin from '@/components/admin/common/admin.module.css'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/admin/tables/tables.module.css'
+import { RefreshCw } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 export default function AdminTablesPage() {
   const { data, error, loading, reload } = useAdminQuery('/api/admin/tables')
@@ -16,7 +18,7 @@ export default function AdminTablesPage() {
       title="Tables"
       actions={
         <button type="button" className={cx(ui.btn, ui.small, admin.tap, admin.blueGhost)} onClick={reload} disabled={loading}>
-          <span aria-hidden="true">↻</span> Actualiser
+          <Icon icon={RefreshCw} size={16} /> Actualiser
         </button>
       }
     >
@@ -48,7 +50,7 @@ export default function AdminTablesPage() {
             const inner = (
               <>
                 <span className={styles.cardIcon} aria-hidden="true">
-                  {TABLE_ICONS[t.name] || '🗂️'}
+                  <Icon icon={tableIcon(t.name)} size={22} />
                 </span>
                 <span className={styles.cardText}>
                   <strong className={styles.cardLabel}>{t.label || t.name}</strong>

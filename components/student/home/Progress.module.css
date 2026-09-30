@@ -6,6 +6,9 @@
 }
 
 .heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin: 0;
   font-size: 1.2rem;
   font-weight: 900;
@@ -80,6 +83,11 @@
   font-weight: 900;
   line-height: 1.15;
   color: var(--st-ink);
+}
+
+.statLabel svg {
+  margin-right: 0.25rem;
+  vertical-align: -0.15em;
 }
 
 .statLabel {

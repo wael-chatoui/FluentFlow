@@ -37,6 +37,11 @@
   min-width: 0;
 }
 
+.labelIcon {
+  margin-right: 0.3rem;
+  vertical-align: -0.15em;
+}
+
 .label {
   font-size: 0.9rem;
   font-weight: 900;
@@ -216,6 +221,10 @@
   font-size: 0.9rem;
   font-weight: 800;
   color: var(--st-ink-soft);
+}
+
+.savedIcon {
+  margin-left: 0.3rem;
 }
 
 .saved {

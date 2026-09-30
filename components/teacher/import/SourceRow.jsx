@@ -14,11 +14,13 @@ import { canRetry } from '@/components/teacher/import/rows'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/import/SourceRow.module.css'
+import { Calendar, Check, ChevronDown, ChevronRight, CircleAlert, CircleCheck, CircleX, Clock, FilePen, FileText, FileType, Hourglass, LinkIcon, PartyPopper, RefreshCw, TriangleAlert, X } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const KIND = {
-  pdf: { icon: '📄', tone: styles.kindPdf, sr: 'PDF' },
-  text: { icon: '📝', tone: styles.kindText, sr: 'fichier texte' },
-  link: { icon: '🔗', tone: styles.kindLink, sr: 'lien' },
+  pdf: { icon: FileText, tone: styles.kindPdf, sr: 'PDF' },
+  text: { icon: FileType, tone: styles.kindText, sr: 'fichier texte' },
+  link: { icon: LinkIcon, tone: styles.kindLink, sr: 'lien' },
 }
 
 const DATE_FROM = {
@@ -37,7 +39,7 @@ function RowProgress({ startedAt }) {
         <div className={styles.progressFill} style={{ width: `${Math.max(percent, 6)}%` }} />
       </div>
       <span className={styles.timer}>
-        <span aria-hidden="true">⏱️ </span>
+        <Icon icon={Clock} size={14} />
         <span className="sr-only">Temps écoulé : </span>
         {formatElapsed(elapsed)}
       </span>
@@ -50,9 +52,11 @@ function pillFor(row, issue, dateError) {
   if (row.run === 'generating') return { tone: styles.pillPurple, text: 'Génération…' }
   if (row.run === 'queued') return { tone: styles.pillGrey, text: 'En attente' }
   if (row.run === 'published') {
-    return row.hidden ? { tone: styles.pillOrange, text: '📝 Brouillon' } : { tone: styles.pillGreen, text: '✅ Publiée' }
+    return row.hidden
+      ? { tone: styles.pillOrange, icon: FilePen, text: 'Brouillon' }
+      : { tone: styles.pillGreen, icon: CircleCheck, text: 'Publiée' }
   }
-  if (row.run === 'failed') return { tone: styles.pillRed, text: '❌ Échec' }
+  if (row.run === 'failed') return { tone: styles.pillRed, icon: CircleX, text: 'Échec' }
   if (issue?.tone === 'loading') return { tone: styles.pillBlue, text: 'Extraction…' }
   if (issue?.tone === 'error') return { tone: styles.pillRed, text: 'Erreur' }
   if (issue?.tone === 'warning' || dateError) return { tone: styles.pillOrange, text: 'À vérifier' }
@@ -146,16 +150,16 @@ export default function SourceRow({
     if (row.lessonId) actions = lessonLink('Voir la leçon', bits.blueGhost)
   } else if (row.run === 'queued') {
     tone = styles.statusGrey
-    icon = '⏳'
+    icon = <Icon icon={Hourglass} size={18} />
     message = 'En attente…'
   } else if (row.run === 'published') {
     tone = row.hidden ? styles.statusOrange : styles.statusGreen
-    icon = row.hidden ? '📝' : '🎉'
+    icon = <Icon icon={row.hidden ? FilePen : PartyPopper} size={18} />
     message = row.hidden ? "Brouillon prêt : relis-le puis publie-le pour l'élève." : 'Leçon publiée !'
     actions = lessonLink(row.hidden ? 'Relire la leçon' : 'Voir la leçon', row.hidden ? ui.orange : ui.green)
   } else if (row.run === 'failed') {
     tone = styles.statusRed
-    icon = '😵'
+    icon = <Icon icon={CircleAlert} size={18} />
     message = row.runError || 'La génération a échoué.'
     if (row.lessonId && !row.stale) {
       note = 'La leçon est enregistrée avec le texte du document : « Réessayer » relance seulement la génération.'
@@ -173,7 +177,7 @@ export default function SourceRow({
           onClick={onRetryRun}
           disabled={retryDisabled || !canRetry(row)}
         >
-          <span aria-hidden="true">🔄</span> Réessayer
+          <Icon icon={RefreshCw} size={16} /> Réessayer
         </button>
         {row.lessonId && lessonLink('Voir la leçon', bits.blueGhost)}
       </>
@@ -184,18 +188,18 @@ export default function SourceRow({
     message = row.kind === 'link' ? 'Récupération du document…' : 'Extraction du texte…'
   } else if (issue?.tone === 'error') {
     tone = styles.statusRed
-    icon = '⚠️'
+    icon = <Icon icon={CircleAlert} size={18} />
     message = issue.message
     if (row.extract === 'error') {
       actions = (
         <button type="button" className={`${ui.btn} ${ui.small} ${bits.tap}`} onClick={onRetryExtract} disabled={busy}>
-          <span aria-hidden="true">🔄</span> Réessayer l&apos;extraction
+          <Icon icon={RefreshCw} size={16} /> Réessayer l&apos;extraction
         </button>
       )
     }
   } else if (issue?.tone === 'warning') {
     tone = styles.statusOrange
-    icon = '🔍'
+    icon = <Icon icon={TriangleAlert} size={18} />
     message = issue.message
     if (issue.dismissible) {
       actions = (
@@ -212,11 +216,11 @@ export default function SourceRow({
   } else if (dateError) {
     // The error itself is shown under the date field
     tone = styles.statusOrange
-    icon = '📅'
+    icon = <Icon icon={Calendar} size={18} />
     message = `${extractSummary(row)} · date du cours à vérifier`
   } else {
     tone = styles.statusOk
-    icon = '✓'
+    icon = <Icon icon={Check} size={18} strokeWidth={3} />
     message = extractSummary(row)
   }
 
@@ -235,7 +239,7 @@ export default function SourceRow({
     >
       <div className={styles.head}>
         <span className={`${styles.kind} ${kind.tone}`} aria-hidden="true">
-          {kind.icon}
+          <Icon icon={kind.icon} size={22} />
         </span>
         <div className={styles.headText}>
           <p className={styles.name} title={name}>
@@ -243,7 +247,10 @@ export default function SourceRow({
             {name}
           </p>
           <div className={styles.metaRow}>
-            <span className={`${styles.pill} ${pill.tone}`}>{pill.text}</span>
+            <span className={`${styles.pill} ${pill.tone}`}>
+              {pill.icon && <Icon icon={pill.icon} size={13} />}
+              {pill.text}
+            </span>
             <span className={styles.meta}>{metaFor(row)}</span>
           </div>
         </div>
@@ -255,7 +262,7 @@ export default function SourceRow({
           aria-label={`Retirer « ${name} » de la liste`}
           title="Retirer de la liste"
         >
-          <span aria-hidden="true">✕</span>
+          <Icon icon={X} size={20} />
         </button>
       </div>
 
@@ -298,7 +305,7 @@ export default function SourceRow({
           />
           {dateNote && (
             <p id={dateNoteId} className={`${showDateError ? bits.fieldError : bits.hint} ${styles.fieldNote}`}>
-              <span aria-hidden="true">{showDateError ? '⚠️ ' : '📅 '}</span>
+              <Icon icon={showDateError ? CircleAlert : Calendar} size={15} className={styles.noteIcon} />{' '}
               {dateNote}
             </p>
           )}
@@ -312,7 +319,7 @@ export default function SourceRow({
 
       {existing && !row.lessonId && !locked && (
         <p className={styles.existing}>
-          <span aria-hidden="true">👀 </span>
+          <Icon icon={TriangleAlert} size={15} className={styles.noteIcon} />{' '}
           {`Une leçon du ${formatLessonDate(row.lessonDate)} existe déjà pour cet élève${
             existing.title ? ` (« ${existing.title} »)` : ''
           } : vérifie que ce document n'est pas déjà importé.`}
@@ -345,7 +352,7 @@ export default function SourceRow({
             aria-controls={textId}
             onClick={() => onChange({ showText: !textOpen })}
           >
-            <span aria-hidden="true">{textOpen ? '▾' : '▸'}</span>
+            <Icon icon={textOpen ? ChevronDown : ChevronRight} size={16} strokeWidth={3} />
             {textOpen ? 'Masquer le texte' : textLabel}
           </button>
           <div id={textId} hidden={!textOpen} className={styles.textPanel}>

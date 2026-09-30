@@ -5,6 +5,8 @@ import SpeakButton from '@/components/student/vocabulary/SpeakButton'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/vocabulary/Flashcards.module.css'
 import { playSound } from '@/utils/sound'
+import { Check, Dumbbell, PartyPopper, RotateCcw, Trophy } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const SWIPE_THRESHOLD = 80 // px
 const DRAG_START = 10 // px before a touch counts as a horizontal drag
@@ -26,9 +28,9 @@ function isTyping(target) {
 // `text` may highlight a word with **…** (rendered with RichTextInline); `plain` is for
 // screen readers and speech
 function sides(item, direction) {
-  const face = (label, flag, text, lang) => ({ label, flag, text, plain: plainText(text), lang })
-  const fr = face('French', '🇫🇷', item.fr, 'fr')
-  const en = face('English', '🇬🇧', item.en || '(no translation)', 'en')
+  const face = (label, text, lang) => ({ label, text, plain: plainText(text), lang })
+  const fr = face('French', item.fr, 'fr')
+  const en = face('English', item.en || '(no translation)', 'en')
   return direction === 'en-fr' ? { front: en, back: fr } : { front: fr, back: en }
 }
 
@@ -209,7 +211,7 @@ export default function Flashcards({ items, speech, direction, onDirectionChange
     return (
       <div className={styles.end}>
         <div className={styles.endEmoji} aria-hidden="true">
-          {pct === 1 ? '🏆' : pct >= 0.6 ? '🎉' : '💪'}
+          <Icon icon={pct === 1 ? Trophy : pct >= 0.6 ? PartyPopper : Dumbbell} size={44} />
         </div>
         <h2 ref={endHeadingRef} tabIndex={-1} className={styles.endTitle}>
           Deck complete!
@@ -307,7 +309,7 @@ export default function Flashcards({ items, speech, direction, onDirectionChange
             <span key={turn} className={styles.inner}>
               <span className={cx(styles.face, styles.front)} aria-hidden="true">
                 <span className={styles.faceLabel}>
-                  {front.flag} {front.label}
+                  {front.label}
                 </span>
                 <span className={cx(styles.faceText, sizeClass(front.text))} lang={front.lang}>
                   <RichTextInline text={front.text} />
@@ -316,7 +318,7 @@ export default function Flashcards({ items, speech, direction, onDirectionChange
               </span>
               <span className={cx(styles.face, styles.back)} aria-hidden="true">
                 <span className={styles.faceLabel}>
-                  {back.flag} {back.label}
+                  {back.label}
                 </span>
                 <span className={cx(styles.faceText, sizeClass(back.text))} lang={back.lang}>
                   <RichTextInline text={back.text} />
@@ -360,7 +362,7 @@ export default function Flashcards({ items, speech, direction, onDirectionChange
           onClick={() => rateFromButton(false)}
           disabled={!current}
         >
-          <span aria-hidden="true">↺</span> Again
+          <Icon icon={RotateCcw} size={20} /> Again
         </button>
         <button
           type="button"
@@ -368,7 +370,7 @@ export default function Flashcards({ items, speech, direction, onDirectionChange
           onClick={() => rateFromButton(true)}
           disabled={!current}
         >
-          <span aria-hidden="true">✓</span> Got it
+          <Icon icon={Check} size={20} /> Got it
         </button>
       </div>
 

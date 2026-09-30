@@ -4,25 +4,27 @@ import Link from 'next/link'
 import { useAuth } from '@/components/AuthProvider'
 import Shell from '@/components/ui/Shell'
 import styles from '@/components/teacher/TeacherShell.module.css'
+import { Import, LogOut, Sparkles, Users } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 export const TEACHER_TABS = [
   {
     href: '/teacher',
     label: 'Élèves',
-    icon: '👥',
+    icon: Users,
     // A lesson page belongs to its student: keep "Élèves" current there
     match: (p) => p === '/teacher' || p.startsWith('/teacher/students') || p === '/teacher/lessons/[id]',
   },
   {
     href: '/teacher/lessons/new',
     label: 'Nouvelle leçon',
-    icon: '✨',
+    icon: Sparkles,
     match: (p) => p === '/teacher/lessons/new',
   },
   {
     href: '/teacher/lessons/import',
     label: 'Importer',
-    icon: '📥',
+    icon: Import,
     match: (p) => p.startsWith('/teacher/lessons/import'),
   },
 ]
@@ -129,7 +131,7 @@ export default function TeacherShell({ children, wide = false }) {
           className={styles.menuItem}
           onClick={() => setMenuOpen(false)}
         >
-          <span aria-hidden="true">🚪</span> Déconnexion
+          <Icon icon={LogOut} size={18} /> Déconnexion
         </Link>
       </div>
     </div>

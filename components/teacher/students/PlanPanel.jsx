@@ -10,6 +10,8 @@ import { useApiResource, useMountedRef } from '@/components/teacher/hooks'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/students/PlanPanel.module.css'
+import { Check, CircleAlert, Clock, MapIcon, Sparkles } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const MAX_FOCUS = 1000
 const PLAN_STEPS = generationSteps({ mode: 'plan' })
@@ -26,7 +28,7 @@ export function PlanView({ content, headingLevel = 3 }) {
         <div className={styles.planMeta}>
           {plan.durationMin && (
             <span className={styles.pill}>
-              <span aria-hidden="true">⏱️</span>
+              <Icon icon={Clock} size={14} />
               {plan.durationMin} min
             </span>
           )}
@@ -122,7 +124,7 @@ export default function PlanPanel({ studentId, studentName }) {
     <section id="plan" tabIndex={-1} className={`${ui.card} ${styles.panel}`} aria-labelledby={`${uid}-title`}>
       <div className={styles.head}>
         <h2 id={`${uid}-title`} className={`${ui.sectionTitle} ${styles.title}`}>
-          <span aria-hidden="true">🗺️</span> Préparer le prochain cours
+          <Icon icon={MapIcon} size={22} /> Préparer le prochain cours
         </h2>
         <p className={styles.sub}>
           Un plan pour toi (jamais montré à {studentName}), construit à partir de son profil, du contexte pour l&apos;IA
@@ -156,7 +158,7 @@ export default function PlanPanel({ studentId, studentName }) {
           disabled={generating || focus.length > MAX_FOCUS}
           aria-busy={generating || undefined}
         >
-          {generating ? <span className={bits.spinner} aria-hidden="true" /> : <span aria-hidden="true">✨</span>}
+          {generating ? <span className={bits.spinner} aria-hidden="true" /> : <Icon icon={Sparkles} size={20} />}
           {generating ? 'Préparation…' : current ? 'Générer un autre plan' : 'Générer le plan'}
         </button>
       </form>
@@ -172,7 +174,9 @@ export default function PlanPanel({ studentId, studentName }) {
 
       {error && (
         <div className={`${bits.alert} ${bits.error}`} role="alert">
-          <span className={bits.alertIcon} aria-hidden="true">⚠️</span>
+          <span className={bits.alertIcon} aria-hidden="true">
+            <Icon icon={CircleAlert} size={20} />
+          </span>
           <span className={bits.alertBody}>{error}</span>
         </div>
       )}
@@ -181,7 +185,7 @@ export default function PlanPanel({ studentId, studentName }) {
         <div className={styles.result} aria-live="polite">
           <div className={styles.resultBar}>
             <span className={styles.resultLabel}>
-              <span aria-hidden="true">✓ </span>Nouveau plan
+              <Icon icon={Check} size={16} strokeWidth={3} className={styles.inlineIcon} /> Nouveau plan
               {current.id ? '' : ' (non enregistré dans l’historique)'}
             </span>
             <CopyButton text={planToText(current.content)} label="Copier le plan" tone="blue" />

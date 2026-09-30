@@ -7,6 +7,8 @@ import { LESSON_STATUS_LABELS } from '@/components/admin/lessons/constants'
 import { LIMITS } from '@/components/admin/lessons/editorModel'
 import admin from '@/components/admin/common/admin.module.css'
 import styles from '@/components/admin/lessons/editor.module.css'
+import { ExternalLink, Info } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 // What the chosen status does (the server sets `error` with a status change)
 function statusHint(draft, lesson) {
@@ -111,7 +113,7 @@ export default function MetadataTab({ draft, lesson, onChange, errors, onCopy, h
                 />
                 {driveOk && (
                   <a href={driveOk} target="_blank" rel="noopener noreferrer" className={styles.insertBtn}>
-                    Ouvrir ↗
+                    Ouvrir <Icon icon={ExternalLink} size={15} />
                   </a>
                 )}
               </div>
@@ -123,7 +125,7 @@ export default function MetadataTab({ draft, lesson, onChange, errors, onCopy, h
       <section className={admin.section}>
         <div className={admin.sectionHead}>
           <h2 className={admin.sectionTitle}>
-            <span aria-hidden="true">🔎</span> Informations
+            <Icon icon={Info} size={20} /> Informations
           </h2>
         </div>
         <dl className={styles.facts}>

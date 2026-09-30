@@ -3,6 +3,8 @@ import { RichTextInline } from '@/components/lesson/RichText'
 import BlankSentence from '@/components/practice/BlankSentence'
 import { correctAnswerText, givenText, splitBlank, isLikelyFrench } from '@/components/practice/utils'
 import styles from '@/components/practice/PracticePlayer.module.css'
+import { Check, Eye } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 // Brand palette (--st-* tokens)
 const CONFETTI_COLORS = ['#58cc02', '#1cb0f6', '#ff9600', '#ce82ff', '#ff69b4', '#ffc800']
@@ -16,11 +18,11 @@ const CONFETTI = Array.from({ length: 22 }, (_, i) => ({
 }))
 
 function headline(pct) {
-  if (pct === 100) return 'Perfect score! 🎉'
-  if (pct >= 80) return 'Excellent work! 🎉'
-  if (pct >= 60) return 'Great job! 👏'
-  if (pct >= 40) return 'Good effort! 💪'
-  return 'Keep practicing! 💪'
+  if (pct === 100) return 'Perfect score!'
+  if (pct >= 80) return 'Excellent work!'
+  if (pct >= 60) return 'Great job!'
+  if (pct >= 40) return 'Good effort!'
+  return 'Keep practicing!'
 }
 
 function MistakeSentence({ exercise }) {
@@ -48,7 +50,7 @@ function SaveStatus({ save, total, preview, savedText, onRetrySave }) {
   if (preview) {
     return (
       <span className={styles.saving} lang="fr">
-        <span aria-hidden="true">👁️</span> Aperçu — score non enregistré
+        <Icon icon={Eye} size={18} /> Aperçu — score non enregistré
       </span>
     )
   }
@@ -64,7 +66,7 @@ function SaveStatus({ save, total, preview, savedText, onRetrySave }) {
     const bestTotal = Number.isFinite(save.result?.bestTotal) ? save.result.bestTotal : total
     return (
       <span className={styles.saved}>
-        ✓{' '}
+        <Icon icon={Check} size={18} strokeWidth={3} />
         {typeof savedText === 'function'
           ? savedText(save.result)
           : `Score saved${best !== null && total > 0 ? ` · Your best: ${best}/${bestTotal}` : ''}`}

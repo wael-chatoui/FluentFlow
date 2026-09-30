@@ -6,12 +6,14 @@ import { BLANK } from '@/utils/lesson/schema'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/ExerciseReview.module.css'
+import { ArrowLeftRight, Check, CircleDot, Info, Lightbulb, ListChecks, Pencil, TextCursorInput, Trash2 } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 // Type pill color + icon: QCM blue, Trous orange, Association purple
 const TYPE_META = {
-  mcq: { tone: styles.blue, icon: '🔘' },
-  fill_blank: { tone: styles.orange, icon: '✏️' },
-  match: { tone: styles.purple, icon: '🔗' },
+  mcq: { tone: styles.blue, icon: CircleDot },
+  fill_blank: { tone: styles.orange, icon: TextCursorInput },
+  match: { tone: styles.purple, icon: ArrowLeftRight },
 }
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
@@ -56,7 +58,9 @@ function McqBody({ exercise }) {
           const correct = i === exercise.answer
           return (
             <li key={i} className={`${styles.choice} ${correct ? styles.correct : ''}`}>
-              <span className={styles.letter} aria-hidden="true">{correct ? '✓' : LETTERS[i]}</span>
+              <span className={styles.letter} aria-hidden="true">
+                {correct ? <Icon icon={Check} size={16} strokeWidth={3} /> : LETTERS[i]}
+              </span>
               <span className={styles.choiceText}>
                 <RichTextInline text={choice} />
                 {correct && <span className="sr-only"> (bonne réponse)</span>}
@@ -81,7 +85,7 @@ function FillBlankBody({ exercise }) {
         <ul className={styles.chips}>
           {answers.map((a, i) => (
             <li key={i} className={styles.chip} lang="fr">
-              <span aria-hidden="true">✓ </span>
+              <Icon icon={Check} size={16} strokeWidth={3} className={styles.inlineIcon} />
               <RichTextInline text={a} />
             </li>
           ))}
@@ -89,7 +93,7 @@ function FillBlankBody({ exercise }) {
       </div>
       {exercise.hint && (
         <p className={styles.hint}>
-          <span aria-hidden="true">🔎 </span>
+          <Icon icon={Lightbulb} size={16} className={styles.inlineIcon} />
           <strong>Indice :</strong> <RichTextInline text={exercise.hint} />
         </p>
       )}
@@ -105,7 +109,9 @@ function MatchBody({ exercise }) {
           <span className={`${styles.tile} ${styles.tileFr}`} lang="fr">
             <RichTextInline text={pair.fr} />
           </span>
-          <span className={styles.pairArrow} aria-hidden="true">↔</span>
+          <span className={styles.pairArrow} aria-hidden="true">
+            <Icon icon={ArrowLeftRight} size={18} />
+          </span>
           <span className="sr-only"> : </span>
           <span className={styles.tile} lang="en">
             <RichTextInline text={pair.en} />
@@ -131,7 +137,7 @@ export default function ExerciseReview({ exercises, onRemove, onEdit, editingId 
   if (list.length === 0) {
     return (
       <EmptyNote
-        emoji="🧩"
+        icon={ListChecks}
         tone="purple"
         title="Aucun exercice"
         text="Cette leçon n'a pas d'exercices. Tu peux la régénérer pour en créer."
@@ -152,7 +158,7 @@ export default function ExerciseReview({ exercises, onRemove, onEdit, editingId 
               <span className={styles.number} aria-hidden="true">{index + 1}</span>
               <span className="sr-only">Exercice {index + 1} : </span>
               <span className={`${styles.type} ${meta?.tone || styles.gray}`}>
-                {meta && <span aria-hidden="true">{meta.icon}</span>}
+                {meta && <Icon icon={meta.icon} size={14} />}
                 {EXERCISE_TYPE_LABELS[exercise.type] || exercise.type}
               </span>
               {!editing && (onEdit || onRemove) && (
@@ -166,7 +172,7 @@ export default function ExerciseReview({ exercises, onRemove, onEdit, editingId 
                       data-exercise-edit={exercise.id}
                       aria-label={`Modifier l'exercice ${index + 1}`}
                     >
-                      <span aria-hidden="true">✏️</span>
+                      <Icon icon={Pencil} size={18} />
                       <span className={styles.toolLabel}>Modifier</span>
                     </button>
                   )}
@@ -178,7 +184,7 @@ export default function ExerciseReview({ exercises, onRemove, onEdit, editingId 
                       disabled={locked}
                       aria-label={`Supprimer l'exercice ${index + 1}`}
                     >
-                      <span aria-hidden="true">🗑️</span>
+                      <Icon icon={Trash2} size={18} />
                       <span className={styles.toolLabel}>Supprimer</span>
                     </button>
                   )}
@@ -197,7 +203,7 @@ export default function ExerciseReview({ exercises, onRemove, onEdit, editingId 
                 {Body ? <Body exercise={exercise} /> : <p className={styles.hint}>Type d&apos;exercice inconnu.</p>}
                 {exercise.explanation && (
                   <p className={styles.explanation}>
-                    <span aria-hidden="true">💡 </span>
+                    <Icon icon={Info} size={16} className={styles.inlineIcon} />
                     <RichTextInline text={exercise.explanation} />
                   </p>
                 )}

@@ -1,6 +1,7 @@
 // Small formatting helpers shared by the teacher pages (French UI).
 // Pure functions only (no React, no browser globals): unit-tested in tests/teacherFormat.test.js.
 import { MAX_CANVA, MAX_TRANSCRIPT } from '@/utils/ai/options'
+import { CircleCheck, Hourglass, Mail } from 'lucide-react'
 
 export const LEVEL_LABELS = {
   A1: 'A1 — Débutant',
@@ -127,9 +128,9 @@ export function accountState(student) {
 }
 
 export const ACCOUNT_STATE_LABELS = {
-  invited: { icon: '✉️', label: 'Invitation en attente' },
-  profile: { icon: '⏳', label: 'Profil à compléter' },
-  active: { icon: '✅', label: 'Inscrit' },
+  invited: { icon: Mail, label: 'Invitation en attente' },
+  profile: { icon: Hourglass, label: 'Profil à compléter' },
+  active: { icon: CircleCheck, label: 'Inscrit' },
 }
 
 /** 'mm:ss' */

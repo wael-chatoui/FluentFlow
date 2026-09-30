@@ -116,8 +116,7 @@
   height: 48px;
   border-radius: 14px;
   background: var(--st-orange);
-  font-size: 1.6rem;
-  line-height: 1;
+  color: var(--st-on-color);
 }
 
 .mistakesText {
@@ -140,9 +139,7 @@
 
 .chevron {
   flex: none;
-  font-size: 2rem;
-  font-weight: 900;
-  line-height: 1;
+  display: flex;
   color: var(--st-orange-ink);
 }
 
@@ -163,6 +160,7 @@
 .seeAll {
   display: inline-flex;
   align-items: center;
+  gap: 0.15rem;
   min-height: 44px;
   padding: 0 0.25rem;
   font-size: 0.85rem;
@@ -231,7 +229,7 @@
   border-radius: 12px;
   background: var(--st-bg);
   border: 2px solid var(--st-line);
-  font-size: 1.35rem;
+  color: var(--st-blue-ink);
 }
 
 @keyframes rise {

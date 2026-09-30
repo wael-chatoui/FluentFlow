@@ -24,6 +24,8 @@ import { api } from '@/utils/apiClient'
 import ui from '@/components/ui/ui.module.css'
 import s from '@/components/admin/common/admin.module.css'
 import u from '@/components/admin/common/users.module.css'
+import { CircleAlert, CircleCheck, Search, UserPlus } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const PER_PAGE = 50
 const DEFAULTS = { q: '', role: 'all', sort: '', dir: '', page: '1' }
@@ -69,7 +71,7 @@ const COLUMNS = [
     render: (r) =>
       r.onboarded_at ? (
         <span title={formatDateTime(r.onboarded_at)}>
-          <span aria-hidden="true">✅</span>
+          <Icon icon={CircleCheck} size={18} className={s.okIcon} />
           <span className="sr-only">Oui, le {formatDate(r.onboarded_at)}</span>
         </span>
       ) : r.role === 'teacher' ? (
@@ -198,7 +200,7 @@ function InviteModal({ open, onClose, onInvited }) {
       <Modal
         open={open}
         title="Compte créé"
-        icon="✅"
+        icon={CircleCheck}
         onClose={onClose}
         initialFocusRef={doneRef}
         actions={
@@ -229,7 +231,7 @@ function InviteModal({ open, onClose, onInvited }) {
     <Modal
       open={open}
       title="Inviter un utilisateur"
-      icon="✉️"
+      icon={UserPlus}
       onClose={onClose}
       busy={busy}
       initialFocusRef={emailRef}
@@ -331,7 +333,7 @@ function InviteModal({ open, onClose, onInvited }) {
         </fieldset>
         {error && (
           <div className={s.alert} role="alert">
-            <span aria-hidden="true">⚠️</span>
+            <Icon icon={CircleAlert} size={20} />
             <span className={s.alertText}>{error}</span>
           </div>
         )}
@@ -374,7 +376,7 @@ export default function AdminUsers() {
       title="Utilisateurs"
       actions={
         <button type="button" className={cx(ui.btn, ui.green, ui.small, s.tap)} onClick={() => setInviteOpen(true)}>
-          <span aria-hidden="true">➕</span> Inviter un utilisateur
+          <Icon icon={UserPlus} size={16} /> Inviter un utilisateur
         </button>
       }
     >
@@ -396,7 +398,7 @@ export default function AdminUsers() {
 
       {error && (
         <div className={s.alert} role="alert" style={{ marginBottom: '1rem' }}>
-          <span aria-hidden="true">⚠️</span>
+          <Icon icon={CircleAlert} size={20} />
           <span className={s.alertText}>Impossible de charger les utilisateurs : {error}</span>
           <button type="button" className={cx(ui.btn, ui.small, s.tap, s.redGhost)} onClick={reload}>
             Réessayer
@@ -417,7 +419,7 @@ export default function AdminUsers() {
             empty={
               <>
                 <span className={s.stateIcon} aria-hidden="true">
-                  🔍
+                  <Icon icon={Search} size={28} />
                 </span>
                 {hasFilters ? 'Aucun utilisateur ne correspond à ces filtres.' : 'Aucun utilisateur pour le moment.'}
                 {hasFilters && (

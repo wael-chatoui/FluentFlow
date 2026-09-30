@@ -8,6 +8,8 @@ import { normalizeLessonContent } from '@/utils/lesson/schema'
 import { scoreSession } from '@/utils/lesson/grading'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/dev/DevPreview.module.css'
+import { CircleCheck, Wrench } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 // Dev-only preview of LessonView + PracticePlayer with SAMPLE_LESSON: every player
 // state can be triggered from here (save error, "lesson updated", teacher preview,
@@ -79,7 +81,7 @@ export default function DevPreviewPage() {
         <header className={styles.header}>
           <div className={styles.titleRow}>
             <span className={`${ui.pill} ${styles.devPill} no-print`}>
-              <span aria-hidden="true">🛠️</span> Dev preview
+              <Icon icon={Wrench} size={14} /> Dev preview
             </span>
             <h1 className={styles.title}>{content.title}</h1>
           </div>
@@ -116,7 +118,7 @@ export default function DevPreviewPage() {
 
         {lastResult && (
           <p className={`${styles.result} no-print`} role="status">
-            <span aria-hidden="true">✅</span> Last run: {lastResult.score}/{lastResult.total}
+            <Icon icon={CircleCheck} size={18} /> Last run: {lastResult.score}/{lastResult.total}
             {lastResult.duplicate ? ' (duplicate save ignored)' : ''} · best {lastResult.bestScore}/{lastResult.bestTotal}
           </p>
         )}

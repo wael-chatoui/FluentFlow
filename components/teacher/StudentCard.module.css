@@ -117,9 +117,7 @@
 
 .chevron {
   flex: none;
-  font-size: 1.9rem;
-  font-weight: 900;
-  line-height: 1;
+  display: flex;
   color: var(--accent-ink);
   transition: transform 150ms ease;
 }
@@ -221,6 +219,11 @@
   padding: 0.5rem 0.7rem;
   border-radius: 14px;
   background: var(--st-bg);
+}
+
+.statLabel svg {
+  margin-right: 0.25rem;
+  vertical-align: -0.15em;
 }
 
 .statLabel {

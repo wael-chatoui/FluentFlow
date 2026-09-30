@@ -164,3 +164,7 @@ select.bigSelect {
     transform: none;
   }
 }
+
+.inlineIcon {
+  vertical-align: -0.15em;
+}

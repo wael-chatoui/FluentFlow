@@ -5,6 +5,8 @@ import useUnsavedGuard from '@/components/ui/useUnsavedGuard'
 import { LEVEL_OPTIONS } from '@/components/student/profile/levels'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/profile/Profile.module.css'
+import { Check, Pencil } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const MAX_NAME = 120
 const MAX_TEXT = 1000
@@ -106,7 +108,7 @@ export default function ProfileForm({ profile, onSaved, guard = true }) {
     <form className={`${ui.card} ${styles.formCard}`} onSubmit={handleSubmit} noValidate aria-labelledby={`${uid}-title`}>
       <h2 id={`${uid}-title`} className={styles.cardTitle}>
         <span className={`${styles.cardIcon} ${styles.iconBlue}`} aria-hidden="true">
-          ✏️
+          <Icon icon={Pencil} size={20} />
         </span>
         About you
       </h2>
@@ -203,7 +205,9 @@ export default function ProfileForm({ profile, onSaved, guard = true }) {
         )}
         <p className={styles.saveStatus} role="status" aria-live="polite">
           {status.kind === 'saved' && !dirty ? (
-            <span className={styles.savedMsg}>Saved ✓</span>
+            <span className={styles.savedMsg}>
+              Saved <Icon icon={Check} size={16} />
+            </span>
           ) : dirty && !saving ? (
             <span className={styles.unsavedMsg}>Unsaved changes</span>
           ) : (

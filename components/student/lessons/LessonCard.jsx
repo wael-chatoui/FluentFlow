@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { formatLessonDate, plural } from '@/components/lesson/format'
 import { accentStyle } from '@/components/ui/accents'
-import { bestPct, exerciseCount, isUpdated, lessonEmoji, timeAgo, vocabCount } from '@/components/student/lessons/progress'
+import { bestPct, exerciseCount, isUpdated, lessonIcon, timeAgo, vocabCount } from '@/components/student/lessons/progress'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/lessons/LessonCard.module.css'
+import { BookOpenText, Crown, RefreshCw, Sparkles } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const DATE_OPTS = { month: 'short', day: 'numeric', year: 'numeric' }
 
@@ -28,7 +30,9 @@ export default function LessonCard({ lesson, index = 0, headingLevel = 3 }) {
 
   return (
     <li className={styles.card} style={{ ...accentStyle(lesson.id), '--i': Math.min(index, 4) }}>
-      <span className={styles.tile} aria-hidden="true">{lessonEmoji(lesson.id)}</span>
+      <span className={styles.tile} aria-hidden="true">
+        <Icon icon={lessonIcon(lesson.id)} size={26} />
+      </span>
 
       <div className={styles.body}>
         {date && (
@@ -57,7 +61,7 @@ export default function LessonCard({ lesson, index = 0, headingLevel = 3 }) {
             <span className={styles.pct}>
               {pct === 100 ? (
                 <>
-                  <span aria-hidden="true">👑 </span>Mastered
+                  <Icon icon={Crown} size={14} /> Mastered
                 </>
               ) : (
                 `Best ${pct}%`
@@ -66,15 +70,15 @@ export default function LessonCard({ lesson, index = 0, headingLevel = 3 }) {
           </div>
         ) : updated ? (
           <span className={`${styles.badge} ${styles.badgeUpdated}`}>
-            <span aria-hidden="true">🔄</span> Updated
+            <Icon icon={RefreshCw} size={14} /> Updated
           </span>
         ) : count > 0 ? (
           <span className={`${styles.badge} ${styles.badgeNew}`}>
-            <span aria-hidden="true">✨</span> New
+            <Icon icon={Sparkles} size={14} /> New
           </span>
         ) : (
           <span className={styles.badge}>
-            <span aria-hidden="true">📖</span> Read the recap
+            <Icon icon={BookOpenText} size={14} /> Read the recap
           </span>
         )}
 

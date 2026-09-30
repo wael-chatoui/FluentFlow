@@ -51,6 +51,10 @@
   background: var(--st-blue-bg);
 }
 
+.inlineIcon {
+  vertical-align: -0.15em;
+}
+
 .copied {
   margin: 0;
   font-size: 0.9rem;
