@@ -2,7 +2,7 @@ import styles from '@/components/auth/AuthScreen.module.css'
 
 /**
  * Full-page playful backdrop (soft colors + decorative shapes) with one centered
- * card. Used by /login, the /auth/callback error state and the 404 page.
+ * card. Used by /login, the /auth/* landing states, /pending, /admin/forbidden and 404.
  *
  * @param {{ children: React.ReactNode, labelledBy?: string }} props
  */

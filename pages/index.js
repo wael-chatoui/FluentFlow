@@ -1,55 +1,61 @@
 import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
 import { useAuth } from '@/components/AuthProvider'
-import { api } from '@/utils/apiClient'
 import LoadingScreen from '@/components/ui/LoadingScreen'
+import { destinationAfterSignIn, fallbackDestination } from '@/components/auth/afterSignIn'
+import { authLandingRedirect } from '@/utils/auth/routing'
 
 /**
- * Root page — routes based on auth state:
- * - not logged in → /login
- * - teacher (app_metadata.role) → /teacher
- * - student → /student if onboarded (GET /api/me), else /onboarding
- * - on a backoffice.* host → /admin
+ * Root page — sends everyone to the right place (utils/auth/routing.js):
+ * not signed in → /login; teacher → /teacher; waiting for approval → /pending;
+ * student → /onboarding until onboarded, then /student.
+ * Sign-in parameters that Supabase Auth sent here (Site URL fallback) go to /auth/confirm.
+ * On a back-office host the proxy already redirects '/' to /admin.
  */
 export default function Home() {
   const router = useRouter()
-  const { user, role, loading } = useAuth()
   const routerRef = useRef(router)
   routerRef.current = router
+  const { user, loading } = useAuth()
+  const userRef = useRef(user)
+  userRef.current = user
   const userId = user?.id
+  const forwardedRef = useRef(false)
 
   useEffect(() => {
-    if (loading) return
+    if (loading || forwardedRef.current) return undefined
+    // After loading: supabase-js has run any ?code exchange of its own by then
+    const landing = authLandingRedirect(window.location, { signedIn: Boolean(userId) })
+    if (landing) {
+      // Full load (keeps the #hash); replace() also drops the tokens from the history
+      forwardedRef.current = true
+      window.location.replace(landing)
+      return undefined
+    }
     const go = (path) => routerRef.current.replace(path)
-
     if (!userId) {
       go('/login')
-      return
-    }
-    // On the back-office host, a signed-in user always lands in /admin (the proxy gates it)
-    if (window.location.hostname.startsWith('backoffice.')) {
-      go('/admin')
-      return
-    }
-    if (role === 'teacher') {
-      go('/teacher')
-      return
+      return undefined
     }
 
     const controller = new AbortController()
-    api('/api/me', { signal: controller.signal })
-      .then((me) => {
-        if (controller.signal.aborted) return
-        if (me?.role === 'teacher') go('/teacher')
-        else go(me?.profile?.onboarded_at ? '/student' : '/onboarding')
+    destinationAfterSignIn({ signal: controller.signal })
+      .then((path) => {
+        if (!controller.signal.aborted) go(path)
       })
       .catch((err) => {
-        if (err?.name === 'AbortError' || controller.signal.aborted) return
-        // /student shows its own error state (and redirects to onboarding if needed)
-        go('/student')
+        // 401: api() is already sending the user to /login
+        if (controller.signal.aborted || err?.name === 'AbortError' || err?.status === 401) return
+        // Suspended: /login explains it and signs the browser out
+        if (err?.code === 'banned') {
+          go('/login')
+          return
+        }
+        // Server unreachable: best guess from the session; each area shows its own error state
+        go(fallbackDestination(userRef.current))
       })
     return () => controller.abort()
-  }, [loading, userId, role])
+  }, [loading, userId])
 
   return <LoadingScreen />
 }
