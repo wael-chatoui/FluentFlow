@@ -2,6 +2,8 @@ import { useId, useRef } from 'react'
 import Dialog from '@/components/ui/Dialog'
 import { cx } from '@/components/practice/utils'
 import styles from '@/components/practice/PracticePlayer.module.css'
+import { Frown } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 /**
  * "Quit this practice?" dialog on the shared native modal (components/ui/Dialog):
@@ -22,7 +24,7 @@ export default function ConfirmExit({ title, stayLabel, quitLabel, onStay, onQui
       className={styles.dialog}
     >
       <span className={styles.dialogEmoji} aria-hidden="true">
-        🥺
+        <Icon icon={Frown} size={32} />
       </span>
       <h2 id={titleId} className={styles.dialogTitle}>
         {title}

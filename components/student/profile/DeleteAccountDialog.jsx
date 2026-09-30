@@ -2,6 +2,8 @@ import { useId, useRef } from 'react'
 import Dialog from '@/components/ui/Dialog'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/profile/Profile.module.css'
+import { Frown } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 /**
  * "Delete your account?" confirm on the shared native modal (components/ui/Dialog):
@@ -27,7 +29,7 @@ export default function DeleteAccountDialog({ busy, onCancel, onConfirm, returnF
       className={styles.dialog}
     >
       <span className={styles.dialogEmoji} aria-hidden="true">
-        😢
+        <Icon icon={Frown} size={32} />
       </span>
       <h2 id={titleId} className={styles.dialogTitle}>
         Delete your account?

@@ -7,6 +7,8 @@ import { EXERCISE_TYPES } from '@/utils/lesson/schema'
 import admin from '@/components/admin/common/admin.module.css'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/admin/lessons/editor.module.css'
+import { CircleHelp, ListChecks, Plus, TriangleAlert } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const EDITORS = { mcq: McqEditor, fill_blank: FillBlankEditor, match: MatchEditor }
 const PILL_TONES = { blue: admin.pillBlue, orange: admin.pillOrange, purple: admin.pillPurple }
@@ -36,7 +38,7 @@ export default function ExercisesTab({ exercises, onChange, errors, resetsProgre
             disabled={full}
             onClick={() => onChange([...exercises, EMPTY[type]()])}
           >
-            <span aria-hidden="true">＋ {meta.icon}</span> {meta.label}
+            <Icon icon={Plus} size={16} strokeWidth={3} /> {meta.label}
           </button>
         )
       })}
@@ -56,7 +58,7 @@ export default function ExercisesTab({ exercises, onChange, errors, resetsProgre
 
       {resetsProgress && (
         <div className={cx(admin.alert, admin.alertWarn)} role="status">
-          <span aria-hidden="true">⚠️</span>
+          <Icon icon={TriangleAlert} size={20} />
           <span className={admin.alertText}>
             Exercices ajoutés ou modifiés : à l’enregistrement, la progression de l’élève sur cette leçon repart de zéro
             (meilleur score, tentatives, erreurs à revoir), car ses anciens résultats ne correspondent plus. Supprimer ou
@@ -68,14 +70,14 @@ export default function ExercisesTab({ exercises, onChange, errors, resetsProgre
       {exercises.length === 0 ? (
         <div className={cx(admin.section, admin.empty)}>
           <span className={admin.stateIcon} aria-hidden="true">
-            🧩
+            <Icon icon={ListChecks} size={28} />
           </span>
           Aucun exercice. Ajoute-en un ci-dessous.
         </div>
       ) : (
         <ol className={styles.exerciseList}>
           {exercises.map((exercise, i) => {
-            const meta = EXERCISE_TYPE_META[exercise.type] || { label: exercise.type, icon: '❓', tone: 'gray' }
+            const meta = EXERCISE_TYPE_META[exercise.type] || { label: exercise.type, icon: CircleHelp, tone: 'gray' }
             const Editor = EDITORS[exercise.type]
             const update = (patch) => onChange(replaceAt(exercises, i, { ...exercise, ...patch }))
             const hasError = Object.keys(errors).some((k) => k.startsWith(`exercises.${i}.`))
@@ -88,7 +90,7 @@ export default function ExercisesTab({ exercises, onChange, errors, resetsProgre
                   <h3 className={styles.exerciseTitle}>
                     <span className="sr-only">Exercice {i + 1} : </span>
                     <span className={cx(admin.pill, PILL_TONES[meta.tone] || admin.pillGray)}>
-                      <span aria-hidden="true">{meta.icon}</span> {meta.label}
+                      <Icon icon={meta.icon} size={14} /> {meta.label}
                     </span>
                   </h3>
                   <span className={cx(admin.mono, admin.muted)} title="Identifiant (lecture seule)">

@@ -28,7 +28,8 @@
   left: 0.9rem;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 1.05rem;
+  display: flex;
+  color: var(--st-ink-soft);
   pointer-events: none;
 }
 

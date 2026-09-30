@@ -35,8 +35,7 @@
   background: var(--accent-bg);
   border: 2px solid var(--accent);
   border-bottom-width: 4px;
-  font-size: 1.6rem;
-  line-height: 1;
+  color: var(--accent-ink);
 }
 
 .card .tileSkel {
@@ -146,6 +145,9 @@
 }
 
 .pct {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   font-size: 0.8rem;
   font-weight: 800;
   color: var(--st-ink-soft);
@@ -220,8 +222,9 @@
     height: 60px;
   }
 
-  .tile {
-    font-size: 1.9rem;
+  .tile svg {
+    width: 30px;
+    height: 30px;
   }
 
   .footer {

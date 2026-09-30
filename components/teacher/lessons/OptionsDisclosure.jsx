@@ -2,6 +2,8 @@ import { useId, useState } from 'react'
 import ExerciseOptions, { buildOptions, optionErrors } from '@/components/teacher/import/ExerciseOptions'
 import { COUNT_DEFAULT, EXERCISE_TYPES } from '@/components/teacher/import/importUtils'
 import styles from '@/components/teacher/lessons/OptionsDisclosure.module.css'
+import { Settings } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 /** Form value of fixed exercise options before the teacher changes anything. */
 export const DEFAULT_OPTIONS = Object.freeze({
@@ -110,7 +112,9 @@ export default function OptionsDisclosure({ value, onChange, disabled = false, d
         aria-controls={`${uid}-panel`}
         onClick={() => !invalid && setOpen((o) => !o)}
       >
-        <span className={styles.icon} aria-hidden="true">⚙️</span>
+        <span className={styles.icon} aria-hidden="true">
+          <Icon icon={Settings} size={20} />
+        </span>
         <span className={styles.text}>
           <span className={styles.title}>Options des exercices</span>
           <span className={styles.summary}>{optionsSummary(value, allowAuto)}</span>

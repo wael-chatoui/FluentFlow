@@ -35,6 +35,8 @@ import { api } from '@/utils/apiClient'
 import admin from '@/components/admin/common/admin.module.css'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/admin/lessons/editor.module.css'
+import { ArrowLeft, BookOpenText, CircleAlert, CircleHelp, Dumbbell, Eye, FilePen, FileText, GitMerge, Hourglass, ListChecks, Mic, ScrollText, Tag, Trash2 } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const META_FIELDS = ['title', 'lessonDate', 'status', 'studentId', 'hidden', 'driveUrl']
 const EDITABLE_TABS = ['meta', 'content', 'exercises']
@@ -56,7 +58,7 @@ function GenerationBanner({ lesson, onToggleHidden, toggling, onChooseStatus }) 
   if (lesson.stale) {
     return (
       <div className={cx(admin.alert, admin.alertWarn)} role="status">
-        <span aria-hidden="true">⚠️</span>
+        <Icon icon={Hourglass} size={20} />
         <span className={admin.alertText}>
           Génération bloquée depuis plus de 5 minutes. Pour la débloquer, choisis un statut (Publiée ou Échec) et
           enregistre, avec tes autres corrections si besoin ; ou relance-la depuis l’espace prof.
@@ -95,7 +97,7 @@ function GenerationBanner({ lesson, onToggleHidden, toggling, onChooseStatus }) 
 function KeptEditsNotice({ fields, generating, onDiscard }) {
   return (
     <div className={cx(admin.alert, admin.alertWarn)} role="status">
-      <span aria-hidden="true">📝</span>
+      <Icon icon={FilePen} size={20} />
       <span className={admin.alertText}>
         La leçon a changé depuis que tu as commencé à la modifier{generating ? ' (génération en cours)' : ''}. Tes
         modifications non enregistrées ({fields.map((f) => FIELD_LABELS[f]).join(', ')}) sont conservées :{' '}
@@ -381,7 +383,7 @@ export default function AdminLessonEditorPage() {
   const actions = (
     <>
       <Link href="/admin/lessons" className={cx(ui.btn, ui.small, admin.tap)}>
-        <span aria-hidden="true">←</span> Leçons
+        <Icon icon={ArrowLeft} size={16} /> Leçons
       </Link>
       {ready && (
         <>
@@ -391,7 +393,7 @@ export default function AdminLessonEditorPage() {
             aria-pressed={preview}
             onClick={() => setPreview((p) => !p)}
           >
-            <span aria-hidden="true">👁️</span> {preview ? "Masquer l'aperçu" : "Voir comme l'élève"}
+            <Icon icon={Eye} size={16} /> {preview ? "Masquer l'aperçu" : "Voir comme l'élève"}
           </button>
           <button
             type="button"
@@ -399,7 +401,7 @@ export default function AdminLessonEditorPage() {
             onClick={() => setConfirm('delete')}
             disabled={deleting}
           >
-            <span aria-hidden="true">🗑️</span> Supprimer
+            <Icon icon={Trash2} size={16} /> Supprimer
           </button>
         </>
       )}
@@ -410,14 +412,18 @@ export default function AdminLessonEditorPage() {
   if (router.isReady && !validId) {
     body = (
       <div className={cx(admin.section, admin.errorState)}>
-        <span className={admin.stateIcon} aria-hidden="true">🤔</span>
+        <span className={admin.stateIcon} aria-hidden="true">
+          <Icon icon={CircleHelp} size={28} />
+        </span>
         <p>Identifiant de leçon invalide.</p>
       </div>
     )
   } else if (error && !lesson) {
     body = (
       <div className={cx(admin.section, admin.errorState)} role="alert">
-        <span className={admin.stateIcon} aria-hidden="true">😕</span>
+        <span className={admin.stateIcon} aria-hidden="true">
+          <Icon icon={CircleAlert} size={28} />
+        </span>
         <p>{error}</p>
         <button type="button" className={cx(ui.btn, ui.small, admin.tap)} onClick={reload}>
           Réessayer
@@ -434,12 +440,12 @@ export default function AdminLessonEditorPage() {
     )
   } else {
     const tabs = [
-      { value: 'meta', label: 'Métadonnées', icon: '🏷️', errors: META_FIELDS.filter((f) => errors[f]).length, dirty: fields.some((f) => META_FIELDS.includes(f)) },
-      { value: 'content', label: 'Contenu', icon: '📚', errors: errorsFor(errors, 'content').length, dirty: fields.includes('content') },
-      { value: 'exercises', label: 'Exercices', icon: '🧩', count: draft.exercises.length, errors: errorsFor(errors, 'exercises').length, dirty: fields.includes('exercises') },
-      { value: 'sources', label: 'Sources', icon: lesson.source_kind === 'import' ? '📄' : '🎙️' },
-      { value: 'sessions', label: 'Sessions', icon: '🏋️', count: sessions.length },
-      { value: 'history', label: 'Historique', icon: '🧾' },
+      { value: 'meta', label: 'Métadonnées', icon: Tag, errors: META_FIELDS.filter((f) => errors[f]).length, dirty: fields.some((f) => META_FIELDS.includes(f)) },
+      { value: 'content', label: 'Contenu', icon: BookOpenText, errors: errorsFor(errors, 'content').length, dirty: fields.includes('content') },
+      { value: 'exercises', label: 'Exercices', icon: ListChecks, count: draft.exercises.length, errors: errorsFor(errors, 'exercises').length, dirty: fields.includes('exercises') },
+      { value: 'sources', label: 'Sources', icon: lesson.source_kind === 'import' ? FileText : Mic },
+      { value: 'sessions', label: 'Sessions', icon: Dumbbell, count: sessions.length },
+      { value: 'history', label: 'Historique', icon: ScrollText },
     ]
     const panel = (
       <>
@@ -513,7 +519,7 @@ export default function AdminLessonEditorPage() {
               </div>
               <LessonView content={stripKeys(draft.content)} />
               <h2 className={cx(admin.sectionTitle, styles.previewSub)}>
-                <span aria-hidden="true">🧩</span> Exercices (vue prof)
+                <Icon icon={ListChecks} size={20} /> Exercices (vue prof)
               </h2>
               <ExerciseReview exercises={previewExercises} />
             </aside>
@@ -559,7 +565,7 @@ export default function AdminLessonEditorPage() {
       <Modal
         open={conflict}
         title="Cette leçon a été modifiée ailleurs"
-        icon="🔀"
+        icon={GitMerge}
         tone="danger"
         onClose={() => setConflict(false)}
         busy={saving}

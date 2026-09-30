@@ -3,6 +3,8 @@ import { cx } from '@/components/admin/common/format'
 import admin from '@/components/admin/common/admin.module.css'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/admin/lessons/editor.module.css'
+import { ArrowDown, ArrowUp, Plus, X } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 /**
  * Label + control + hint + error, wired with aria-invalid / aria-describedby.
@@ -88,7 +90,7 @@ export function RowControls({ index, count, onMove, onRemove, label }) {
         aria-label={`Monter ${label}`}
         title="Monter"
       >
-        ↑
+        <Icon icon={ArrowUp} size={18} />
       </button>
       <button
         type="button"
@@ -98,7 +100,7 @@ export function RowControls({ index, count, onMove, onRemove, label }) {
         aria-label={`Descendre ${label}`}
         title="Descendre"
       >
-        ↓
+        <Icon icon={ArrowDown} size={18} />
       </button>
       <button
         type="button"
@@ -107,7 +109,7 @@ export function RowControls({ index, count, onMove, onRemove, label }) {
         aria-label={`Supprimer ${label}`}
         title="Supprimer"
       >
-        ✕
+        <Icon icon={X} size={18} />
       </button>
     </div>
   )
@@ -123,7 +125,7 @@ export function AddButton({ onClick, children, count, max }) {
       onClick={onClick}
       disabled={full}
     >
-      <span aria-hidden="true">＋</span> {children}
+      <Icon icon={Plus} size={16} strokeWidth={3} /> {children}
       {max !== undefined && <span className={styles.addCount}>{count}/{max}</span>}
     </button>
   )
@@ -163,7 +165,7 @@ export function ChipsInput({ label, values, onChange, max, maxLength = 200, plac
                 onClick={() => onChange(values.filter((_, j) => j !== i))}
                 aria-label={`Retirer « ${v} »`}
               >
-                ✕
+                <Icon icon={X} size={14} />
               </button>
             </li>
           ))}

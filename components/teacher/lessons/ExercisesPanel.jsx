@@ -8,6 +8,8 @@ import { useMountedRef } from '@/components/teacher/hooks'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/LessonPage.module.css'
+import { CircleAlert, CircleCheck, Hourglass, Pencil, RefreshCw } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 function focusEditButton(id) {
   requestAnimationFrame(() => document.querySelector(`[data-exercise-edit="${id}"]`)?.focus())
@@ -95,18 +97,22 @@ export default function ExercisesPanel({ lesson, exercises, disabled, resultsCou
     <>
       {error && (
         <div className={`${bits.alert} ${bits.error}`} role="alert">
-          <span className={bits.alertIcon} aria-hidden="true">⚠️</span>
+          <span className={bits.alertIcon} aria-hidden="true">
+            <Icon icon={CircleAlert} size={20} />
+          </span>
           <span className={bits.alertBody}>{error}</span>
         </div>
       )}
       <p className={styles.panelIntro}>
-        <span aria-hidden="true">✅ </span>
+        <Icon icon={CircleCheck} size={16} className={styles.inlineIcon} />{' '}
         Les bonnes réponses sont en vert. Corrige un exercice avec « Modifier », ou retire-le avec « Supprimer » (tu
         pourras annuler pendant quelques secondes).
       </p>
       {disabled && (
         <p className={`${bits.alert} ${bits.info}`}>
-          <span className={bits.alertIcon} aria-hidden="true">⏳</span>
+          <span className={bits.alertIcon} aria-hidden="true">
+            <Icon icon={Hourglass} size={20} />
+          </span>
           <span className={bits.alertBody}>Modification impossible pendant une génération.</span>
         </p>
       )}
@@ -128,7 +134,7 @@ export default function ExercisesPanel({ lesson, exercises, disabled, resultsCou
             />
             {conflict && (
               <button type="button" className={`${ui.btn} ${ui.small} ${ui.blue} ${bits.tap}`} onClick={onReload}>
-                <span aria-hidden="true">🔄</span> Recharger la leçon
+                <Icon icon={RefreshCw} size={16} /> Recharger la leçon
               </button>
             )}
           </>
@@ -139,7 +145,7 @@ export default function ExercisesPanel({ lesson, exercises, disabled, resultsCou
         title="Enregistrer la modification ?"
         message={`L'élève a déjà ${plural(resultsCount, 'essai')} sur cette leçon : ses résultats (meilleur score, erreurs) repartent à zéro et il devra refaire les exercices.`}
         confirmLabel="Enregistrer"
-        icon="✏️"
+        icon={Pencil}
         onConfirm={() => send(toConfirm)}
         onCancel={() => setToConfirm(null)}
       />

@@ -10,6 +10,8 @@ import {
   studentDisplayName,
 } from '@/components/teacher/format'
 import styles from '@/components/teacher/StudentCard.module.css'
+import { BookOpen, Calendar, ChevronRight, Languages, Sparkles } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 /**
  * Student card of the teacher dashboard grid (accent color per student). The name links
@@ -35,13 +37,15 @@ export default function StudentCard({ student, index = 0 }) {
           </h3>
           {hasName && <div className={styles.email}>{student.email}</div>}
         </div>
-        <span className={styles.chevron} aria-hidden="true">›</span>
+        <span className={styles.chevron} aria-hidden="true">
+          <Icon icon={ChevronRight} size={26} strokeWidth={3} />
+        </span>
       </div>
 
       <div className={styles.pills}>
         {level ? (
           <span className={`${styles.pill} ${styles.pillLevel}`}>
-            <span aria-hidden="true">🇫🇷</span>
+            <Icon icon={Languages} size={14} />
             <span className="sr-only">Niveau </span>
             {level}
           </span>
@@ -50,7 +54,7 @@ export default function StudentCard({ student, index = 0 }) {
         )}
         {state !== 'active' && (
           <span className={`${styles.pill} ${styles.pillPending}`}>
-            <span aria-hidden="true">{ACCOUNT_STATE_LABELS[state].icon}</span> {ACCOUNT_STATE_LABELS[state].label}
+            <Icon icon={ACCOUNT_STATE_LABELS[state].icon} size={14} /> {ACCOUNT_STATE_LABELS[state].label}
           </span>
         )}
       </div>
@@ -58,13 +62,13 @@ export default function StudentCard({ student, index = 0 }) {
       <dl className={styles.meta}>
         <div className={styles.stat}>
           <dt className={styles.statLabel}>
-            <span aria-hidden="true">📚 </span>Leçons
+            <Icon icon={BookOpen} size={13} /> Leçons
           </dt>
           <dd className={styles.statValue}>{count}</dd>
         </div>
         <div className={styles.stat}>
           <dt className={styles.statLabel}>
-            <span aria-hidden="true">📅 </span>Dernière leçon
+            <Icon icon={Calendar} size={13} /> Dernière leçon
           </dt>
           <dd className={`${styles.statValue} ${student.last_lesson_date ? '' : styles.statEmpty}`}>
             {student.last_lesson_date ? formatLessonDate(student.last_lesson_date) : 'Aucune'}
@@ -73,7 +77,7 @@ export default function StudentCard({ student, index = 0 }) {
       </dl>
 
       <Link href={`/teacher/lessons/new?student=${student.id}`} className={styles.quick}>
-        <span aria-hidden="true">✨</span> Nouvelle leçon<span className="sr-only"> pour {name}</span>
+        <Icon icon={Sparkles} size={18} /> Nouvelle leçon<span className="sr-only"> pour {name}</span>
       </Link>
     </article>
   )

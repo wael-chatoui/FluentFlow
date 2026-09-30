@@ -3,6 +3,8 @@ import { cx, formatDateTime, formatNumber } from '@/components/admin/common/form
 import { cellLink } from '@/components/admin/tables/tableMeta'
 import admin from '@/components/admin/common/admin.module.css'
 import styles from '@/components/admin/tables/tables.module.css'
+import { Check } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const LONG = 60
 
@@ -25,7 +27,11 @@ export default function ValueCell({ table, column, value, onView }) {
   const { name, type } = column
 
   if (type === 'boolean') {
-    return value ? <span className={cx(admin.pill, admin.pillGreen)}>✓ oui</span> : <span className={cx(admin.pill, admin.pillGray)}>non</span>
+    return value ? (
+      <span className={cx(admin.pill, admin.pillGreen)}>
+        <Icon icon={Check} size={13} strokeWidth={3} /> oui
+      </span>
+    ) : <span className={cx(admin.pill, admin.pillGray)}>non</span>
   }
 
   if (type === 'number') return <span className={admin.num}>{formatNumber(value)}</span>

@@ -16,6 +16,8 @@ import { plural } from '@/components/lesson/format'
 import { safeHttpsUrl } from '@/utils/lesson/schema'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/home/Home.module.css'
+import { BookOpenText, ChevronRight, Dumbbell, Folder, Languages, RotateCcw, Speech } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 function firstName(name) {
   return (name || '').trim().split(/\s+/)[0] || ''
@@ -25,14 +27,14 @@ function MistakesCard({ count }) {
   return (
     <Link href="/student/review" className={styles.mistakes}>
       <span className={styles.mistakesIcon} aria-hidden="true">
-        🎯
+        <Icon icon={RotateCcw} size={26} />
       </span>
       <span className={styles.mistakesText}>
         <span className={styles.mistakesTitle}>{plural(count, 'mistake')} to fix</span>
         <span className={styles.mistakesSub}>Turn them into wins in a quick review</span>
       </span>
       <span className={styles.chevron} aria-hidden="true">
-        ›
+        <Icon icon={ChevronRight} size={28} strokeWidth={3} />
       </span>
     </Link>
   )
@@ -40,9 +42,9 @@ function MistakesCard({ count }) {
 
 function HowItWorks() {
   const steps = [
-    { emoji: '🗣️', text: 'Take your class with Wael on Preply' },
-    { emoji: '📝', text: 'Get a recap of everything you covered' },
-    { emoji: '🎮', text: 'Practice with fun exercises' },
+    { icon: Speech, text: 'Take your class with Wael on Preply' },
+    { icon: BookOpenText, text: 'Get a recap of everything you covered' },
+    { icon: Dumbbell, text: 'Practice with fun exercises' },
   ]
   return (
     <section className={`${ui.card} ${styles.how}`} aria-labelledby="how-title">
@@ -53,7 +55,7 @@ function HowItWorks() {
         {steps.map((s, i) => (
           <li key={i} className={styles.howStep}>
             <span className={styles.howEmoji} aria-hidden="true">
-              {s.emoji}
+              <Icon icon={s.icon} size={22} />
             </span>
             <span>{s.text}</span>
           </li>
@@ -100,12 +102,12 @@ export default function StudentHome() {
         ) : (
           <>
             <h1 className={styles.hello}>
-              Bonjour{first ? `, ${first}` : ''}! <span aria-hidden="true">👋</span>
+              Bonjour{first ? `, ${first}` : ''}!
             </h1>
             <div className={styles.greetMeta}>
               {level && (
                 <span className={`${ui.pill} ${styles.levelPill}`}>
-                  <span aria-hidden="true">🇫🇷</span>
+                  <Icon icon={Languages} size={16} />
                   <span className="sr-only">Your French level: </span>
                   {level}
                 </span>
@@ -137,7 +139,8 @@ export default function StudentHome() {
                     Recent lessons
                   </h2>
                   <Link href="/student/lessons" className={styles.seeAll}>
-                    See all lessons<span aria-hidden="true"> ›</span>
+                    See all lessons
+                    <Icon icon={ChevronRight} size={18} strokeWidth={3} />
                   </Link>
                 </div>
                 <ul className={styles.list}>
@@ -180,7 +183,7 @@ export default function StudentHome() {
                   rel="noopener noreferrer"
                   className={`${ui.btn} ${ui.ghost} ${ui.block}`}
                 >
-                  <span aria-hidden="true">📁</span> My Google Drive folder
+                  <Icon icon={Folder} size={20} /> My Google Drive folder
                   <span className="sr-only"> (opens in a new tab)</span>
                 </a>
               </div>

@@ -7,13 +7,15 @@ import useMe from '@/components/student/useMe'
 import LessonView from '@/components/lesson/LessonView'
 import MasteryRing from '@/components/student/lessons/MasteryRing'
 import { EmptyState, ErrorCard } from '@/components/student/lessons/StatusViews'
-import { lessonEmoji, timeAgo } from '@/components/student/lessons/progress'
+import { lessonIcon, timeAgo } from '@/components/student/lessons/progress'
 import { accentStyle } from '@/components/ui/accents'
 import { formatLessonDate, percent, plural } from '@/components/lesson/format'
 import { api } from '@/utils/apiClient'
 import { safeHttpsUrl } from '@/utils/lesson/schema'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/lessons/LessonPage.module.css'
+import { BookOpenText, ChevronLeft, Crown, Folder, Layers, Printer, RefreshCw, SearchX, Sparkles } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const DATE_OPTS = { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }
 const HEADER_OFFSET = 80 // sticky top bar + breathing room, for #section links
@@ -23,7 +25,7 @@ const hasItems = (value) => Array.isArray(value) && value.length > 0
 function BackLink() {
   return (
     <Link href="/student/lessons" className={`${styles.back} no-print`}>
-      <span aria-hidden="true">‹</span> My lessons
+      <Icon icon={ChevronLeft} size={20} strokeWidth={3} /> My lessons
     </Link>
   )
 }
@@ -101,7 +103,7 @@ export default function StudentLessonPage() {
         </Head>
         <BackLink />
         <EmptyState
-          emoji="🔎"
+          icon={SearchX}
           tone="blue"
           headingLevel={1}
           title="Lesson not found"
@@ -176,7 +178,7 @@ export default function StudentLessonPage() {
       <header className={styles.header} style={accentStyle(lesson.id)}>
         <div className={styles.headTop}>
           <span className={styles.tile} aria-hidden="true">
-            {lessonEmoji(lesson.id)}
+            <Icon icon={lessonIcon(lesson.id)} size={32} />
           </span>
           <div className={styles.headText}>
             {date && (
@@ -187,7 +189,7 @@ export default function StudentLessonPage() {
             <h1 className={styles.title}>{title}</h1>
             {updated && (
               <span className={`${styles.updated} no-print`}>
-                <span aria-hidden="true">🔄</span> Updated by your teacher
+                <Icon icon={RefreshCw} size={14} /> Updated by your teacher
               </span>
             )}
           </div>
@@ -204,7 +206,10 @@ export default function StudentLessonPage() {
                 style={{ '--ring': 'var(--accent)' }}
               />
               <span className={styles.scoreText}>
-                <strong>{pct === 100 ? 'Mastered! 👑' : `Best score ${bestScore}/${bestTotal}`}</strong>
+                <strong>
+                  {pct === 100 && <Icon icon={Crown} size={18} />}
+                  {pct === 100 ? 'Mastered!' : `Best score ${bestScore}/${bestTotal}`}
+                </strong>
                 <span>
                   {plural(exerciseCount, 'exercise')}
                   {attempts > 0 && ` · practiced ${plural(attempts, 'time')}`}
@@ -215,7 +220,7 @@ export default function StudentLessonPage() {
           ) : exerciseCount > 0 ? (
             <span className={styles.scoreText}>
               <strong>
-                <span aria-hidden="true">✨ </span>
+                <Icon icon={Sparkles} size={18} />
                 {updated ? 'New exercises to practice' : 'Not practiced yet'}
               </strong>
               <span>
@@ -226,7 +231,8 @@ export default function StudentLessonPage() {
           ) : (
             <span className={styles.scoreText}>
               <strong>
-                <span aria-hidden="true">📖 </span>Recap only
+                <Icon icon={BookOpenText} size={18} />
+                Recap only
               </strong>
               <span>No exercises for this lesson</span>
             </span>
@@ -247,11 +253,11 @@ export default function StudentLessonPage() {
           )}
           <div className={styles.secondary}>
             <button type="button" className={`${ui.btn} ${ui.small} ${ui.ghost} ${styles.secondaryBtn}`} onClick={() => window.print()}>
-              <span aria-hidden="true">🖨️</span> Save as PDF
+              <Icon icon={Printer} size={18} /> Save as PDF
             </button>
             {hasWords && (
               <Link href={cardsHref} className={`${ui.btn} ${ui.small} ${ui.ghost} ${styles.secondaryBtn}`}>
-                <span aria-hidden="true">🃏</span> Word flashcards
+                <Icon icon={Layers} size={18} /> Word flashcards
               </Link>
             )}
             {driveUrl && (
@@ -261,7 +267,7 @@ export default function StudentLessonPage() {
                 rel="noopener noreferrer"
                 className={`${ui.btn} ${ui.small} ${ui.ghost} ${styles.secondaryBtn}`}
               >
-                <span aria-hidden="true">📁</span> Open in Google Drive
+                <Icon icon={Folder} size={18} /> Open in Google Drive
                 <span className="sr-only"> (opens in a new tab)</span>
               </a>
             )}

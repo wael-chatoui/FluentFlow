@@ -42,8 +42,7 @@
 
 .statIcon {
   display: block;
-  margin-bottom: 0.2rem;
-  font-size: 1.3rem;
+  margin-bottom: 0.3rem;
 }
 
 .statLabel {
@@ -156,6 +155,11 @@
   .statValue {
     font-size: 1.1rem;
   }
+}
+
+.olderIcon {
+  margin-right: 0.3rem;
+  vertical-align: -0.2em;
 }
 
 .older {

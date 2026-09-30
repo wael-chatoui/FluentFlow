@@ -3,6 +3,7 @@ import ui from '@/components/ui/ui.module.css'
 import s from '@/components/admin/common/admin.module.css'
 import Modal from '@/components/admin/common/Modal'
 import { cx } from '@/components/admin/common/format'
+import { CircleHelp, TriangleAlert } from 'lucide-react'
 
 function normalize(text) {
   return (text || '').trim().toLowerCase()
@@ -58,7 +59,7 @@ export default function ConfirmDialog({
       onClose={onCancel}
       busy={busy}
       tone={tone}
-      icon={icon || (danger ? '⚠️' : '🤔')}
+      icon={icon || (danger ? TriangleAlert : CircleHelp)}
       initialFocusRef={requireText ? inputRef : danger ? cancelRef : confirmRef}
       describedBy={message ? messageId : undefined}
       actions={

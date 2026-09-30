@@ -5,6 +5,8 @@ import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import counters from '@/components/teacher/NewLesson.module.css'
 import styles from '@/components/teacher/lessons/SourceInput.module.css'
+import { Check, ClipboardPaste, TriangleAlert } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 /** Appends pasted text after the current value (on a new paragraph), or sets it when empty. */
 export function appendText(current, text) {
@@ -13,7 +15,7 @@ export function appendText(current, text) {
 }
 
 /**
- * Character counter of a transcript / Canva field: ✓ once the API minimum is met, red above
+ * Character counter of a transcript / Canva field: a check once the API minimum is met, red above
  * `max` (the maximum is only shown when it is exceeded).
  */
 export function SourceCounter({ value, max }) {
@@ -22,8 +24,8 @@ export function SourceCounter({ value, max }) {
   const ok = !over && hasEnoughText(value)
   return (
     <span className={`${counters.counter} ${ok ? counters.counterOk : ''} ${over ? counters.counterOver : ''}`}>
-      {ok && <span aria-hidden="true">✓ </span>}
-      {over && <span aria-hidden="true">⚠️ </span>}
+      {ok && <Icon icon={Check} size={13} strokeWidth={3} />}
+      {over && <Icon icon={TriangleAlert} size={13} />}
       {formatCount(length)} caractère{length > 1 ? 's' : ''}
       {over && ` / ${formatCount(max)} max`}
     </span>
@@ -34,7 +36,7 @@ export function SourceCounter({ value, max }) {
 export function pasteMessage(text) {
   if (text === null) return 'Presse-papiers inaccessible : colle avec Ctrl+V (⌘V sur Mac).'
   if (!text.trim()) return "Le presse-papiers ne contient pas de texte : copie d'abord le texte, puis réessaie."
-  return `Collé ✓ (${formatCount(text.length)} caractères)`
+  return `Collé (${formatCount(text.length)} caractères)`
 }
 
 /**
@@ -68,7 +70,7 @@ export function PasteButton({ targetId, onPaste, disabled = false, what = 'le te
         disabled={disabled}
         aria-controls={targetId}
       >
-        <span aria-hidden="true">📋</span> Coller<span className="sr-only"> {what} depuis le presse-papiers</span>
+        <Icon icon={ClipboardPaste} size={18} /> Coller<span className="sr-only"> {what} depuis le presse-papiers</span>
       </button>
       <span className={styles.pasteMessage} role="status" aria-live="polite">
         {message}
@@ -79,7 +81,7 @@ export function PasteButton({ targetId, onPaste, disabled = false, what = 'le te
 
 /**
  * Labelled transcript / Canva textarea with counter and "Coller" button (lesson page editor).
- * @param {{ label: string, icon: string, value: string, max: number, onChange: (value: string) => void,
+ * @param {{ label: string, icon: import('lucide-react').LucideIcon, value: string, max: number, onChange: (value: string) => void,
  *   rows?: number, placeholder?: string, invalid?: boolean, describedBy?: string, disabled?: boolean }} props
  */
 export default function SourceField({ label, icon, value, max, onChange, rows = 8, placeholder, invalid, describedBy, disabled }) {
@@ -88,7 +90,7 @@ export default function SourceField({ label, icon, value, max, onChange, rows = 
     <div className={styles.field}>
       <div className={styles.head}>
         <label htmlFor={id} className={bits.label}>
-          <span aria-hidden="true">{icon} </span>
+          {icon && <Icon icon={icon} size={15} className={styles.labelIcon} />}{' '}
           {label}
         </label>
         <SourceCounter value={value} max={max} />

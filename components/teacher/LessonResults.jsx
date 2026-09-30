@@ -1,6 +1,8 @@
 import EmptyNote from '@/components/teacher/lessons/EmptyNote'
 import { formatDateTime, plural } from '@/components/teacher/format'
 import styles from '@/components/teacher/lessons/LessonResults.module.css'
+import { ChartColumn, HistoryIcon, Repeat, Trophy } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 function tone(pct) {
   return pct >= 80 ? styles.good : pct >= 50 ? styles.ok : styles.low
@@ -10,7 +12,7 @@ function OlderNote({ count }) {
   if (!count) return null
   return (
     <p className={styles.older}>
-      <span aria-hidden="true">🕰️ </span>
+      <Icon icon={HistoryIcon} size={16} className={styles.olderIcon} />
       {plural(count, 'essai')} sur une version précédente de la leçon (avant la dernière génération ou
       modification des exercices) : non comptés ici.
     </p>
@@ -30,7 +32,7 @@ export default function LessonResults({ sessions, olderCount = 0 }) {
     return (
       <div className={styles.results}>
         <EmptyNote
-          emoji="🎯"
+          icon={ChartColumn}
           tone="orange"
           title="Pas encore de résultats"
           text={
@@ -54,21 +56,21 @@ export default function LessonResults({ sessions, olderCount = 0 }) {
         <div className={`${styles.stat} ${styles.statBlue}`}>
           <dt className={styles.statLabel}>{list.length > 1 ? 'Tentatives' : 'Tentative'}</dt>
           <dd className={styles.statValue}>
-            <span className={styles.statIcon} aria-hidden="true">🔁</span>
+            <Icon icon={Repeat} size={20} className={styles.statIcon} />
             {list.length}
           </dd>
         </div>
         <div className={`${styles.stat} ${styles.statGreen}`}>
           <dt className={styles.statLabel}>Meilleur score</dt>
           <dd className={styles.statValue}>
-            <span className={styles.statIcon} aria-hidden="true">🏆</span>
+            <Icon icon={Trophy} size={20} className={styles.statIcon} />
             {best.score}/{best.total}
           </dd>
         </div>
         <div className={`${styles.stat} ${styles.statOrange}`}>
           <dt className={styles.statLabel}>Moyenne</dt>
           <dd className={styles.statValue}>
-            <span className={styles.statIcon} aria-hidden="true">📊</span>
+            <Icon icon={ChartColumn} size={20} className={styles.statIcon} />
             {average} %
           </dd>
         </div>

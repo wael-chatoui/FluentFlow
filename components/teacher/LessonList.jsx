@@ -4,6 +4,8 @@ import Skeleton from '@/components/teacher/Skeleton'
 import { accentStyle } from '@/components/ui/accents'
 import { formatLessonDate, isStaleGeneration, lessonTitle, parseLocalDate, plural } from '@/components/teacher/format'
 import styles from '@/components/teacher/LessonList.module.css'
+import { ChevronRight, CircleAlert, EyeOff, Hourglass, Sprout, TriangleAlert } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 function sortNewestFirst(lessons) {
   return [...lessons].sort((a, b) => {
@@ -30,12 +32,12 @@ function Footer({ lesson, stale }) {
   if (lesson.status === 'generating') {
     return stale ? (
       <p className={`${styles.note} ${styles.noteOrange}`}>
-        <span aria-hidden="true">⏳</span>
+        <Icon icon={Hourglass} size={16} />
         <span className={styles.noteText}>Semble bloquée — ouvre-la pour relancer</span>
       </p>
     ) : (
       <p className={`${styles.note} ${styles.noteBlue}`}>
-        <span aria-hidden="true">⏳</span>
+        <Icon icon={Hourglass} size={16} />
         <span className={styles.noteText}>Génération en cours…</span>
       </p>
     )
@@ -43,7 +45,7 @@ function Footer({ lesson, stale }) {
   if (lesson.status === 'failed') {
     return (
       <p className={`${styles.note} ${styles.noteRed}`} title={lesson.error || undefined}>
-        <span aria-hidden="true">⚠️</span>
+        <Icon icon={CircleAlert} size={16} />
         <span className={styles.noteText}>{lesson.error || 'La génération a échoué.'}</span>
       </p>
     )
@@ -53,7 +55,7 @@ function Footer({ lesson, stale }) {
   if (lesson.error) {
     return (
       <p className={`${styles.note} ${styles.noteOrange}`} title={lesson.error}>
-        <span aria-hidden="true">⚠️</span>
+        <Icon icon={TriangleAlert} size={16} />
         <span className={styles.noteText}>Dernière régénération échouée (l&apos;ancienne version reste en ligne)</span>
       </p>
     )
@@ -61,7 +63,7 @@ function Footer({ lesson, stale }) {
   if (lesson.hidden) {
     return (
       <p className={`${styles.note} ${styles.noteOrange}`}>
-        <span aria-hidden="true">🙈</span>
+        <Icon icon={EyeOff} size={16} />
         <span className={styles.noteText}>Invisible pour l&apos;élève — à relire puis publier</span>
       </p>
     )
@@ -72,7 +74,7 @@ function Footer({ lesson, stale }) {
   if (pct === null) {
     return (
       <p className={styles.note}>
-        <span aria-hidden="true">🌱</span>
+        <Icon icon={Sprout} size={16} />
         <span className={styles.noteText}>Pas encore pratiquée</span>
       </p>
     )
@@ -141,7 +143,9 @@ export default function LessonList({ lessons }) {
 
               <span className={styles.footer}>
                 <Footer lesson={lesson} stale={stale} />
-                <span className={styles.chevron} aria-hidden="true">›</span>
+                <span className={styles.chevron} aria-hidden="true">
+                  <Icon icon={ChevronRight} size={26} strokeWidth={3} />
+                </span>
               </span>
             </Link>
           </li>

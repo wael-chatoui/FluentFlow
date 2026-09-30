@@ -10,31 +10,33 @@ import { plural } from '@/components/lesson/format'
 import { foldFrench } from '@/utils/api/studentLessons'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/lessons/LessonsPage.module.css'
+import { Dumbbell, PartyPopper, Search, Sprout, Trophy, X } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 // The search box only helps once the list gets long
 const SEARCH_MIN_LESSONS = 5
 
 const EMPTY = {
   all: {
-    emoji: '🌱',
+    icon: Sprout,
     tone: 'green',
     title: 'No lessons yet',
     text: 'Your first lesson recap will appear here after your next class with Wael.',
   },
   todo: {
-    emoji: '🎉',
+    icon: PartyPopper,
     tone: 'green',
     title: 'All caught up!',
     text: 'You’ve practiced every lesson that has exercises.',
   },
   work: {
-    emoji: '💪',
+    icon: Dumbbell,
     tone: 'blue',
     title: 'Nothing needs work',
     text: 'All your practiced lessons are at 80% or more. Nice!',
   },
   mastered: {
-    emoji: '🏆',
+    icon: Trophy,
     tone: 'purple',
     title: 'No mastered lessons yet',
     text: 'Score 100% on a lesson’s exercises to master it.',
@@ -86,7 +88,7 @@ export default function StudentLessonsPage() {
   if (ready && visible.length === 0) {
     emptyView = needle ? (
       <EmptyState
-        emoji="🔍"
+        icon={Search}
         tone="blue"
         title="No matches"
         text={`No lesson title matches “${query.trim()}”${filterId !== 'all' ? ` in ${filter.label}` : ''}.`}
@@ -99,7 +101,7 @@ export default function StudentLessonsPage() {
     ) : (
       <EmptyState
         key={filterId}
-        emoji={empty.emoji}
+        icon={empty.icon}
         tone={empty.tone}
         title={empty.title}
         text={empty.text}
@@ -122,7 +124,7 @@ export default function StudentLessonsPage() {
 
       <header className={styles.header}>
         <h1 className={styles.title}>
-          My lessons <span aria-hidden="true">📚</span>
+          My lessons
         </h1>
         <p className={styles.subtitle}>
           {ready && lessons.length > 0
@@ -138,7 +140,7 @@ export default function StudentLessonsPage() {
           {showSearch && (
             <div className={styles.search} role="search">
               <span className={styles.searchIcon} aria-hidden="true">
-                🔍
+                <Icon icon={Search} size={18} />
               </span>
               <label htmlFor="lesson-search" className="sr-only">
                 Search your lessons
@@ -157,7 +159,7 @@ export default function StudentLessonsPage() {
               />
               {query && (
                 <button type="button" className={styles.searchClear} onClick={() => setQuery('')} aria-label="Clear search">
-                  ✕
+                  <Icon icon={X} size={20} />
                 </button>
               )}
             </div>

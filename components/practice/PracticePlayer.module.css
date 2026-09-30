@@ -178,6 +178,11 @@
   font-weight: 800;
 }
 
+.tags svg {
+  margin-right: 0.3rem;
+  vertical-align: -0.2em;
+}
+
 .fromTag {
   background: var(--st-blue-bg);
   border-color: var(--st-blue-line-strong);
@@ -230,8 +235,7 @@
   background: var(--st-blue-bg);
   border: 2px solid var(--st-blue);
   border-bottom-width: 5px;
-  font-size: 2.4rem;
-  line-height: 1;
+  color: var(--st-blue-ink);
 }
 
 .noticeText {
@@ -262,8 +266,7 @@
   background: var(--st-purple-bg);
   border: 2px solid var(--st-purple);
   border-bottom-width: 5px;
-  font-size: 2.4rem;
-  line-height: 1;
+  color: var(--st-purple-ink);
 }
 
 .emptyTitle {
@@ -432,10 +435,7 @@
   height: 36px;
   border-radius: 50%;
   background: var(--st-surface);
-  color: var(--tone); /* the ✓ / ! / ✕ glyph is text: -ink shade */
-  font-size: 1.15rem;
-  font-weight: 900;
-  line-height: 1;
+  color: var(--tone); /* -ink shade */
 }
 
 .fbTitle {
@@ -554,10 +554,14 @@
 }
 
 .dialogEmoji {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-size: 2.6rem;
-  line-height: 1;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 0.75rem;
+  border-radius: 50%;
+  background: var(--st-blue-bg);
+  color: var(--st-blue-ink);
 }
 
 .dialogTitle {

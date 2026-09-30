@@ -9,6 +9,8 @@ import { invalidateLessons, recordPractice } from '@/components/student/useLesso
 import { api } from '@/utils/apiClient'
 import LoadingScreen from '@/components/ui/LoadingScreen'
 import ui from '@/components/ui/ui.module.css'
+import { Ban, CircleAlert, SearchX } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 // Leaving the end screen waits this long at most for the score to be saved, so the
 // lesson page shows the new best score (the save keeps going in the background anyway)
@@ -157,7 +159,7 @@ export default function StudentPracticePage() {
 
       {state.status === 'unavailable' && (
         <MessageCard
-          icon="🚧"
+          icon={Ban}
           title="This lesson isn’t available anymore"
           text="Your teacher took it down while you were practicing, so this run couldn’t be saved."
           alert
@@ -169,7 +171,7 @@ export default function StudentPracticePage() {
       )}
 
       {state.status === 'notfound' && (
-        <MessageCard icon="🔎" title="Lesson not found" text="This lesson doesn’t exist or isn’t available anymore.">
+        <MessageCard icon={SearchX} title="Lesson not found" text="This lesson doesn’t exist or isn’t available anymore.">
           <Link href="/student/lessons" className={`${ui.btn} ${ui.green} ${ui.block}`}>
             Back to my lessons
           </Link>
@@ -177,7 +179,7 @@ export default function StudentPracticePage() {
       )}
 
       {state.status === 'error' && (
-        <MessageCard icon="😕" title="Couldn’t load the exercises" text={state.error} alert>
+        <MessageCard icon={CircleAlert} title="Couldn’t load the exercises" text={state.error} alert>
           <button type="button" className={`${ui.btn} ${ui.green} ${ui.block}`} onClick={() => setReloadKey((k) => k + 1)}>
             Try again
           </button>
@@ -194,8 +196,20 @@ function MessageCard({ icon, title, text, alert = false, children }) {
   return (
     <div className={ui.theme} style={{ display: 'grid', placeItems: 'center', padding: '1rem' }}>
       <div className={ui.card} style={{ width: '100%', maxWidth: 420, textAlign: 'center' }} role={alert ? 'alert' : undefined}>
-        <div style={{ fontSize: '3rem' }} aria-hidden="true">
-          {icon}
+        <div
+          style={{
+            display: 'grid',
+            placeItems: 'center',
+            width: 72,
+            height: 72,
+            margin: '0 auto',
+            borderRadius: '50%',
+            background: alert ? 'var(--st-red-bg)' : 'var(--st-blue-bg)',
+            color: alert ? 'var(--st-red-ink)' : 'var(--st-blue-ink)',
+          }}
+          aria-hidden="true"
+        >
+          <Icon icon={icon} size={36} />
         </div>
         <h1 style={{ margin: '0.5rem 0', fontSize: '1.4rem', fontWeight: 900 }}>{title}</h1>
         <p style={{ margin: '0 0 1.25rem', color: 'var(--st-ink-soft)' }}>{text}</p>

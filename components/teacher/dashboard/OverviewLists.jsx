@@ -4,6 +4,8 @@ import { formatRelative, initialsOf, lessonTitle, plural, studentDisplayName } f
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/dashboard/Overview.module.css'
+import { Activity, CircleCheck, MapIcon, Moon, Sparkles } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 function ListSkeleton() {
   return (
@@ -29,7 +31,7 @@ export function InactiveStudents({ items, loading }) {
   return (
     <section className={styles.panel} aria-labelledby="inactive-title">
       <h2 id="inactive-title" className={styles.panelTitle}>
-        <span aria-hidden="true">💤</span> Élèves sans leçon récente
+        <Icon icon={Moon} size={22} /> Élèves sans leçon récente
       </h2>
       {loading ? (
         <ListSkeleton />
@@ -37,7 +39,7 @@ export function InactiveStudents({ items, loading }) {
         <p className={styles.empty}>Liste indisponible pour le moment.</p>
       ) : items.length === 0 ? (
         <p className={styles.empty}>
-          <span aria-hidden="true">👏 </span>Tous tes élèves ont eu une leçon récemment.
+          <Icon icon={CircleCheck} size={16} className={styles.inlineIcon} /> Tous tes élèves ont eu une leçon récemment.
         </p>
       ) : (
         <ul className={styles.items}>
@@ -56,10 +58,10 @@ export function InactiveStudents({ items, loading }) {
               </div>
               <div className={styles.itemActions}>
                 <Link href={`/teacher/lessons/new?student=${s.id}`} className={`${ui.btn} ${ui.small} ${bits.blueGhost} ${bits.tap}`}>
-                  <span aria-hidden="true">✨</span> Leçon<span className="sr-only"> pour {studentDisplayName(s)}</span>
+                  <Icon icon={Sparkles} size={16} /> Leçon<span className="sr-only"> pour {studentDisplayName(s)}</span>
                 </Link>
                 <Link href={`/teacher/students/${s.id}#plan`} className={`${ui.btn} ${ui.small} ${bits.tap}`}>
-                  <span aria-hidden="true">🗺️</span> Préparer<span className="sr-only"> le prochain cours de {studentDisplayName(s)}</span>
+                  <Icon icon={MapIcon} size={16} /> Préparer<span className="sr-only"> le prochain cours de {studentDisplayName(s)}</span>
                 </Link>
               </div>
             </li>
@@ -79,7 +81,7 @@ export function RecentActivity({ items, loading }) {
   return (
     <section className={styles.panel} aria-labelledby="activity-title">
       <h2 id="activity-title" className={styles.panelTitle}>
-        <span aria-hidden="true">🏃</span> Activité récente
+        <Icon icon={Activity} size={22} /> Activité récente
       </h2>
       {loading ? (
         <ListSkeleton />

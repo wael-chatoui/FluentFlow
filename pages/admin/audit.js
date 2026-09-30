@@ -17,6 +17,8 @@ import {
 import admin from '@/components/admin/common/admin.module.css'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/admin/audit/audit.module.css'
+import { RefreshCw, X } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const PER_PAGE = 50
 const DEFAULTS = { action: '', entity: '', entityId: '', page: '1' }
@@ -85,7 +87,7 @@ export default function AdminAuditPage() {
       title="Journal"
       actions={
         <button type="button" className={cx(ui.btn, ui.small, admin.tap, admin.blueGhost)} onClick={reload} disabled={loading}>
-          <span aria-hidden="true">↻</span> Actualiser
+          <Icon icon={RefreshCw} size={16} /> Actualiser
         </button>
       }
     >
@@ -125,7 +127,7 @@ export default function AdminAuditPage() {
                   onClick={() => setParams({ entityId: '', page: '1' })}
                   aria-label={`Retirer le filtre sur l’élément ${params.entityId}`}
                 >
-                  <span className={admin.mono}>{params.entityId.slice(0, 8)}…</span> <span aria-hidden="true">✕</span>
+                  <span className={admin.mono}>{params.entityId.slice(0, 8)}…</span> <Icon icon={X} size={14} />
                 </button>
               </span>
             </div>

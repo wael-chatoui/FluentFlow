@@ -4,6 +4,8 @@ import SpeakButton from '@/components/student/vocabulary/SpeakButton'
 import BlankSentence from '@/components/practice/BlankSentence'
 import { splitBlank, speakable, isLikelyFrench, cx } from '@/components/practice/utils'
 import styles from '@/components/practice/PracticePlayer.module.css'
+import { Check, TriangleAlert, X } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 /** Title text + tone for a graded answer (also used for the aria-live announcement). */
 export function describeFeedback(exercise, feedback) {
@@ -44,7 +46,7 @@ const FeedbackSheet = forwardRef(function FeedbackSheet({ exercise, feedback, on
         <div className={styles.fbMain}>
           <div className={styles.fbHead}>
             <span className={styles.fbIcon} aria-hidden="true">
-              {tone === 'good' ? '✓' : tone === 'warn' ? '!' : '✕'}
+              <Icon icon={tone === 'good' ? Check : tone === 'warn' ? TriangleAlert : X} size={22} strokeWidth={3} />
             </span>
             <h2 id={titleId} className={styles.fbTitle}>
               {title}

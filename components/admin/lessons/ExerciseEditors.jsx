@@ -5,6 +5,8 @@ import { AddButton, ChipsInput, Field, TextField } from '@/components/admin/less
 import { LIMITS, countBlanks, removeAt, replaceAt } from '@/components/admin/lessons/editorModel'
 import admin from '@/components/admin/common/admin.module.css'
 import styles from '@/components/admin/lessons/editor.module.css'
+import { ArrowLeftRight, Check, X } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const LETTERS = ['A', 'B', 'C']
 
@@ -48,7 +50,7 @@ export function McqEditor({ exercise: e, index, update, errors }) {
                   />
                   <span className="sr-only">Bonne réponse : choix {LETTERS[i]}</span>
                   <span aria-hidden="true" className={styles.letter}>
-                    {correct ? '✓' : LETTERS[i]}
+                    {correct ? <Icon icon={Check} size={16} strokeWidth={3} /> : LETTERS[i]}
                   </span>
                 </label>
                 <input
@@ -101,7 +103,7 @@ export function FillBlankEditor({ exercise: e, index, update, errors }) {
         error={errors[`${p}.sentence`]}
         hint={
           n === 1
-            ? `✓ Un seul trou (${BLANK}) : parfait.`
+            ? `Un seul trou (${BLANK}) : parfait.`
             : `Écris ${BLANK} (trois tirets bas) à l'endroit du mot manquant — exactement un trou.`
         }
       >
@@ -167,7 +169,7 @@ export function MatchEditor({ exercise: e, index, update, errors }) {
                   onChange={(ev) => setPair({ fr: ev.target.value })}
                 />
                 <span className={styles.pairArrow} aria-hidden="true">
-                  ↔
+                  <Icon icon={ArrowLeftRight} size={18} />
                 </span>
                 <input
                   className={cx(admin.input, rowError && !pair.en.trim() && admin.invalid)}
@@ -187,7 +189,7 @@ export function MatchEditor({ exercise: e, index, update, errors }) {
                   aria-label={`Supprimer la paire ${j + 1}`}
                   title="Supprimer"
                 >
-                  ✕
+                  <Icon icon={X} size={18} />
                 </button>
               </div>
               <GroupError id={errId} error={rowError} />

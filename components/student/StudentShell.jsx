@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { BookOpen, House, Library, RotateCcw, User } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
 import Shell from '@/components/ui/Shell'
 import useMe from '@/components/student/useMe'
@@ -7,11 +8,11 @@ import { plural } from '@/components/lesson/format'
 import styles from '@/components/student/StudentShell.module.css'
 
 const TABS = [
-  { href: '/student', label: 'Home', icon: '🏠', match: (p) => p === '/student' },
-  { href: '/student/lessons', label: 'Lessons', icon: '📚', match: (p) => p.startsWith('/student/lessons') },
-  { href: '/student/review', label: 'Review', icon: '🎯', match: (p) => p.startsWith('/student/review') },
-  { href: '/student/vocabulary', label: 'Words', icon: '🔤', match: (p) => p.startsWith('/student/vocabulary') },
-  { href: '/student/profile', label: 'Profile', icon: '👤', match: (p) => p.startsWith('/student/profile') },
+  { href: '/student', label: 'Home', icon: House, match: (p) => p === '/student' },
+  { href: '/student/lessons', label: 'Lessons', icon: BookOpen, match: (p) => p.startsWith('/student/lessons') },
+  { href: '/student/review', label: 'Review', icon: RotateCcw, match: (p) => p.startsWith('/student/review') },
+  { href: '/student/vocabulary', label: 'Words', icon: Library, match: (p) => p.startsWith('/student/vocabulary') },
+  { href: '/student/profile', label: 'Profile', icon: User, match: (p) => p.startsWith('/student/profile') },
 ]
 
 // The badge only needs a recent count: reuse the cached list for a few minutes

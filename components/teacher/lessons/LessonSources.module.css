@@ -12,8 +12,8 @@
   overflow: hidden;
 }
 
-.blue { --src-bg: var(--st-blue-bg); --src-edge: var(--st-blue-line); }
-.pink { --src-bg: var(--st-pink-bg); --src-edge: #ffc2e1; }
+.blue { --src-bg: var(--st-blue-bg); --src-edge: var(--st-blue-line); --src-fg: var(--st-blue-ink); }
+.pink { --src-bg: var(--st-pink-bg); --src-edge: #ffc2e1; --src-fg: var(--st-pink-ink); }
 
 .summary {
   display: flex;
@@ -50,8 +50,7 @@
   border-radius: 12px;
   background: var(--src-bg);
   border: 2px solid var(--src-edge);
-  font-size: 1.2rem;
-  line-height: 1;
+  color: var(--src-fg);
 }
 
 .title {
@@ -141,6 +140,11 @@
   color: var(--st-ink);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.aiIcon {
+  margin-right: 0.15rem;
+  vertical-align: -0.15em;
 }
 
 .aiModel {

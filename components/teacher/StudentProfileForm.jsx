@@ -6,6 +6,8 @@ import { LEVEL_LABELS, formatCount, isAbortError } from '@/components/teacher/fo
 import { useMountedRef } from '@/components/teacher/hooks'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/teacher/StudentProfileForm.module.css'
+import { Check, CircleAlert, ClipboardPaste, Folder, Heart, Lock, Sparkles, Target, TriangleAlert } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const FIELDS = ['fullName', 'level', 'goals', 'interests', 'driveFolderUrl', 'aiContext', 'notes']
 // Same limits as the API (utils/api/validate.js LIMITS.notes, aiContext, profileText)
@@ -182,7 +184,8 @@ export default function StudentProfileForm({ studentId, student, notes, aiContex
         <div className={styles.field}>
           <div className={styles.labelRow}>
             <label htmlFor={id('goals')} className={styles.label}>
-              <span aria-hidden="true">🎯 </span>Objectifs
+              <Icon icon={Target} size={16} className={styles.labelIcon} />
+              Objectifs
             </label>
             <LengthCounter id={id('goals-count')} value={values.goals} max={MAX_PROFILE_TEXT} />
           </div>
@@ -201,7 +204,8 @@ export default function StudentProfileForm({ studentId, student, notes, aiContex
         <div className={styles.field}>
           <div className={styles.labelRow}>
             <label htmlFor={id('interests')} className={styles.label}>
-              <span aria-hidden="true">💡 </span>Centres d&apos;intérêt
+              <Icon icon={Heart} size={16} className={styles.labelIcon} />
+              Centres d&apos;intérêt
             </label>
             <LengthCounter id={id('interests-count')} value={values.interests} max={MAX_PROFILE_TEXT} />
           </div>
@@ -219,7 +223,8 @@ export default function StudentProfileForm({ studentId, student, notes, aiContex
 
         <div className={styles.field}>
           <label htmlFor={id('drive')} className={styles.label}>
-            <span aria-hidden="true">📁 </span>Lien du dossier Google Drive
+            <Icon icon={Folder} size={16} className={styles.labelIcon} />
+            Lien du dossier Google Drive
           </label>
           <input
             id={id('drive')}
@@ -250,7 +255,8 @@ export default function StudentProfileForm({ studentId, student, notes, aiContex
         <div className={`${styles.field} ${styles.aiContext}`}>
           <div className={styles.labelRow}>
             <label htmlFor={id('ai')} className={styles.label}>
-              <span aria-hidden="true">🤖 </span>Contexte pour l&apos;IA
+              <Icon icon={Sparkles} size={16} className={styles.labelIcon} />
+              Contexte pour l&apos;IA
             </label>
             <LengthCounter id={id('ai-count')} value={values.aiContext} max={MAX_AI_CONTEXT} />
           </div>
@@ -280,12 +286,12 @@ export default function StudentProfileForm({ studentId, student, notes, aiContex
                 document.getElementById(id('ai'))?.focus()
               }}
             >
-              <span aria-hidden="true">📋</span> Reprendre mes notes privées ici
+              <Icon icon={ClipboardPaste} size={18} /> Reprendre mes notes privées ici
             </button>
           )}
           {reusedNotes && dirty && values.aiContext.trim() && (
             <p className={styles.fieldError} role="status">
-              <span aria-hidden="true">⚠️ </span>
+              <Icon icon={TriangleAlert} size={16} className={styles.labelIcon} />
               Relis ce texte et retire ce qui doit rester privé (paiements, remarques personnelles…) avant
               d&apos;enregistrer : il sera envoyé à l&apos;IA.
             </p>
@@ -295,7 +301,8 @@ export default function StudentProfileForm({ studentId, student, notes, aiContex
         <div className={`${styles.field} ${styles.private}`}>
           <div className={styles.labelRow}>
             <label htmlFor={id('notes')} className={styles.label}>
-              <span aria-hidden="true">🔒 </span>Notes privées (jamais envoyées à l&apos;IA)
+              <Icon icon={Lock} size={16} className={styles.labelIcon} />
+              Notes privées (jamais envoyées à l&apos;IA)
             </label>
             <LengthCounter id={id('notes-count')} value={values.notes} max={MAX_NOTES} />
           </div>
@@ -317,7 +324,7 @@ export default function StudentProfileForm({ studentId, student, notes, aiContex
 
       {error && (
         <div className={styles.alert} role="alert">
-          <span aria-hidden="true">⚠️</span>
+          <Icon icon={CircleAlert} size={20} />
           <span>{error}</span>
         </div>
       )}
@@ -327,7 +334,9 @@ export default function StudentProfileForm({ studentId, student, notes, aiContex
           {saving ? (
             'Enregistrement…'
           ) : justSaved && !dirty ? (
-            <span className={styles.saved}>Enregistré ✓</span>
+            <span className={styles.saved}>
+              Enregistré <Icon icon={Check} size={15} strokeWidth={3} className={styles.savedIcon} />
+            </span>
           ) : tooLong ? (
             <span className={styles.dirty}>Texte trop long : raccourcis-le pour enregistrer</span>
           ) : dirty ? (

@@ -4,6 +4,8 @@ import { hasEnoughText } from '@/components/teacher/format'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/LessonPage.module.css'
+import { CircleAlert, Hourglass, Pencil, RefreshCw, TriangleAlert } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 function stepsFor(lesson) {
   if (lesson.source_kind === 'import') return generationSteps({ mode: 'import' })
@@ -45,7 +47,9 @@ export function GeneratingPanel({ lesson, stale, busy = false, onRelaunch, onEdi
   if (stale) {
     return (
       <div className={`${bits.alert} ${bits.warning}`} role="alert">
-        <span className={bits.alertIcon} aria-hidden="true">⏳</span>
+        <span className={bits.alertIcon} aria-hidden="true">
+          <Icon icon={Hourglass} size={20} />
+        </span>
         <div className={bits.alertBody}>
           <strong>La génération semble bloquée</strong>
           <span>
@@ -54,7 +58,7 @@ export function GeneratingPanel({ lesson, stale, busy = false, onRelaunch, onEdi
           </span>
           <div className={bits.alertActions}>
             <button type="button" className={`${ui.btn} ${ui.small} ${ui.orange} ${bits.tap}`} onClick={onRelaunch} disabled={busy}>
-              {busy ? <span className={bits.spinner} aria-hidden="true" /> : <span aria-hidden="true">🔄</span>} Régénérer
+              {busy ? <span className={bits.spinner} aria-hidden="true" /> : <Icon icon={RefreshCw} size={18} />} Régénérer
             </button>
             <button type="button" className={`${ui.btn} ${ui.small} ${bits.tap}`} onClick={onEditSources} disabled={busy}>
               Modifier les sources
@@ -85,7 +89,9 @@ export function FailedPanel({ lesson, busy = false, onRetry, onEditSources }) {
   const imported = lesson.source_kind === 'import'
   return (
     <section className={styles.failed} role="alert" aria-labelledby="lesson-failed-title">
-      <span className={styles.failedIcon} aria-hidden="true">😵</span>
+      <span className={styles.failedIcon} aria-hidden="true">
+        <Icon icon={CircleAlert} size={28} />
+      </span>
       <div className={styles.failedBody}>
         <h2 id="lesson-failed-title" className={styles.failedTitle}>La génération a échoué</h2>
         <p className={styles.failedError}>{lesson.error || 'Erreur inconnue.'}</p>
@@ -96,10 +102,10 @@ export function FailedPanel({ lesson, busy = false, onRetry, onEditSources }) {
         </p>
         <div className={styles.failedActions}>
           <button type="button" className={`${ui.btn} ${ui.blue}`} onClick={onRetry} disabled={busy}>
-            {busy ? <span className={bits.spinner} aria-hidden="true" /> : <span aria-hidden="true">🔄</span>} Réessayer
+            {busy ? <span className={bits.spinner} aria-hidden="true" /> : <Icon icon={RefreshCw} size={18} />} Réessayer
           </button>
           <button type="button" className={`${ui.btn} ${bits.blueGhost}`} onClick={onEditSources} disabled={busy}>
-            <span aria-hidden="true">✏️</span> {imported ? 'Changer les options' : 'Modifier les sources et régénérer'}
+            <Icon icon={Pencil} size={18} /> {imported ? 'Changer les options' : 'Modifier les sources et régénérer'}
           </button>
         </div>
       </div>
@@ -111,14 +117,16 @@ export function FailedPanel({ lesson, busy = false, onRetry, onEditSources }) {
 export function RegenErrorBanner({ error, busy = false, onRetry, onDismiss }) {
   return (
     <div className={`${bits.alert} ${bits.warning}`} role="status">
-      <span className={bits.alertIcon} aria-hidden="true">⚠️</span>
+      <span className={bits.alertIcon} aria-hidden="true">
+          <Icon icon={TriangleAlert} size={20} />
+        </span>
       <div className={bits.alertBody}>
         <strong>La dernière régénération a échoué</strong>
         <span>{error}</span>
         <span>L&apos;ancienne version reste en ligne pour l&apos;élève.</span>
         <div className={bits.alertActions}>
           <button type="button" className={`${ui.btn} ${ui.small} ${ui.orange} ${bits.tap}`} onClick={onRetry} disabled={busy}>
-            <span aria-hidden="true">🔄</span> Réessayer
+            <Icon icon={RefreshCw} size={16} /> Réessayer
           </button>
           <button type="button" className={`${ui.btn} ${ui.small} ${bits.tap}`} onClick={onDismiss}>
             Ignorer<span className="sr-only"> l&apos;échec</span>

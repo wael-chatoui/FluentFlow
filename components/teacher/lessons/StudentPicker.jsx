@@ -3,6 +3,8 @@ import { initialsOf, levelBadgeText, studentDisplayName } from '@/components/tea
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/lessons/StudentPicker.module.css'
+import { Check, CircleAlert, UserPlus } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 // Up to this many students: selectable chips; more: a big select
 export const CHIP_LIMIT = 8
@@ -31,7 +33,9 @@ export default function StudentPicker({
     if (error) {
       return (
         <div className={`${bits.alert} ${bits.error}`} role="alert">
-          <span className={bits.alertIcon} aria-hidden="true">😕</span>
+          <span className={bits.alertIcon} aria-hidden="true">
+            <Icon icon={CircleAlert} size={20} />
+          </span>
           <div className={bits.alertBody}>
             <span>{error}</span>
             <div className={bits.alertActions}>
@@ -56,7 +60,7 @@ export default function StudentPicker({
   if (students.length === 0) {
     return (
       <p className={styles.none}>
-        <span aria-hidden="true">👋 </span>
+        <Icon icon={UserPlus} size={16} className={styles.inlineIcon} />{' '}
         Aucun élève pour l&apos;instant.{' '}
         <Link href="/teacher?invite=1" className={styles.noneLink}>
           Invite ton premier élève
@@ -114,7 +118,7 @@ export default function StudentPicker({
               className={styles.radio}
             />
             <span className={styles.avatar} aria-hidden="true">
-              {checked ? '✓' : initialsOf(name)}
+              {checked ? <Icon icon={Check} size={18} strokeWidth={3} /> : initialsOf(name)}
             </span>
             <span className={styles.name}>{name}</span>
             {level && <span className={styles.level}>{level}</span>}

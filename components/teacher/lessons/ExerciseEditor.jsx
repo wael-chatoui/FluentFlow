@@ -4,6 +4,8 @@ import { EDIT_LIMITS, countBlanks, exerciseErrors, fromEditable, toEditable } fr
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/lessons/ExerciseEditor.module.css'
+import { ArrowLeftRight, Check, CircleAlert, Plus, TriangleAlert, X } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const LETTERS = ['A', 'B', 'C']
 
@@ -11,7 +13,7 @@ function FieldError({ id, error }) {
   if (!error) return null
   return (
     <p id={id} className={bits.fieldError}>
-      <span aria-hidden="true">⚠️</span> {error}
+      <Icon icon={CircleAlert} size={16} /> {error}
     </p>
   )
 }
@@ -64,7 +66,9 @@ function McqFields({ draft, set, errors }) {
                 <label className={styles.radio}>
                   <input type="radio" name={`${uid}-answer`} checked={correct} onChange={() => set({ answer: i })} />
                   <span className="sr-only">Bonne réponse : choix {LETTERS[i]}</span>
-                  <span className={styles.letter} aria-hidden="true">{correct ? '✓' : LETTERS[i]}</span>
+                  <span className={styles.letter} aria-hidden="true">
+                    {correct ? <Icon icon={Check} size={16} strokeWidth={3} /> : LETTERS[i]}
+                  </span>
                 </label>
                 <input
                   className={`${bits.input} ${errors.choices ? bits.invalid : ''}`}
@@ -117,7 +121,7 @@ function FillBlankFields({ draft, set, errors }) {
         maxLength={EDIT_LIMITS.sentence}
         lang="fr"
         inputRef={sentenceRef}
-        hint={n === 1 ? `✓ Un seul trou (${BLANK}).` : `Écris ${BLANK} (trois tirets bas) à la place du mot manquant.`}
+        hint={n === 1 ? `Un seul trou (${BLANK}).` : `Écris ${BLANK} (trois tirets bas) à la place du mot manquant.`}
       >
         <button type="button" className={`${ui.btn} ${ui.small} ${bits.blueGhost} ${bits.tap}`} onClick={insertBlank} disabled={n >= 1}>
           Insérer {BLANK}
@@ -169,7 +173,9 @@ function MatchFields({ draft, set, errors }) {
               aria-label={`Paire ${i + 1}, français`}
               onChange={(e) => setPair(i, { fr: e.target.value })}
             />
-            <span className={styles.arrow} aria-hidden="true">↔</span>
+            <span className={styles.arrow} aria-hidden="true">
+              <Icon icon={ArrowLeftRight} size={18} />
+            </span>
             <input
               className={`${bits.input} ${errors.pairs && !pair.en.trim() ? bits.invalid : ''}`}
               value={pair.en}
@@ -186,7 +192,7 @@ function MatchFields({ draft, set, errors }) {
               disabled={pairs.length <= EDIT_LIMITS.pairsMin}
               aria-label={`Supprimer la paire ${i + 1}`}
             >
-              <span aria-hidden="true">✕</span>
+              <Icon icon={X} size={18} />
             </button>
           </li>
         ))}
@@ -198,7 +204,7 @@ function MatchFields({ draft, set, errors }) {
         onClick={() => set({ pairs: [...pairs, { fr: '', en: '' }] })}
         disabled={pairs.length >= EDIT_LIMITS.pairsMax}
       >
-        <span aria-hidden="true">＋</span> Ajouter une paire
+        <Icon icon={Plus} size={16} strokeWidth={3} /> Ajouter une paire
       </button>
     </fieldset>
   )
@@ -266,7 +272,9 @@ export default function ExerciseEditor({ exercise, saving = false, error, resets
 
       {resetsResults && (
         <p className={`${bits.alert} ${bits.warning} ${styles.notice}`}>
-          <span className={bits.alertIcon} aria-hidden="true">⚠️</span>
+          <span className={bits.alertIcon} aria-hidden="true">
+            <Icon icon={TriangleAlert} size={20} />
+          </span>
           <span className={bits.alertBody}>
             Modifier un exercice remet à zéro les résultats de l&apos;élève sur cette leçon (score, tentatives, erreurs).
           </span>
@@ -274,7 +282,9 @@ export default function ExerciseEditor({ exercise, saving = false, error, resets
       )}
       {error && (
         <div className={`${bits.alert} ${bits.error}`} role="alert">
-          <span className={bits.alertIcon} aria-hidden="true">⚠️</span>
+          <span className={bits.alertIcon} aria-hidden="true">
+            <Icon icon={CircleAlert} size={20} />
+          </span>
           <span className={bits.alertBody}>{error}</span>
         </div>
       )}

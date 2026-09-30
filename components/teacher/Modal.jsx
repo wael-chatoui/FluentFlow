@@ -1,6 +1,8 @@
 import { useId, useMemo, useRef } from 'react'
 import Dialog from '@/components/ui/Dialog'
 import styles from '@/components/teacher/Modal.module.css'
+import { X } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const FIELDS = 'input:not([disabled]), textarea:not([disabled]), select:not([disabled])'
 
@@ -55,7 +57,7 @@ function ModalDialog({ title, icon, onClose, busy, children }) {
             disabled={busy}
             aria-label="Fermer"
           >
-            <span aria-hidden="true">×</span>
+            <Icon icon={X} size={22} />
           </button>
         </div>
         {children}

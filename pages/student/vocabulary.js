@@ -12,6 +12,8 @@ import { foldFrench } from '@/utils/api/studentLessons'
 import { api } from '@/utils/apiClient'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/vocabulary/Vocabulary.module.css'
+import { BookOpen, CircleAlert, Layers, Library, List, Search, X } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const FILTERS = [
   { value: 'all', label: 'All' },
@@ -20,8 +22,8 @@ const FILTERS = [
 ]
 
 const MODES = [
-  { value: 'list', label: 'List', icon: '📋' },
-  { value: 'cards', label: 'Flashcards', icon: '🃏' },
+  { value: 'list', label: 'List', icon: List },
+  { value: 'cards', label: 'Flashcards', icon: Layers },
 ]
 
 function normalizeItems(raw) {
@@ -167,7 +169,9 @@ export default function StudentVocabularyPage() {
 
     const noMatch = (
       <div className={`${ui.card} ${styles.state}`}>
-        <div className={styles.stateEmoji} aria-hidden="true">🔍</div>
+        <div className={styles.stateEmoji} aria-hidden="true">
+          <Icon icon={Search} size={36} />
+        </div>
         <h2 className={styles.stateTitle}>{needle ? 'No matches' : `No ${kindLabel} yet`}</h2>
         <p className={styles.stateText}>
           {needle
@@ -186,7 +190,9 @@ export default function StudentVocabularyPage() {
       mode === 'list' ? (
         <>
           <div className={styles.search} role="search">
-            <span className={styles.searchIcon} aria-hidden="true">🔍</span>
+            <span className={styles.searchIcon} aria-hidden="true">
+              <Icon icon={Search} size={18} />
+            </span>
             <label htmlFor="vocab-search" className="sr-only">
               Search your words
             </label>
@@ -205,7 +211,7 @@ export default function StudentVocabularyPage() {
             />
             {query && (
               <button type="button" className={styles.searchClear} onClick={() => setQuery('')} aria-label="Clear search">
-                ✕
+                <Icon icon={X} size={20} />
               </button>
             )}
           </div>
@@ -256,7 +262,7 @@ export default function StudentVocabularyPage() {
           {needle && (
             <div className={styles.searchPill}>
               <span>
-                <span aria-hidden="true">🔍 </span>Only cards matching “{query.trim()}”
+                <Icon icon={Search} size={16} /> Only cards matching “{query.trim()}”
               </span>
               <button type="button" className={`${ui.btn} ${ui.ghost} ${ui.small}`} onClick={() => setQuery('')}>
                 Show all
@@ -298,7 +304,9 @@ export default function StudentVocabularyPage() {
         <div className={styles.page}>
           <h1 className={styles.title}>Words</h1>
           <div className={`${ui.card} ${styles.state}`} role="alert">
-            <div className={styles.stateEmoji} aria-hidden="true">😵‍💫</div>
+            <div className={`${styles.stateEmoji} ${styles.stateEmojiError}`} aria-hidden="true">
+              <Icon icon={CircleAlert} size={36} />
+            </div>
             <h2 className={styles.stateTitle}>Couldn’t load your words</h2>
             <p className={styles.stateText}>{state.error}</p>
             <button type="button" className={`${ui.btn} ${ui.blue}`} onClick={() => setReloadKey((k) => k + 1)}>
@@ -312,13 +320,15 @@ export default function StudentVocabularyPage() {
         <div className={styles.page}>
           <h1 className={styles.title}>Words</h1>
           <div className={`${ui.card} ${styles.state}`}>
-            <div className={styles.stateEmoji} aria-hidden="true">📖</div>
+            <div className={styles.stateEmoji} aria-hidden="true">
+              <Icon icon={Library} size={36} />
+            </div>
             <h2 className={styles.stateTitle}>No words yet</h2>
             <p className={styles.stateText}>
               The words and expressions from your lessons will show up here after your first lesson recap.
             </p>
             <Link href="/student/lessons" className={`${ui.btn} ${ui.blue}`}>
-              <span aria-hidden="true">📚</span> My lessons
+              <Icon icon={BookOpen} size={20} /> My lessons
             </Link>
           </div>
         </div>
@@ -342,7 +352,7 @@ export default function StudentVocabularyPage() {
                   aria-pressed={mode === m.value}
                   onClick={() => mode !== m.value && setView({ mode: m.value })}
                 >
-                  <span aria-hidden="true">{m.icon}</span> {m.label}
+                  <Icon icon={m.icon} size={18} /> {m.label}
                 </button>
               ))}
             </div>

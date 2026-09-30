@@ -9,6 +9,7 @@
 .empty {
   --tone: var(--st-blue);
   --tone-bg: var(--st-blue-bg);
+  --tone-ink: var(--st-blue-ink);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -17,11 +18,11 @@
   animation: pop 220ms ease-out both;
 }
 
-.green { --tone: var(--st-green); --tone-bg: var(--st-green-bg); }
-.orange { --tone: var(--st-orange); --tone-bg: var(--st-orange-bg); }
-.purple { --tone: var(--st-purple); --tone-bg: var(--st-purple-bg); }
-.yellow { --tone: var(--st-yellow); --tone-bg: var(--st-yellow-bg); }
-.pink { --tone: var(--st-pink); --tone-bg: var(--st-pink-bg); }
+.green { --tone: var(--st-green); --tone-bg: var(--st-green-bg); --tone-ink: var(--st-green-ink); }
+.orange { --tone: var(--st-orange); --tone-bg: var(--st-orange-bg); --tone-ink: var(--st-orange-ink); }
+.purple { --tone: var(--st-purple); --tone-bg: var(--st-purple-bg); --tone-ink: var(--st-purple-ink); }
+.yellow { --tone: var(--st-yellow); --tone-bg: var(--st-yellow-bg); --tone-ink: var(--st-yellow-ink); }
+.pink { --tone: var(--st-pink); --tone-bg: var(--st-pink-bg); --tone-ink: var(--st-pink-ink); }
 
 .emptyEmoji {
   display: grid;
@@ -32,8 +33,7 @@
   border-radius: 50%;
   background: var(--tone-bg);
   border: 3px solid var(--tone);
-  font-size: 2.6rem;
-  line-height: 1;
+  color: var(--tone-ink);
 }
 
 .emptyTitle {
@@ -68,8 +68,14 @@
 }
 
 .errorEmoji {
-  font-size: 2rem;
-  line-height: 1;
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--st-red-bg);
+  color: var(--st-red-ink);
 }
 
 .errorBody {

@@ -3,13 +3,15 @@ import Link from 'next/link'
 import DriveLinkEditor from '@/components/teacher/DriveLinkEditor'
 import StatusBadge from '@/components/teacher/StatusBadge'
 import { CopyButton } from '@/components/teacher/CopyField'
-import { lessonEmoji } from '@/components/student/lessons/progress'
+import { lessonIcon } from '@/components/student/lessons/progress'
 import { accentStyle } from '@/components/ui/accents'
 import { formatLessonDate, isAbortError, lessonTitle, parseLocalDate, plural } from '@/components/teacher/format'
 import { useMountedRef } from '@/components/teacher/hooks'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/LessonPage.module.css'
+import { CircleAlert, Eye, EyeOff, FileText, ListChecks, Pencil, Play, RefreshCw, Send, Trash2, User } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const TITLE_MAX = 120
 
@@ -91,7 +93,7 @@ function MetaEditor({ lesson, onSave, onDone }) {
       </div>
       {error && (
         <p className={bits.fieldError} role="alert">
-          <span aria-hidden="true">⚠️</span> {error}
+          <Icon icon={CircleAlert} size={16} /> {error}
         </p>
       )}
       <div className={styles.metaActions}>
@@ -165,7 +167,7 @@ const LessonHeader = forwardRef(function LessonHeader(
       ) : (
         <div className={styles.headTop}>
           <span className={styles.tile} aria-hidden="true">
-            {lessonEmoji(lesson.id)}
+            <Icon icon={lessonIcon(lesson.id)} size={32} />
           </span>
           <div className={styles.headText}>
             <time className={styles.date} dateTime={lesson.lesson_date || undefined}>
@@ -179,7 +181,7 @@ const LessonHeader = forwardRef(function LessonHeader(
             className={`${ui.btn} ${ui.small} ${bits.blueGhost} ${bits.tap} ${styles.editMeta} no-print`}
             onClick={() => setEditing(true)}
           >
-            <span aria-hidden="true">✏️</span>
+            <Icon icon={Pencil} size={18} />
             <span className={styles.editMetaLabel}>Modifier</span>
             <span className="sr-only"> le titre et la date</span>
           </button>
@@ -190,29 +192,29 @@ const LessonHeader = forwardRef(function LessonHeader(
         {(generating || lesson.status === 'failed') && <StatusBadge status={lesson.status} stale={stale} />}
         {hasContent && (
           <span className={`${styles.visibility} ${visible ? styles.visibilityOn : styles.visibilityOff}`}>
-            <span aria-hidden="true">{visible ? '👁️' : '🙈'}</span>
+            <Icon icon={visible ? Eye : EyeOff} size={16} />
             {visible ? 'Publié' : 'Brouillon — invisible pour l’élève'}
           </span>
         )}
         {studentHref ? (
           <Link href={studentHref} className={`${styles.metaPill} ${styles.studentLink}`}>
-            <span aria-hidden="true">👤</span>
+            <Icon icon={User} size={16} />
             <span className={styles.metaText}>{lesson.student_name || 'Élève'}</span>
           </Link>
         ) : (
           <span className={styles.metaPill}>
-            <span aria-hidden="true">👤</span>
+            <Icon icon={User} size={16} />
             <span className={styles.metaText}>{lesson.student_name || 'Élève supprimé'}</span>
           </span>
         )}
         {hasContent && (
           <span className={styles.metaPill}>
-            <span aria-hidden="true">🧩</span> {plural(exerciseCount, 'exercice')}
+            <Icon icon={ListChecks} size={16} /> {plural(exerciseCount, 'exercice')}
           </span>
         )}
         {lesson.source_kind === 'import' && (
           <span className={styles.metaPill} title={lesson.source_name || undefined}>
-            <span aria-hidden="true">📄</span>
+            <Icon icon={FileText} size={16} />
             <span className={styles.metaText}>Importée{lesson.source_name ? ` · ${lesson.source_name}` : ''}</span>
           </span>
         )}
@@ -221,7 +223,7 @@ const LessonHeader = forwardRef(function LessonHeader(
       <div className={`${styles.actions} no-print`}>
         {hasContent && lesson.hidden && (
           <button type="button" className={`${ui.btn} ${ui.green} ${styles.actionBtn}`} onClick={onPublish} disabled={publishing}>
-            {publishing ? <span className={bits.spinner} aria-hidden="true" /> : <span aria-hidden="true">🚀</span>}
+            {publishing ? <span className={bits.spinner} aria-hidden="true" /> : <Icon icon={Send} size={18} />}
             Publier pour l&apos;élève
           </button>
         )}
@@ -235,7 +237,7 @@ const LessonHeader = forwardRef(function LessonHeader(
             onFocus={onTestIntent}
             disabled={exerciseCount === 0}
           >
-            <span aria-hidden="true">▶️</span> Tester les exercices
+            <Icon icon={Play} size={18} /> Tester les exercices
           </button>
         )}
         <button
@@ -245,7 +247,7 @@ const LessonHeader = forwardRef(function LessonHeader(
           disabled={busy || (generating && !stale)}
           data-lesson-action="regenerate"
         >
-          <span aria-hidden="true">🔄</span> Régénérer
+          <Icon icon={RefreshCw} size={18} /> Régénérer
         </button>
       </div>
 
@@ -258,7 +260,7 @@ const LessonHeader = forwardRef(function LessonHeader(
             onClick={onUnpublish}
             disabled={publishing}
           >
-            <span aria-hidden="true">🙈</span> Retirer de l&apos;espace élève
+            <Icon icon={EyeOff} size={16} /> Retirer de l&apos;espace élève
           </button>
         )}
         <button
@@ -267,7 +269,7 @@ const LessonHeader = forwardRef(function LessonHeader(
           onClick={onDelete}
           disabled={busy || (generating && !stale)}
         >
-          <span aria-hidden="true">🗑️</span> Supprimer
+          <Icon icon={Trash2} size={16} /> Supprimer
         </button>
       </div>
 

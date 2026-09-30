@@ -49,6 +49,10 @@
   font-weight: 900;
 }
 
+.inlineIcon {
+  vertical-align: -0.15em;
+}
+
 .allGood,
 .empty {
   margin: 0;

@@ -15,6 +15,8 @@ import { parseLocalDate, studentDisplayName } from '@/components/teacher/format'
 import { useApiResource } from '@/components/teacher/hooks'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/teacher/Dashboard.module.css'
+import { CircleAlert, Search, Sparkles, UserPlus } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 // Case- and accent-insensitive search
 function normalize(text) {
@@ -93,16 +95,16 @@ export default function TeacherDashboard() {
       <header className={styles.header}>
         <div className={styles.greeting}>
           <h1 className={styles.hello}>
-            Bonjour{first ? ` ${first}` : ''} <span aria-hidden="true">👋</span>
+            Bonjour{first ? ` ${first}` : ''}
           </h1>
           <p className={styles.tagline}>Prêt à préparer la prochaine leçon ?</p>
         </div>
         <div className={styles.ctas}>
           <button type="button" className={`${ui.btn} ${ui.ghost} ${styles.cta}`} onClick={() => setInviteOpen(true)}>
-            <span aria-hidden="true">✉️</span> Inviter un élève
+            <Icon icon={UserPlus} size={20} /> Inviter un élève
           </button>
           <Link href="/teacher/lessons/new" className={`${ui.btn} ${ui.green} ${styles.cta}`}>
-            <span aria-hidden="true">✨</span> Nouvelle leçon
+            <Icon icon={Sparkles} size={20} /> Nouvelle leçon
           </Link>
         </div>
       </header>
@@ -126,7 +128,7 @@ export default function TeacherDashboard() {
         {studentsRes.error ? (
           <PageState
             role="alert"
-            icon="😕"
+            icon={CircleAlert}
             title="Impossible de charger tes élèves"
             text={studentsRes.error}
             onRetry={studentsRes.reload}
@@ -165,20 +167,20 @@ export default function TeacherDashboard() {
                 </>
               ) : !hasStudents ? (
                 <PageState
-                  icon="👋"
+                  icon={UserPlus}
                   tone="yellow"
                   headingLevel={3}
                   title="Aucun élève pour l’instant"
                   text="Invite ton premier élève : tu recevras un lien à lui envoyer dans le chat Preply."
                   action={
                     <button type="button" className={`${ui.btn} ${ui.green}`} onClick={() => setInviteOpen(true)}>
-                      <span aria-hidden="true">✉️</span> Inviter un élève
+                      <Icon icon={UserPlus} size={20} /> Inviter un élève
                     </button>
                   }
                 />
               ) : filtered.length === 0 ? (
                 <PageState
-                  icon="🔎"
+                  icon={Search}
                   tone="purple"
                   headingLevel={3}
                   title="Aucun élève trouvé"

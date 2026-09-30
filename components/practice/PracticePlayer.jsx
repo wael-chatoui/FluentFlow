@@ -29,6 +29,8 @@ import {
 import styles from '@/components/practice/PracticePlayer.module.css'
 import { playSound } from '@/utils/sound'
 import SoundToggle from '@/components/SoundToggle'
+import { BookOpen, Check, Eye, HistoryIcon, ListChecks, RefreshCw, RotateCcw, X } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 /*
  * Duolingo-style practice flow (student UI, English). Client-only: render it after
@@ -115,7 +117,7 @@ function bootRun(items, resumeKey, preview) {
 function PreviewBanner() {
   return (
     <p className={styles.previewBanner} lang="fr">
-      <span aria-hidden="true">👁️</span> Aperçu — rien n’est enregistré
+      <Icon icon={Eye} size={18} /> Aperçu — rien n’est enregistré
     </p>
   )
 }
@@ -411,9 +413,7 @@ function PracticeRun({ exercises, title, onComplete, onExit, onRestart, onPlayAg
           aria-label={closeLabel}
           lang={preview ? 'fr' : undefined}
         >
-          <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
-            <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-          </svg>
+          <Icon icon={X} size={24} strokeWidth={2.5} />
         </button>
         <div
           className={styles.progress}
@@ -434,7 +434,7 @@ function PracticeRun({ exercises, title, onComplete, onExit, onRestart, onPlayAg
           {outdated && (
             <div className={styles.notice}>
               <span className={styles.noticeEmoji} aria-hidden="true">
-                🔄
+                <Icon icon={RefreshCw} size={38} />
               </span>
               <h1 ref={outdatedHeadingRef} tabIndex={-1} className={styles.endTitle}>
                 This lesson was just updated
@@ -462,22 +462,26 @@ function PracticeRun({ exercises, title, onComplete, onExit, onRestart, onPlayAg
                 <div className={styles.tags}>
                   {state.resumed && (
                     <p className={styles.resumedTag}>
-                      <span aria-hidden="true">↺ </span>Welcome back — picking up where you left off
+                      <Icon icon={HistoryIcon} size={15} />
+                      Welcome back — picking up where you left off
                     </p>
                   )}
                   {state.retry && (
                     <p className={styles.retryBadge}>
-                      <span aria-hidden="true">↻ </span>Previous mistake
+                      <Icon icon={RotateCcw} size={15} />
+                      Previous mistake
                     </p>
                   )}
                   {state.retry && save.status === 'saved' && (
                     <p className={styles.savedTag}>
-                      <span aria-hidden="true">✓ </span>Score saved
+                      <Icon icon={Check} size={15} />
+                      Score saved
                     </p>
                   )}
                   {typeof current.lessonTitle === 'string' && current.lessonTitle && (
                     <p className={styles.fromTag}>
-                      <span aria-hidden="true">📘 </span>From: {current.lessonTitle}
+                      <Icon icon={BookOpen} size={15} />
+                      From: {current.lessonTitle}
                     </p>
                   )}
                 </div>
@@ -628,7 +632,7 @@ function EmptyPlayer({ preview, exitLabel, onExit }) {
         <div className={cx(styles.content, styles.emptyContent)}>
           <div className={styles.empty} lang={preview ? 'fr' : undefined}>
             <span className={styles.emptyEmoji} aria-hidden="true">
-              🧩
+              <Icon icon={ListChecks} size={38} />
             </span>
             <h1 className={styles.emptyTitle}>{preview ? 'Aucun exercice à tester' : 'No exercises to practice'}</h1>
             <p className={styles.emptyText}>

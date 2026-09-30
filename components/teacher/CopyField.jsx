@@ -3,6 +3,8 @@ import { copyText } from '@/components/teacher/clipboard'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/CopyField.module.css'
+import { Check, Copy } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 /**
  * "Copier" button with a short "Copié ✓" confirmation (announced to screen readers).
@@ -28,7 +30,7 @@ export function CopyButton({ text, label = 'Copier', srLabel, className = '', to
         className={`${ui.btn} ${ui.small} ${bits.tap} ${tone === 'blue' ? ui.blue : bits.blueGhost} ${className}`}
         onClick={copy}
       >
-        <span aria-hidden="true">{state === 'ok' ? '✓' : '📋'}</span> {state === 'ok' ? 'Copié' : label}
+        <Icon icon={state === 'ok' ? Check : Copy} size={18} /> {state === 'ok' ? 'Copié' : label}
         {srLabel && <span className="sr-only"> {srLabel}</span>}
       </button>
       <span className="sr-only" role="status" aria-live="polite">

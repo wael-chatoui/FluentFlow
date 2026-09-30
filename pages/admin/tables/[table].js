@@ -11,9 +11,11 @@ import { cx, formatNumber } from '@/components/admin/common/format'
 import useUrlQuery, { toPage, toQueryString } from '@/components/admin/tables/useUrlQuery'
 import ValueCell from '@/components/admin/tables/ValueCell'
 import ValueDialog from '@/components/admin/tables/ValueDialog'
-import { TABLE_ICONS, downloadText, rowLink, toCsv } from '@/components/admin/tables/tableMeta'
+import { downloadText, rowLink, toCsv } from '@/components/admin/tables/tableMeta'
 import admin from '@/components/admin/common/admin.module.css'
 import ui from '@/components/ui/ui.module.css'
+import { ArrowLeft, CircleHelp, Download } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const PER_PAGE = 50
 const DEFAULTS = { q: '', sort: '', dir: 'desc', page: '1' }
@@ -99,11 +101,11 @@ export default function AdminTableExplorerPage() {
 
   return (
     <AdminShell
-      title={`${TABLE_ICONS[table] || '🗂️'} ${title}`}
+      title={title}
       actions={
         <>
           <Link href="/admin/tables" className={cx(ui.btn, ui.small, admin.tap)}>
-            <span aria-hidden="true">←</span> Tables
+            <Icon icon={ArrowLeft} size={16} /> Tables
           </Link>
           <button
             type="button"
@@ -111,14 +113,16 @@ export default function AdminTableExplorerPage() {
             onClick={exportCsv}
             disabled={!current || rows.length === 0}
           >
-            <span aria-hidden="true">⬇️</span> Exporter CSV
+            <Icon icon={Download} size={16} /> Exporter CSV
           </button>
         </>
       }
     >
       {router.isReady && !validTable ? (
         <div className={cx(admin.section, admin.errorState)}>
-          <span className={admin.stateIcon} aria-hidden="true">🤔</span>
+          <span className={admin.stateIcon} aria-hidden="true">
+            <Icon icon={CircleHelp} size={28} />
+          </span>
           <p>Nom de table invalide.</p>
         </div>
       ) : (

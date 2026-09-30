@@ -29,6 +29,8 @@ import { LEVELS, safeDriveUrl } from '@/utils/lesson/schema'
 import ui from '@/components/ui/ui.module.css'
 import s from '@/components/admin/common/admin.module.css'
 import u from '@/components/admin/common/users.module.css'
+import { ArrowLeft, ArrowRight, Ban, BookOpen, Check, CircleAlert, CircleCheck, CircleHelp, Dumbbell, ExternalLink, Folder, GraduationCap, Heart, Hourglass, IdCard, KeyRound, LinkIcon, Lock, LockOpen, Presentation, RefreshCw, RotateCcw, Settings, ShieldCheck, Sparkles, Target, Trash2, TriangleAlert, X } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 const PROVIDER_LABELS = { email: 'E-mail', google: 'Google', apple: 'Apple', github: 'GitHub', azure: 'Microsoft' }
 const PROFILE_FIELDS = ['fullName', 'level', 'goals', 'interests', 'driveFolderUrl', 'notes', 'aiContext']
@@ -94,7 +96,7 @@ function UserHeader({ user, profile, isSelf }) {
             <UserRolePills user={user} />
             {providers.map((p) => (
               <StatusPill key={p} tone="gray">
-                <span aria-hidden="true">🔑</span> {PROVIDER_LABELS[p] || p}
+                <Icon icon={KeyRound} size={13} /> {PROVIDER_LABELS[p] || p}
               </StatusPill>
             ))}
           </span>
@@ -128,7 +130,7 @@ function UserHeader({ user, profile, isSelf }) {
 function PendingBanner({ user, busy, onApprove }) {
   return (
     <div className={cx(s.alert, s.alertWarn)} role="status">
-      <span aria-hidden="true">⏳</span>
+      <Icon icon={Hourglass} size={20} />
       <span className={s.alertText}>
         <strong>En attente d’approbation.</strong> Ce compte s’est inscrit seul
         {user.providers?.includes('google') ? ' (Google)' : ''} : tant qu’il n’est pas approuvé, il ne voit qu’une page
@@ -176,7 +178,7 @@ function AccountSection({ user, profile, isSelf, busyKey, onSignInLink, askConfi
             ),
             confirmLabel: 'Donner le rôle prof',
             tone: 'primary',
-            icon: '🧑‍🏫',
+            icon: Presentation,
             key: 'role',
             body: { role },
             success: 'Rôle mis à jour : Prof',
@@ -192,7 +194,7 @@ function AccountSection({ user, profile, isSelf, busyKey, onSignInLink, askConfi
             ),
             confirmLabel: 'Repasser en élève',
             tone: 'danger',
-            icon: '🎓',
+            icon: GraduationCap,
             key: 'role',
             body: { role },
             success: 'Rôle mis à jour : Élève',
@@ -204,7 +206,7 @@ function AccountSection({ user, profile, isSelf, busyKey, onSignInLink, askConfi
     <section className={s.section} aria-labelledby={`${uid}-title`}>
       <div className={s.sectionHead}>
         <h2 id={`${uid}-title`} className={s.sectionTitle}>
-          <span aria-hidden="true">⚙️</span> Compte
+          <Icon icon={Settings} size={20} /> Compte
         </h2>
       </div>
       <div className={u.accountRows}>
@@ -271,7 +273,7 @@ function AccountSection({ user, profile, isSelf, busyKey, onSignInLink, askConfi
                       : 'Cette personne n’aura plus accès au back office.',
                     confirmLabel: next ? 'Donner l’accès' : 'Retirer l’accès',
                     tone: next ? 'primary' : 'danger',
-                    icon: '🛠️',
+                    icon: ShieldCheck,
                     key: 'admin',
                     body: { isAdmin: next },
                     success: next ? 'Accès admin accordé' : 'Accès admin retiré',
@@ -303,7 +305,7 @@ function AccountSection({ user, profile, isSelf, busyKey, onSignInLink, askConfi
               onClick={onSignInLink}
             >
               {busyKey === 'link' && <span className={s.spinner} aria-hidden="true" />}
-              <span aria-hidden="true">🔗</span> Copier un lien de connexion
+              <Icon icon={LinkIcon} size={16} /> Copier un lien de connexion
             </button>
           </div>
         </div>
@@ -333,7 +335,7 @@ function AccountSection({ user, profile, isSelf, busyKey, onSignInLink, askConfi
                         message: 'La personne pourra de nouveau se connecter.',
                         confirmLabel: 'Débannir',
                         tone: 'primary',
-                        icon: '🔓',
+                        icon: LockOpen,
                         key: 'ban',
                         body: { banned: false },
                         success: 'Compte débanni',
@@ -348,7 +350,7 @@ function AccountSection({ user, profile, isSelf, busyKey, onSignInLink, askConfi
                         ),
                         confirmLabel: 'Bannir',
                         tone: 'danger',
-                        icon: '⛔',
+                        icon: Ban,
                         key: 'ban',
                         body: { banned: true },
                         success: 'Compte banni',
@@ -383,7 +385,7 @@ function AccountSection({ user, profile, isSelf, busyKey, onSignInLink, askConfi
                   message: 'La personne devra refaire le questionnaire d’accueil à sa prochaine connexion.',
                   confirmLabel: 'Réinitialiser',
                   tone: 'primary',
-                  icon: '🔄',
+                  icon: RefreshCw,
                   key: 'onboarding',
                   body: { resetOnboarding: true },
                   success: 'Onboarding réinitialisé',
@@ -492,7 +494,7 @@ function ProfileSection({ userId, profile, notes, aiContext, onSaved, onDirtyCha
     <section className={s.section} aria-labelledby={id('title')}>
       <div className={s.sectionHead}>
         <h2 id={id('title')} className={s.sectionTitle}>
-          <span aria-hidden="true">📝</span> Profil
+          <Icon icon={IdCard} size={20} /> Profil
         </h2>
       </div>
       <form className={u.form} onSubmit={handleSubmit} noValidate>
@@ -529,7 +531,7 @@ function ProfileSection({ userId, profile, notes, aiContext, onSaved, onDirtyCha
 
           <div className={s.field}>
             <label htmlFor={id('goals')} className={s.label}>
-              <span aria-hidden="true">🎯 </span>Objectifs
+              <Icon icon={Target} size={16} className={s.inlineIcon} /> Objectifs
             </label>
             <textarea
               id={id('goals')}
@@ -543,7 +545,7 @@ function ProfileSection({ userId, profile, notes, aiContext, onSaved, onDirtyCha
 
           <div className={s.field}>
             <label htmlFor={id('interests')} className={s.label}>
-              <span aria-hidden="true">💡 </span>Centres d&apos;intérêt
+              <Icon icon={Heart} size={16} className={s.inlineIcon} /> Centres d&apos;intérêt
             </label>
             <textarea
               id={id('interests')}
@@ -557,7 +559,7 @@ function ProfileSection({ userId, profile, notes, aiContext, onSaved, onDirtyCha
 
           <div className={s.field}>
             <label htmlFor={id('drive')} className={s.label}>
-              <span aria-hidden="true">📁 </span>Dossier Google Drive
+              <Icon icon={Folder} size={16} className={s.inlineIcon} /> Dossier Google Drive
             </label>
             <input
               id={id('drive')}
@@ -582,7 +584,7 @@ function ProfileSection({ userId, profile, notes, aiContext, onSaved, onDirtyCha
               <p id={id('drive-hint')} className={s.hint}>
                 {safeDriveUrl(values.driveFolderUrl.trim()) ? (
                   <a href={safeDriveUrl(values.driveFolderUrl.trim())} target="_blank" rel="noopener noreferrer" className={s.link}>
-                    Ouvrir le dossier ↗
+                    Ouvrir le dossier <Icon icon={ExternalLink} size={16} className={s.inlineIcon} />
                   </a>
                 ) : (
                   'Laisse vide pour retirer le lien.'
@@ -593,7 +595,7 @@ function ProfileSection({ userId, profile, notes, aiContext, onSaved, onDirtyCha
 
           <div className={s.field}>
             <label htmlFor={id('ai')} className={s.label}>
-              <span aria-hidden="true">🤖 </span>Contexte pour l&apos;IA
+              <Icon icon={Sparkles} size={16} className={s.inlineIcon} /> Contexte pour l&apos;IA
             </label>
             <textarea
               id={id('ai')}
@@ -612,7 +614,7 @@ function ProfileSection({ userId, profile, notes, aiContext, onSaved, onDirtyCha
 
           <div className={cx(s.field, u.private)}>
             <label htmlFor={id('notes')} className={s.label}>
-              <span aria-hidden="true">🔒 </span>Notes privées
+              <Icon icon={Lock} size={16} className={s.inlineIcon} /> Notes privées
             </label>
             <textarea
               id={id('notes')}
@@ -631,7 +633,7 @@ function ProfileSection({ userId, profile, notes, aiContext, onSaved, onDirtyCha
 
         {error && (
           <div className={s.alert} role="alert">
-            <span aria-hidden="true">⚠️</span>
+            <Icon icon={CircleAlert} size={20} />
             <span className={s.alertText}>{error}</span>
           </div>
         )}
@@ -641,7 +643,9 @@ function ProfileSection({ userId, profile, notes, aiContext, onSaved, onDirtyCha
             {saving ? (
               'Enregistrement…'
             ) : justSaved && !dirty ? (
-              <span className={u.saved}>Enregistré ✓</span>
+              <span className={u.saved}>
+                Enregistré <Icon icon={Check} size={15} strokeWidth={3} className={s.inlineIcon} />
+              </span>
             ) : dirty ? (
               <span className={u.dirty}>Modifications non enregistrées</span>
             ) : null}
@@ -728,7 +732,15 @@ const REVIEW_COLUMNS = [
     key: 'correct',
     label: 'Résultat',
     render: (r) =>
-      r.correct ? <StatusPill tone="green">✓ Correct</StatusPill> : <StatusPill tone="red">✗ Incorrect</StatusPill>,
+      r.correct ? (
+        <StatusPill tone="green">
+          <Icon icon={Check} size={13} strokeWidth={3} /> Correct
+        </StatusPill>
+      ) : (
+        <StatusPill tone="red">
+          <Icon icon={X} size={13} strokeWidth={3} /> Incorrect
+        </StatusPill>
+      ),
   },
   {
     key: 'created_at',
@@ -747,7 +759,7 @@ function ListSection({ icon, title, count, sub, action, children }) {
     <section className={s.section} aria-labelledby={uid}>
       <div className={s.sectionHead}>
         <h2 id={uid} className={s.sectionTitle}>
-          <span aria-hidden="true">{icon}</span> {title}
+          <Icon icon={icon} size={20} /> {title}
           {typeof count === 'number' && <StatusPill tone="gray">{formatNumber(count)}</StatusPill>}
         </h2>
         {sub && <p className={s.sectionSub}>{sub}</p>}
@@ -931,7 +943,9 @@ export default function AdminUserDetail() {
   if (router.isReady && !idOk) {
     content = (
       <div className={cx(s.section, s.errorState)}>
-        <span className={s.stateIcon} aria-hidden="true">🤷</span>
+        <span className={s.stateIcon} aria-hidden="true">
+          <Icon icon={CircleHelp} size={28} />
+        </span>
         <p>Identifiant d&apos;utilisateur invalide.</p>
         <Link href="/admin/users" className={cx(ui.btn, ui.small, s.tap, s.blueGhost)}>
           Retour aux utilisateurs
@@ -941,7 +955,9 @@ export default function AdminUserDetail() {
   } else if (error && !data) {
     content = (
       <div className={cx(s.section, s.errorState)} role="alert">
-        <span className={s.stateIcon} aria-hidden="true">⚠️</span>
+        <span className={s.stateIcon} aria-hidden="true">
+          <Icon icon={CircleAlert} size={28} />
+        </span>
         <p>Impossible de charger cet utilisateur : {error}</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
           <button type="button" className={cx(ui.btn, ui.small, s.tap, ui.blue)} onClick={reload}>
@@ -960,7 +976,7 @@ export default function AdminUserDetail() {
       <div className={s.stack}>
         {error && (
           <div className={s.alert} role="alert">
-            <span aria-hidden="true">⚠️</span>
+            <Icon icon={CircleAlert} size={20} />
             <span className={s.alertText}>Actualisation impossible : {error}</span>
             <button type="button" className={cx(ui.btn, ui.small, s.tap, s.redGhost)} onClick={reload}>
               Réessayer
@@ -996,13 +1012,13 @@ export default function AdminUserDetail() {
         </div>
 
         <ListSection
-          icon="📚"
+          icon={BookOpen}
           title="Leçons"
           count={lessons.length}
           action={
             lessons.length > 0 && (
               <Link href={`/admin/lessons?studentId=${user.id}`} className={s.link}>
-                Voir dans Leçons →
+                Voir dans Leçons <Icon icon={ArrowRight} size={15} className={s.inlineIcon} />
               </Link>
             )
           }
@@ -1018,7 +1034,7 @@ export default function AdminUserDetail() {
         </ListSection>
 
         <div className={u.columns}>
-          <ListSection icon="🏋️" title="Sessions d'exercices" count={sessions.length} sub="50 dernières">
+          <ListSection icon={Dumbbell} title="Sessions d'exercices" count={sessions.length} sub="50 dernières">
             <DataTable
               columns={SESSION_COLUMNS}
               rows={sessions}
@@ -1029,7 +1045,7 @@ export default function AdminUserDetail() {
             />
           </ListSection>
           <ListSection
-            icon="🔁"
+            icon={RotateCcw}
             title="Révisions"
             count={reviews.length}
             sub={reviews.length ? `${correctCount}/${reviews.length} correctes · 50 dernières` : '50 dernières'}
@@ -1050,7 +1066,7 @@ export default function AdminUserDetail() {
         <section className={cx(s.section, u.dangerZone)} aria-labelledby="danger-title">
           <div className={s.sectionHead}>
             <h2 id="danger-title" className={cx(s.sectionTitle, u.sectionTitleDanger)}>
-              <span aria-hidden="true">☠️</span> Zone dangereuse
+              <Icon icon={TriangleAlert} size={20} /> Zone dangereuse
             </h2>
           </div>
           <div className={u.dangerRow}>
@@ -1067,7 +1083,7 @@ export default function AdminUserDetail() {
               disabled={isSelf || deleting || Boolean(busyKey)}
               onClick={() => setDeleteOpen(true)}
             >
-              <span aria-hidden="true">🗑️</span> {user.approved === false ? 'Refuser et supprimer' : 'Supprimer le compte'}
+              <Icon icon={Trash2} size={16} /> {user.approved === false ? 'Refuser et supprimer' : 'Supprimer le compte'}
             </button>
           </div>
         </section>
@@ -1080,7 +1096,7 @@ export default function AdminUserDetail() {
       title={title}
       actions={
         <Link href="/admin/users" className={cx(ui.btn, ui.small, s.tap, s.blueGhost)}>
-          ← Utilisateurs
+          <Icon icon={ArrowLeft} size={16} /> Utilisateurs
         </Link>
       }
     >
@@ -1102,7 +1118,7 @@ export default function AdminUserDetail() {
       <Modal
         open={Boolean(signInLink)}
         title="Lien de connexion"
-        icon="🔗"
+        icon={LinkIcon}
         onClose={() => setSignInLink(null)}
         returnFocusRef={linkTriggerRef}
         actions={
@@ -1116,7 +1132,7 @@ export default function AdminUserDetail() {
             <p style={{ margin: 0 }}>
               {signInLink.copied ? (
                 <>
-                  <span aria-hidden="true">✅</span> Lien copié. Colle-le à <strong>{user?.email}</strong> (par exemple
+                  <Icon icon={CircleCheck} size={16} className={s.inlineIcon} /> Lien copié. Colle-le à <strong>{user?.email}</strong> (par exemple
                   dans le chat Preply) : il ouvre son compte sans mot de passe.
                 </>
               ) : (
@@ -1146,7 +1162,7 @@ export default function AdminUserDetail() {
           }
           confirmLabel="Supprimer définitivement"
           tone="danger"
-          icon="🗑️"
+          icon={Trash2}
           requireText={user.email}
           busy={deleting}
           onConfirm={handleDelete}

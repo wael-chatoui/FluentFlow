@@ -13,6 +13,10 @@
   scroll-margin-top: 80px;
 }
 
+.titleIcon {
+  vertical-align: -0.15em;
+}
+
 .title {
   margin: 0;
   font-size: 1.2rem;

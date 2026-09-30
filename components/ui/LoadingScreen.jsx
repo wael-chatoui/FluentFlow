@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { Languages } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 import styles from '@/components/ui/LoadingScreen.module.css'
 
 const DEFAULT_LABEL = { en: 'Loading…', fr: 'Chargement…' }
@@ -27,7 +29,9 @@ export default function LoadingScreen({ label, message = '' }) {
     <div className={styles.screen}>
       <div className={styles.inner}>
         <div className={styles.art} aria-hidden="true">
-          <span className={styles.tile}>🇫🇷</span>
+          <span className={styles.tile}>
+            <Icon icon={Languages} size={40} />
+          </span>
           <span className={styles.shadow} />
         </div>
         <span className={styles.dots} aria-hidden="true">

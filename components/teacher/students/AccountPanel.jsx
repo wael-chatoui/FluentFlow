@@ -7,6 +7,8 @@ import { useMountedRef } from '@/components/teacher/hooks'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/students/AccountPanel.module.css'
+import { Check, CircleAlert, KeyRound, LinkIcon } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 /**
  * « Compte » block of the student page: invitation / last sign-in, and a fresh
@@ -44,7 +46,7 @@ export default function AccountPanel({ student }) {
   return (
     <section id="compte" tabIndex={-1} className={`${ui.card} ${styles.panel}`} aria-labelledby="account-title">
       <h2 id="account-title" className={`${ui.sectionTitle} ${styles.title}`}>
-        <span aria-hidden="true">🔑</span> Compte
+        <Icon icon={KeyRound} size={22} /> Compte
       </h2>
 
       <dl className={styles.facts}>
@@ -75,7 +77,7 @@ export default function AccountPanel({ student }) {
         chat Preply.
       </p>
       <button type="button" className={`${ui.btn} ${bits.blueGhost} ${styles.button}`} onClick={createLink} disabled={busy} aria-busy={busy || undefined}>
-        {busy ? <span className={bits.spinner} aria-hidden="true" /> : <span aria-hidden="true">🔗</span>}
+        {busy ? <span className={bits.spinner} aria-hidden="true" /> : <Icon icon={LinkIcon} size={20} />}
         {link ? 'Nouveau lien de connexion' : 'Copier un lien de connexion'}
       </button>
       <p className="sr-only" role="status" aria-live="polite">
@@ -84,7 +86,9 @@ export default function AccountPanel({ student }) {
 
       {error && (
         <div className={`${bits.alert} ${bits.error}`} role="alert">
-          <span className={bits.alertIcon} aria-hidden="true">⚠️</span>
+          <span className={bits.alertIcon} aria-hidden="true">
+            <Icon icon={CircleAlert} size={20} />
+          </span>
           <span className={bits.alertBody}>{error}</span>
         </div>
       )}
@@ -92,7 +96,7 @@ export default function AccountPanel({ student }) {
         <div className={styles.result}>
           {copied && (
             <p className={styles.copied}>
-              <span aria-hidden="true">✓ </span>Lien copié : colle-le dans le chat Preply, ou copie le message ci-dessous.
+              <Icon icon={Check} size={16} strokeWidth={3} className={styles.inlineIcon} /> Lien copié : colle-le dans le chat Preply, ou copie le message ci-dessous.
             </p>
           )}
           <LinkShare kind={state === 'invited' ? 'invite' : 'signin'} name={name} email={student.email} link={link} />

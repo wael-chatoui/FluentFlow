@@ -10,6 +10,8 @@ import { SOURCE_LIMITS, formatCount, sourcesError } from '@/components/teacher/f
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/lessons/RegeneratePanel.module.css'
+import { CircleAlert, FileText, Mic, Palette, RefreshCw } from 'lucide-react'
+import Icon from '@/components/ui/Icon'
 
 /**
  * « Modifier les sources et régénérer »: the stored transcript / Canva notes (or, for an
@@ -60,7 +62,7 @@ export default function RegeneratePanel({ lesson, busy = false, error, onSubmit,
   return (
     <section className={styles.panel} aria-labelledby={`${uid}-title`}>
       <h2 id={`${uid}-title`} ref={headingRef} tabIndex={-1} className={styles.title}>
-        <span aria-hidden="true">🔄 </span>
+        <Icon icon={RefreshCw} size={20} className={styles.titleIcon} />{' '}
         {imported ? 'Régénérer la leçon' : 'Modifier les sources et régénérer'}
       </h2>
       <p className={styles.intro}>
@@ -74,7 +76,7 @@ export default function RegeneratePanel({ lesson, busy = false, error, onSubmit,
           <legend className="sr-only">Sources et options</legend>
           {imported ? (
             <p className={styles.document}>
-              <span aria-hidden="true">📄 </span>
+              <Icon icon={FileText} size={16} className={styles.titleIcon} />{' '}
               <strong>{lesson.source_name || 'Document importé'}</strong>
               {lesson.source_text ? ` — ${formatCount(lesson.source_text.length)} caractères` : ''}
               <span className={styles.documentNote}>
@@ -85,7 +87,7 @@ export default function RegeneratePanel({ lesson, busy = false, error, onSubmit,
             <>
               <SourceField
                 label="Transcription"
-                icon="🎙️"
+                icon={Mic}
                 value={transcript}
                 max={SOURCE_LIMITS.transcript}
                 onChange={setTranscript}
@@ -95,7 +97,7 @@ export default function RegeneratePanel({ lesson, busy = false, error, onSubmit,
               />
               <SourceField
                 label="Notes Canva"
-                icon="🎨"
+                icon={Palette}
                 value={canva}
                 max={SOURCE_LIMITS.canva}
                 onChange={setCanva}
@@ -105,7 +107,7 @@ export default function RegeneratePanel({ lesson, busy = false, error, onSubmit,
               />
               {attempted && sourceError && (
                 <p id={errorId} className={bits.fieldError} role="alert">
-                  <span aria-hidden="true">⚠️</span> {sourceError}
+                  <Icon icon={CircleAlert} size={16} /> {sourceError}
                 </p>
               )}
             </>
@@ -122,7 +124,9 @@ export default function RegeneratePanel({ lesson, busy = false, error, onSubmit,
 
         {error && (
           <div className={`${bits.alert} ${bits.error}`} role="alert">
-            <span className={bits.alertIcon} aria-hidden="true">⚠️</span>
+            <span className={bits.alertIcon} aria-hidden="true">
+              <Icon icon={CircleAlert} size={20} />
+            </span>
             <span className={bits.alertBody}>{error}</span>
           </div>
         )}
@@ -132,7 +136,7 @@ export default function RegeneratePanel({ lesson, busy = false, error, onSubmit,
             Annuler
           </button>
           <button type="submit" className={`${ui.btn} ${ui.blue} ${styles.action}`} disabled={busy} aria-busy={busy || undefined}>
-            {busy ? <span className={bits.spinner} aria-hidden="true" /> : <span aria-hidden="true">🔄</span>}
+            {busy ? <span className={bits.spinner} aria-hidden="true" /> : <Icon icon={RefreshCw} size={18} />}
             {busy ? 'Lancement…' : 'Régénérer'}
           </button>
         </div>
