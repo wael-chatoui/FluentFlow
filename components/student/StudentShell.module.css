@@ -1,0 +1,38 @@
+/* Mistake count on the Review tab icon (notification-style badge) */
+.iconWrap {
+  position: relative;
+  display: inline-block;
+}
+
+.badge {
+  position: absolute;
+  top: -8px;
+  right: -12px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border: 2px solid var(--st-surface);
+  border-radius: 999px;
+  background: var(--st-red-strong);
+  color: var(--st-on-color);
+  font-size: 0.68rem;
+  font-weight: 900;
+  line-height: 16px;
+  letter-spacing: 0;
+  text-align: center;
+  text-transform: none;
+  white-space: nowrap;
+}
+
+/* Desktop top nav: smaller icon, keep the badge clear of the label */
+@media (min-width: 768px) {
+  .badge {
+    top: -9px;
+    right: -9px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    line-height: 14px;
+    font-size: 0.62rem;
+  }
+}

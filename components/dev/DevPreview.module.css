@@ -47,24 +47,48 @@
   flex: 1 1 auto;
 }
 
+.options {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0 0 1.25rem;
+  padding: 0.75rem 1rem 1rem;
+  background: var(--st-surface);
+  border: 2px solid var(--st-line);
+  border-radius: var(--st-radius);
+}
+
+.legend {
+  padding: 0 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: var(--st-ink);
+}
+
+.help {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--st-ink-soft);
+}
+
 .toggle {
-  flex: 1 1 100%;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 0.6rem;
   min-height: 44px;
   padding: 0 0.25rem;
   font-size: 0.95rem;
   font-weight: 800;
-  color: var(--st-ink-soft);
+  color: var(--st-ink);
   cursor: pointer;
 }
 
 .checkbox {
+  flex: none;
   width: 22px;
   height: 22px;
   margin: 0;
-  accent-color: var(--st-red);
+  accent-color: var(--st-blue-dark);
   cursor: pointer;
 }
 
@@ -101,8 +125,15 @@
     flex-wrap: nowrap;
   }
 
-  .actions > button,
-  .toggle {
+  .actions > button {
     flex: none;
+  }
+
+  .options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .help {
+    grid-column: 1 / -1;
   }
 }

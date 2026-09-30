@@ -4,9 +4,11 @@ import { useRouter } from 'next/router'
 import { useAuth } from '@/components/AuthProvider'
 import { useSoundEnabled } from '@/utils/sound'
 import StudentShell from '@/components/student/StudentShell'
+import useMe, { setMeProfile } from '@/components/student/useMe'
+import { markSigningOut } from '@/components/student/cache'
 import ProfileForm from '@/components/student/profile/ProfileForm'
 import DeleteAccountDialog from '@/components/student/profile/DeleteAccountDialog'
-import { levelShort } from '@/components/student/profile/levels'
+import { levelShort } from '@/utils/profile/levels'
 import { ErrorCard } from '@/components/student/lessons/StatusViews'
 import { api } from '@/utils/apiClient'
 import { safeHttpsUrl } from '@/utils/lesson/schema'
@@ -31,13 +33,13 @@ function ProfileSkeleton() {
 
 export default function StudentProfilePage() {
   const router = useRouter()
-  const { user, signOut, refreshUser } = useAuth()
-  const [state, setState] = useState({ status: 'loading', me: null, error: '' })
-  const [reloadKey, setReloadKey] = useState(0)
+  const { user, signOut } = useAuth()
+  const { me, error: loadError, reload } = useMe({ maxAge: 0 }) // fresh values for the form
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const [accountError, setAccountError] = useState('')
+  const [leaving, setLeaving] = useState(false) // signing out / deleting: no unsaved-changes prompt
   const busyRef = useRef(false)
   const mountedRef = useRef(true)
   const deleteBtnRef = useRef(null)
@@ -51,43 +53,16 @@ export default function StudentProfilePage() {
     }
   }, [])
 
-  useEffect(() => {
-    const controller = new AbortController()
-    const { signal } = controller
-    setState((s) => ({ ...s, status: 'loading', error: '' }))
-
-    api('/api/me', { signal })
-      .then((me) => {
-        if (signal.aborted) return
-        if (me?.role === 'teacher') {
-          routerRef.current.replace('/teacher')
-          return
-        }
-        if (!me?.profile?.onboarded_at) {
-          routerRef.current.replace('/onboarding')
-          return
-        }
-        setState({ status: 'ready', me, error: '' })
-      })
-      .catch((err) => {
-        if (err?.name === 'AbortError' || signal.aborted) return
-        setState({ status: 'error', me: null, error: err?.message || 'Something went wrong.' })
-      })
-
-    return () => controller.abort()
-  }, [reloadKey])
-
-  const handleSaved = (profile) => {
-    setState((s) => (s.me ? { ...s, me: { ...s.me, profile: { ...s.me.profile, ...profile } } } : s))
-    // The header avatar reads the auth user's name: refresh it after a rename
-    if (profile?.full_name && profile.full_name !== user?.user_metadata?.full_name) refreshUser().catch(() => {})
-  }
+  // Every page (and the header avatar) reads the profile from the shared cache
+  const handleSaved = (profile) => setMeProfile(profile)
 
   const handleSignOut = async () => {
     if (busyRef.current) return
     busyRef.current = true
     setSigningOut(true)
+    setLeaving(true)
     setAccountError('')
+    markSigningOut() // this page goes to /login by itself
     try {
       await signOut()
     } catch {
@@ -96,31 +71,32 @@ export default function StudentProfilePage() {
     routerRef.current.replace('/login')
   }
 
-  const closeDialog = () => {
-    setConfirmOpen(false)
-    requestAnimationFrame(() => deleteBtnRef.current?.focus())
-  }
+  // The dialog puts the focus back on the Delete button when it closes
+  const closeDialog = () => setConfirmOpen(false)
 
   const handleDelete = async () => {
     if (busyRef.current) return
     busyRef.current = true
     setDeleting(true)
+    setLeaving(true)
     setAccountError('')
     try {
       await api('/api/student/deleteProfile', { method: 'POST' })
+      markSigningOut()
       await signOut().catch(() => {})
       routerRef.current.replace('/login')
     } catch (err) {
       busyRef.current = false
       if (!mountedRef.current) return
       setDeleting(false)
+      setLeaving(false)
       setAccountError(err?.message || 'Could not delete your account. Please try again.')
       closeDialog()
     }
   }
 
-  const profile = state.me?.profile || null
-  const email = state.me?.user?.email || profile?.email || user?.email || ''
+  const profile = me?.profile || null
+  const email = me?.user?.email || profile?.email || user?.email || ''
   const name = profile?.full_name || ''
   const initial = ((name || email).trim()[0] || '?').toUpperCase()
   const level = levelShort(profile?.level)
@@ -132,16 +108,12 @@ export default function StudentProfilePage() {
         <title>Profile · Preply Lessons</title>
       </Head>
 
-      {state.status === 'error' ? (
+      {!me && loadError ? (
         <>
           <h1 className={styles.pageTitle}>Your profile</h1>
-          <ErrorCard
-            title="Couldn’t load your profile"
-            message={state.error}
-            onRetry={() => setReloadKey((k) => k + 1)}
-          />
+          <ErrorCard title="Couldn’t load your profile" message={loadError.message} onRetry={reload} />
         </>
-      ) : state.status !== 'ready' ? (
+      ) : !me ? (
         <>
           <h1 className="sr-only">Your profile</h1>
           <span className="sr-only" role="status">
@@ -168,7 +140,7 @@ export default function StudentProfilePage() {
             </div>
           </header>
 
-          <ProfileForm key={profile?.id || 'profile'} profile={profile} onSaved={handleSaved} />
+          <ProfileForm key={profile?.id || 'profile'} profile={profile} onSaved={handleSaved} guard={!leaving} />
 
           {driveUrl && (
             <section className={`${ui.card} ${styles.section}`} aria-labelledby="drive-title">
@@ -243,7 +215,9 @@ export default function StudentProfilePage() {
         </div>
       )}
 
-      {confirmOpen && <DeleteAccountDialog busy={deleting} onCancel={closeDialog} onConfirm={handleDelete} />}
+      {confirmOpen && (
+        <DeleteAccountDialog busy={deleting} onCancel={closeDialog} onConfirm={handleDelete} returnFocusRef={deleteBtnRef} />
+      )}
     </StudentShell>
   )
 }

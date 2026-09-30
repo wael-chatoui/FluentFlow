@@ -1,5 +1,7 @@
-import { forwardRef } from 'react'
-import { expectedText, givenText } from '@/components/practice/utils'
+import { forwardRef, useId } from 'react'
+import { RichTextInline } from '@/components/lesson/RichText'
+import BlankSentence from '@/components/practice/BlankSentence'
+import { correctAnswerText, givenText, splitBlank, isLikelyFrench } from '@/components/practice/utils'
 import styles from '@/components/practice/PracticePlayer.module.css'
 
 // Brand palette (--st-* tokens)
@@ -18,25 +20,82 @@ function headline(pct) {
   if (pct >= 80) return 'Excellent work! 🎉'
   if (pct >= 60) return 'Great job! 👏'
   if (pct >= 40) return 'Good effort! 💪'
-  return 'Keep practising! 💪'
+  return 'Keep practicing! 💪'
 }
 
-function correctAnswer(exercise) {
-  if (exercise.type === 'match') return exercise.pairs.map((p) => `${p.fr} = ${p.en}`).join(' · ')
-  if (exercise.type === 'fill_blank' && exercise.answers.length > 1) return exercise.answers.join(' / ')
-  return expectedText(exercise)
+function MistakeSentence({ exercise }) {
+  if (!exercise.sentence) return null
+  const parts = splitBlank(exercise.sentence)
+  if (parts) {
+    return (
+      <BlankSentence parts={parts} className={styles.reviewSentence}>
+        <span className={styles.reviewGap}>
+          <span className="sr-only" lang="en">
+            blank
+          </span>
+        </span>
+      </BlankSentence>
+    )
+  }
+  return (
+    <p className={styles.reviewSentence} lang={isLikelyFrench(exercise.sentence) ? 'fr' : undefined}>
+      <RichTextInline text={exercise.sentence} />
+    </p>
+  )
+}
+
+function SaveStatus({ save, total, preview, savedText, onRetrySave }) {
+  if (preview) {
+    return (
+      <span className={styles.saving} lang="fr">
+        <span aria-hidden="true">👁️</span> Aperçu — score non enregistré
+      </span>
+    )
+  }
+  if (save.status === 'saving') {
+    return (
+      <span className={styles.saving}>
+        <span className={styles.miniSpinner} aria-hidden="true" /> Saving your score…
+      </span>
+    )
+  }
+  if (save.status === 'saved') {
+    const best = Number.isFinite(save.result?.bestScore) ? save.result.bestScore : null
+    const bestTotal = Number.isFinite(save.result?.bestTotal) ? save.result.bestTotal : total
+    return (
+      <span className={styles.saved}>
+        ✓{' '}
+        {typeof savedText === 'function'
+          ? savedText(save.result)
+          : `Score saved${best !== null && total > 0 ? ` · Your best: ${best}/${bestTotal}` : ''}`}
+      </span>
+    )
+  }
+  if (save.status === 'error') {
+    return (
+      <div className={styles.saveError} role="alert">
+        <span>Couldn’t save your score. {save.error}</span>
+        <button type="button" className={styles.smallBtn} onClick={onRetrySave}>
+          Retry
+        </button>
+      </div>
+    )
+  }
+  return null
 }
 
 /**
- * @param {{ score: number, total: number, mistakes: Array<{ exercise: object, value: any }>,
+ * @param {{ score: number, total: number, title?: string, mistakes: Array<{ exercise: object, value: any }>,
  *   save: { status: 'idle'|'saving'|'saved'|'error', result: any, error: string }, onRetrySave: () => void,
- *   savedText?: ((result: any) => string) | null }} props
+ *   savedText?: ((result: any) => string) | null, preview?: boolean }} props
  *   savedText: optional replacement for "Score saved · Your best: …" (e.g. review mode).
  */
-const EndScreen = forwardRef(function EndScreen({ score, total, mistakes, save, onRetrySave, savedText }, headingRef) {
+const EndScreen = forwardRef(function EndScreen(
+  { score, total, title, mistakes, save, onRetrySave, savedText, preview },
+  headingRef
+) {
+  const reviewTitleId = useId()
   const pct = total > 0 ? Math.round((score / total) * 100) : 0
-  const best = save.result && Number.isFinite(save.result.bestScore) ? save.result.bestScore : null
-  const bestTotal = Number.isFinite(save.result?.bestTotal) ? save.result.bestTotal : total
 
   return (
     <div className={styles.end}>
@@ -60,6 +119,7 @@ const EndScreen = forwardRef(function EndScreen({ score, total, mistakes, save, 
       <h1 ref={headingRef} tabIndex={-1} className={styles.endTitle}>
         {headline(pct)}
       </h1>
+      {title && <p className={styles.endLesson}>{title}</p>}
 
       <div
         className={styles.ring}
@@ -77,61 +137,53 @@ const EndScreen = forwardRef(function EndScreen({ score, total, mistakes, save, 
       </div>
 
       <div className={styles.saveStatus} aria-live="polite">
-        {save.status === 'saving' && (
-          <span className={styles.saving}>
-            <span className={styles.miniSpinner} aria-hidden="true" /> Saving your score…
-          </span>
-        )}
-        {save.status === 'saved' && (
-          <span className={styles.saved}>
-            ✓{' '}
-            {typeof savedText === 'function'
-              ? savedText(save.result)
-              : `Score saved${best !== null && total > 0 ? ` · Your best: ${best}/${bestTotal}` : ''}`}
-          </span>
-        )}
-        {save.status === 'error' && (
-          <div className={styles.saveError} role="alert">
-            <span>Couldn&apos;t save your score. {save.error}</span>
-            <button type="button" className={styles.smallBtn} onClick={onRetrySave}>
-              Retry
-            </button>
-          </div>
-        )}
+        <SaveStatus save={save} total={total} preview={preview} savedText={savedText} onRetrySave={onRetrySave} />
       </div>
 
       {mistakes.length > 0 ? (
-        <section className={styles.review} aria-labelledby="review-title">
-          <h2 id="review-title" className={styles.reviewTitle}>
+        <section className={styles.review} aria-labelledby={reviewTitleId}>
+          <h2 id={reviewTitleId} className={styles.reviewTitle}>
             Review mistakes
           </h2>
-          <ul className={styles.reviewList}>
+          <ul className={styles.reviewList} role="list">
             {mistakes.map(({ exercise, value }) => {
               const given = givenText(exercise, value)
+              const answer = correctAnswerText(exercise)
+              // Answers that fill a blank are French; other MCQ choices may be English
+              const fillsBlank = exercise.type === 'fill_blank' || Boolean(splitBlank(exercise.sentence))
+              const langOf = (text) => (fillsBlank || (exercise.type === 'mcq' && isLikelyFrench(text)) ? 'fr' : undefined)
               return (
                 <li key={exercise.id} className={styles.reviewItem}>
                   {typeof exercise.lessonTitle === 'string' && exercise.lessonTitle && (
                     <p className={styles.reviewFrom}>From: {exercise.lessonTitle}</p>
                   )}
-                  <p className={styles.reviewPrompt}>{exercise.prompt}</p>
-                  {exercise.sentence && <p className={styles.reviewSentence}>{exercise.sentence}</p>}
+                  <p className={styles.reviewPrompt}>
+                    <RichTextInline text={exercise.prompt} />
+                  </p>
+                  <MistakeSentence exercise={exercise} />
                   {given && exercise.type !== 'match' && (
                     <p className={styles.reviewWrong}>
-                      <span className={styles.reviewLabel}>{exercise.type === 'mcq' ? 'You chose' : 'You wrote'}</span> <s>{given}</s>
+                      <span className={styles.reviewLabel}>{exercise.type === 'mcq' ? 'You chose' : 'You wrote'}</span>{' '}
+                      <s lang={langOf(given)}>{given}</s>
                     </p>
                   )}
                   {exercise.type === 'match' && <p className={styles.reviewWrong}>{given}</p>}
                   <p className={styles.reviewRight}>
-                    <span className={styles.reviewLabel}>Answer</span> {correctAnswer(exercise)}
+                    <span className={styles.reviewLabel}>Answer</span>{' '}
+                    <span lang={langOf(answer)}>{answer}</span>
                   </p>
-                  {exercise.explanation && <p className={styles.reviewWhy}>{exercise.explanation}</p>}
+                  {exercise.explanation && (
+                    <p className={styles.reviewWhy}>
+                      <RichTextInline text={exercise.explanation} />
+                    </p>
+                  )}
                 </li>
               )
             })}
           </ul>
         </section>
       ) : (
-        <p className={styles.noMistakes}>No mistakes on the first try — bravo !</p>
+        <p className={styles.noMistakes}>No mistakes on the first try — bravo!</p>
       )}
     </div>
   )

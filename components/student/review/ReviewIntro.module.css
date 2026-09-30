@@ -17,15 +17,27 @@
   align-items: center;
   gap: 0.85rem;
   padding: 0.9rem 1rem;
-  border: 2px solid #ffd79e;
+  border: 2px solid var(--st-orange-line);
   border-radius: var(--st-radius-lg);
   background: var(--st-orange-bg);
   animation: slideIn 220ms ease-out;
 }
 
 .bannerGood {
-  border-color: #b8ea8f;
+  border-color: var(--st-green-line);
   background: var(--st-green-bg);
+}
+
+.bannerError {
+  border-color: var(--st-red-line);
+  background: var(--st-red-bg);
+}
+
+.bannerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
 }
 
 .bannerIcon {
@@ -80,7 +92,7 @@
   height: 96px;
   border-radius: 50%;
   background: var(--st-orange-bg);
-  border: 3px solid #ffd79e;
+  border: 3px solid var(--st-orange-line);
   font-size: 3.2rem;
   line-height: 1;
 }
@@ -110,7 +122,7 @@
   margin: 0;
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--st-orange-dark);
+  color: var(--st-orange-ink);
 }
 
 .startBtn {
@@ -163,7 +175,7 @@ a.group:active {
 }
 
 a.group:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
 }
 
@@ -200,7 +212,7 @@ a.group:focus-visible {
   padding: 0.3rem 0.65rem;
   border-radius: 999px;
   background: var(--accent-bg);
-  color: var(--accent-dark);
+  color: var(--accent-ink);
   font-size: 0.8rem;
   font-weight: 900;
   white-space: nowrap;

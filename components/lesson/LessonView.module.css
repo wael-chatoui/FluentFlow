@@ -1,19 +1,18 @@
-/* Lesson recap — playful student style.
-   Uses the student tokens (--st-*) when rendered inside StudentShell and falls
-   back to literal colors elsewhere (teacher page, /dev/preview). */
+/* Lesson recap — playful student style, on the app tokens (--st-*, styles/tokens.css,
+   loaded on every page: student, teacher, admin, /dev/preview). */
 
 .root {
-  --lv-ink: var(--st-ink, #3c3c3c);
-  --lv-soft: var(--st-ink-soft, #6b6b6b);
-  --lv-line: var(--st-line, #e5e5e5);
-  --lv-surface: var(--st-surface, #ffffff);
+  --lv-ink: var(--st-ink);
+  --lv-soft: var(--st-ink-soft);
+  --lv-line: var(--st-line);
+  --lv-surface: var(--st-surface);
   --lv-tint: #fafafa;
-  --lv-radius: var(--st-radius-lg, 20px);
-  --lv-radius-sm: var(--st-radius, 16px);
-  /* Darker text shades for readability on white */
-  --lv-good-text: #2b7a0b;
-  --lv-bad-text: #c62828;
-  --lv-link: #0a6fa3;
+  --lv-radius: var(--st-radius-lg);
+  --lv-radius-sm: var(--st-radius);
+  /* Colored text: the -ink shades (AA on white and on their own -bg tint) */
+  --lv-good-text: var(--st-green-ink);
+  --lv-bad-text: var(--st-red-ink);
+  --lv-link: var(--st-link);
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -24,11 +23,15 @@
   overflow-wrap: anywhere;
 }
 
-/* ---- Section cards ---- */
+/* ---- Section cards ----
+   --c / --c-dark / --c-bg are decoration (borders, tints); white text only sits
+   on --c-strong (the AA -strong shade). */
 .section {
-  --c: var(--st-blue, #1cb0f6);
-  --c-dark: var(--st-blue-dark, #1899d6);
-  --c-bg: var(--st-blue-bg, #ddf4ff);
+  --c: var(--st-blue);
+  --c-dark: var(--st-blue-dark);
+  --c-bg: var(--st-blue-bg);
+  --c-strong: var(--st-blue-strong);
+  --c-strong-dark: var(--st-blue-strong-dark);
   background: var(--lv-surface);
   border: 2px solid var(--lv-line);
   border-bottom-width: 4px;
@@ -36,14 +39,21 @@
   padding: 1.25rem;
   min-width: 0;
   animation: lvRise 220ms ease-out both;
+  scroll-margin-top: 5rem; /* #recap-… anchors land below sticky headers */
 }
 
-.blue { --c: var(--st-blue, #1cb0f6); --c-dark: var(--st-blue-dark, #1899d6); --c-bg: var(--st-blue-bg, #ddf4ff); }
-.green { --c: var(--st-green, #58cc02); --c-dark: var(--st-green-dark, #46a302); --c-bg: var(--st-green-bg, #e9f9dc); }
-.red { --c: var(--st-red, #ff4b4b); --c-dark: var(--st-red-dark, #ea2b2b); --c-bg: var(--st-red-bg, #ffe5e5); }
-.yellow { --c: var(--st-yellow, #ffc800); --c-dark: var(--st-yellow-dark, #e5b400); --c-bg: var(--st-yellow-bg, #fff7d6); }
-.purple { --c: var(--st-purple, #ce82ff); --c-dark: var(--st-purple-dark, #a568cc); --c-bg: var(--st-purple-bg, #f6e9ff); }
-.orange { --c: var(--st-orange, #ff9600); --c-dark: var(--st-orange-dark, #e08600); --c-bg: var(--st-orange-bg, #fff1dc); }
+.blue { --c: var(--st-blue); --c-dark: var(--st-blue-dark); --c-bg: var(--st-blue-bg); }
+.green { --c: var(--st-green); --c-dark: var(--st-green-dark); --c-bg: var(--st-green-bg); }
+.red { --c: var(--st-red); --c-dark: var(--st-red-dark); --c-bg: var(--st-red-bg); }
+.yellow { --c: var(--st-yellow); --c-dark: var(--st-yellow-dark); --c-bg: var(--st-yellow-bg); }
+.purple { --c: var(--st-purple); --c-dark: var(--st-purple-dark); --c-bg: var(--st-purple-bg); }
+.orange { --c: var(--st-orange); --c-dark: var(--st-orange-dark); --c-bg: var(--st-orange-bg); }
+
+/* Fills behind white text (homework numbers, ✓). Yellow has no -strong shade: blue default */
+.green { --c-strong: var(--st-green-strong); --c-strong-dark: var(--st-green-strong-dark); }
+.red { --c-strong: var(--st-red-strong); --c-strong-dark: var(--st-red-strong-dark); }
+.purple { --c-strong: var(--st-purple-strong); --c-strong-dark: var(--st-purple-strong-dark); }
+.orange { --c-strong: var(--st-orange-strong); --c-strong-dark: var(--st-orange-strong-dark); }
 
 .sectionTitle {
   display: flex;
@@ -68,6 +78,25 @@
   border-bottom-width: 4px;
   font-size: 1.25rem;
   line-height: 1;
+}
+
+/* ---- Empty recap ---- */
+.empty {
+  margin: 0;
+  padding: 2rem 1rem;
+  text-align: center;
+  font-weight: 800;
+  color: var(--lv-soft);
+}
+
+.emptyIcon {
+  display: block;
+  font-size: 2.5rem;
+}
+
+/* Shown only when printing (see @media print) */
+.printHeader {
+  display: none;
 }
 
 /* ---- Summary ---- */
@@ -209,11 +238,34 @@
     font-size: 0.9rem;
   }
 
-  .table td.example::before {
-    content: 'e.g. ';
+  .table td.noExample {
+    display: none;
+  }
+
+  /* Visible FR / EN / e.g. tags keep each card's French ↔ English association */
+  .table td::before {
+    content: attr(data-label);
+    display: inline-block;
+    min-width: 2.2rem;
+    margin-right: 0.45rem;
+    padding: 0 0.35rem;
+    border-radius: 6px;
+    background: var(--c-bg);
+    color: var(--lv-ink);
+    font-size: 0.68rem;
+    font-weight: 900;
     font-style: normal;
-    font-weight: 800;
+    letter-spacing: 0.05em;
+    line-height: 1.6;
+    text-align: center;
+    vertical-align: 0.12em;
+  }
+
+  .table td.example::before {
+    background: none;
     color: var(--lv-soft);
+    min-width: 0;
+    padding: 0;
   }
 }
 
@@ -258,7 +310,7 @@
 .right {
   color: var(--lv-good-text);
   font-weight: 800;
-  background: var(--st-green-bg, #e9f9dc);
+  background: var(--st-green-bg);
   border-radius: 8px;
   padding: 0 0.4rem;
   -webkit-box-decoration-break: clone;
@@ -320,7 +372,7 @@
   left: 0;
   font-style: normal;
   font-weight: 900;
-  color: #9a6b00;
+  color: var(--st-yellow-ink);
 }
 
 /* ---- Homework (numbered bubbles) ---- */
@@ -352,9 +404,9 @@
   width: 1.9rem;
   height: 1.9rem;
   border-radius: 50%;
-  background: var(--c);
-  box-shadow: inset 0 -3px 0 var(--c-dark);
-  color: #fff;
+  background: var(--c-strong);
+  box-shadow: inset 0 -3px 0 var(--c-strong-dark);
+  color: var(--st-on-color);
   font-size: 0.9rem;
   font-weight: 900;
   font-style: normal;
@@ -377,11 +429,11 @@
 }
 
 .link:hover {
-  color: var(--lv-ink);
+  color: var(--st-link-hover);
 }
 
 .link:focus-visible {
-  outline: 3px solid var(--st-blue, #1cb0f6);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
   border-radius: 6px;
 }
@@ -412,9 +464,9 @@
   height: 1.6rem;
   margin-top: 0.05rem;
   border-radius: 50%;
-  background: var(--c);
-  box-shadow: inset 0 -3px 0 var(--c-dark);
-  color: #fff;
+  background: var(--c-strong);
+  box-shadow: inset 0 -3px 0 var(--c-strong-dark);
+  color: var(--st-on-color);
   font-size: 0.85rem;
   font-weight: 900;
 }
@@ -440,15 +492,107 @@
   }
 }
 
+/* ---- Print / "Save as PDF" (styles/print.css hides everything but the recap) ---- */
 @media print {
-  .section {
-    animation: none;
+  .root {
+    gap: 6mm;
+    font-size: 10.5pt;
+    line-height: 1.5;
   }
 
-  .sectionIcon {
-    width: auto;
-    height: auto;
+  .printHeader {
+    display: block;
+    padding-bottom: 3mm;
+    border-bottom: 3px solid var(--st-green);
+  }
+
+  .printBrand {
+    margin: 0;
+    font-size: 8.5pt;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--lv-good-text);
+  }
+
+  .printTitle {
+    margin: 1.5mm 0 0;
+    font-size: 20pt;
+    font-weight: 900;
+    line-height: 1.2;
+    color: var(--lv-ink);
+  }
+
+  .printMeta {
+    margin: 1mm 0 0;
+    font-size: 10pt;
+    color: var(--lv-soft);
+  }
+
+  .section {
+    animation: none;
     border: none;
+    border-radius: 0;
+    padding: 0;
     background: none;
+  }
+
+  .sectionTitle {
+    margin-bottom: 3mm;
+    padding-bottom: 1mm;
+    border-bottom: 2px solid var(--c);
+    font-size: 13pt;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* Emoji decorations make no sense on paper */
+  .sectionIcon,
+  .deco {
+    display: none;
+  }
+
+  .table {
+    border-width: 1.5px;
+    break-inside: auto;
+  }
+
+  .table thead {
+    display: table-header-group; /* repeated on every page */
+  }
+
+  .table th,
+  .table td {
+    padding: 1.5mm 2.5mm;
+  }
+
+  .table tr,
+  .correction,
+  .rule,
+  .homeworkItem,
+  .canDoItem,
+  .examples li {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .ruleTitle {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  .link {
+    display: inline;
+    min-height: 0;
+    padding: 0;
+    color: var(--lv-link);
+  }
+
+  .link::after {
+    content: ' (' attr(href) ')';
+    font-size: 8.5pt;
+    font-weight: 400;
+    color: var(--lv-soft);
+    word-break: break-all;
   }
 }

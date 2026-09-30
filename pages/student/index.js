@@ -1,18 +1,18 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useId, useMemo } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
-import { useRouter } from 'next/router'
 import { useAuth } from '@/components/AuthProvider'
 import StudentShell from '@/components/student/StudentShell'
+import useMe from '@/components/student/useMe'
+import useLessons from '@/components/student/useLessons'
 import UpNextCard, { UpNextSkeleton } from '@/components/student/home/UpNextCard'
 import ProgressCard, { ProgressSkeleton } from '@/components/student/home/ProgressCard'
 import { computeUpNext } from '@/components/student/home/upNext'
 import LessonCard, { LessonCardSkeleton } from '@/components/student/lessons/LessonCard'
 import { ErrorCard } from '@/components/student/lessons/StatusViews'
 import { progressStats, scoreHistory, sortNewestFirst } from '@/components/student/lessons/progress'
-import { levelShort } from '@/components/student/profile/levels'
+import { levelShort } from '@/utils/profile/levels'
 import { plural } from '@/components/lesson/format'
-import { api } from '@/utils/apiClient'
 import { safeHttpsUrl } from '@/utils/lesson/schema'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/student/home/Home.module.css'
@@ -42,7 +42,7 @@ function HowItWorks() {
   const steps = [
     { emoji: '🗣️', text: 'Take your class with Wael on Preply' },
     { emoji: '📝', text: 'Get a recap of everything you covered' },
-    { emoji: '🎮', text: 'Practise with fun exercises' },
+    { emoji: '🎮', text: 'Practice with fun exercises' },
   ]
   return (
     <section className={`${ui.card} ${styles.how}`} aria-labelledby="how-title">
@@ -64,51 +64,24 @@ function HowItWorks() {
 }
 
 export default function StudentHome() {
-  const router = useRouter()
   const { user } = useAuth()
   const recentId = useId()
-  const [state, setState] = useState({ status: 'loading', me: null, data: null, error: '' })
-  const [reloadKey, setReloadKey] = useState(0)
-  const routerRef = useRef(router)
-  routerRef.current = router
+  const { me, error: meError } = useMe()
+  const { data, error, loading, reload } = useLessons()
 
-  useEffect(() => {
-    const controller = new AbortController()
-    const { signal } = controller
-    setState((s) => ({ ...s, status: 'loading', error: '' }))
-
-    Promise.all([api('/api/me', { signal }), api('/api/student/lessons', { signal })])
-      .then(([me, data]) => {
-        if (signal.aborted) return
-        if (me?.role === 'teacher') {
-          routerRef.current.replace('/teacher')
-          return
-        }
-        if (!me?.profile?.onboarded_at) {
-          routerRef.current.replace('/onboarding')
-          return
-        }
-        setState({ status: 'ready', me, data, error: '' })
-      })
-      .catch((err) => {
-        if (err?.name === 'AbortError' || signal.aborted) return
-        setState({ status: 'error', me: null, data: null, error: err?.message || 'Something went wrong.' })
-      })
-
-    return () => controller.abort()
-  }, [reloadKey])
-
-  const lessons = useMemo(() => sortNewestFirst(state.data?.lessons), [state.data])
-  const mistakeCount = Math.max(0, Number(state.data?.mistakeCount) || 0)
+  const lessons = useMemo(() => sortNewestFirst(data?.lessons), [data])
+  const mistakeCount = Math.max(0, Number(data?.mistakeCount) || 0)
   const upNext = useMemo(() => computeUpNext(lessons, mistakeCount), [lessons, mistakeCount])
-  const stats = useMemo(() => progressStats(lessons), [lessons])
+  const stats = useMemo(() => progressStats(lessons, data?.wordCount), [lessons, data])
   const history = useMemo(() => scoreHistory(lessons, 8), [lessons])
 
-  const profile = state.me?.profile || null
-  const first = firstName(profile?.full_name || user?.user_metadata?.full_name || user?.user_metadata?.name || '')
+  const profile = me?.profile || null
+  // The session's name is only a fallback when /api/me failed (it can lag behind the profile)
+  const first = firstName(profile?.full_name || (meError ? user?.user_metadata?.full_name || user?.user_metadata?.name : ''))
   const level = levelShort(profile?.level)
-  const driveUrl = safeHttpsUrl(state.data?.driveFolderUrl)
-  const loading = state.status === 'loading'
+  const driveUrl = safeHttpsUrl(data?.driveFolderUrl)
+  const greetingLoading = !me && !meError
+  const failed = !data && Boolean(error)
   const hasLessons = lessons.length > 0
 
   return (
@@ -118,7 +91,7 @@ export default function StudentHome() {
       </Head>
 
       <header className={styles.greeting}>
-        {loading ? (
+        {greetingLoading ? (
           <div>
             <h1 className="sr-only">Home</h1>
             <span className={ui.skel} style={{ width: 240, maxWidth: '80%', height: 34 }} aria-hidden="true" />
@@ -144,12 +117,8 @@ export default function StudentHome() {
         {loading && <span className="sr-only" role="status">Loading your lessons…</span>}
       </header>
 
-      {state.status === 'error' ? (
-        <ErrorCard
-          title="Couldn’t load your lessons"
-          message={state.error}
-          onRetry={() => setReloadKey((k) => k + 1)}
-        />
+      {failed ? (
+        <ErrorCard title="Couldn’t load your lessons" message={error.message} onRetry={reload} />
       ) : (
         <div className={styles.layout}>
           <div className={styles.primary}>
@@ -179,7 +148,9 @@ export default function StudentHome() {
                       <LessonCardSkeleton />
                     </>
                   ) : (
-                    lessons.slice(0, 3).map((lesson, i) => <LessonCard key={lesson.id} lesson={lesson} index={i} />)
+                    lessons.slice(0, 3).map((lesson, i) => (
+                      <LessonCard key={lesson.id} lesson={lesson} index={i} headingLevel={3} />
+                    ))
                   )}
                 </ul>
               </section>

@@ -32,9 +32,9 @@
 .bigAvatar {
   display: grid;
   place-items: center;
-  background: var(--st-purple);
-  border-bottom: 5px solid var(--st-purple-dark);
-  color: #fff;
+  background: var(--st-purple-strong);
+  border-bottom: 5px solid var(--st-purple-strong-dark);
+  color: var(--st-on-color);
   font-size: 2.2rem;
   font-weight: 900;
   line-height: 1;
@@ -69,7 +69,7 @@
 .heroText .levelPill {
   margin-top: 0.4rem;
   background: var(--st-blue-bg);
-  border: 2px solid #84d8ff;
+  border: 2px solid var(--st-blue-line-strong);
   color: var(--st-ink);
   font-weight: 800;
 }
@@ -171,7 +171,7 @@
 
 .input:focus,
 .select:focus {
-  border-color: var(--st-blue);
+  border-color: var(--st-focus);
   background: var(--st-surface);
   box-shadow: 0 0 0 3px var(--st-blue-bg);
 }
@@ -217,7 +217,7 @@
   margin: 0;
   font-size: 0.85rem;
   font-weight: 800;
-  color: var(--st-red-dark);
+  color: var(--st-red-ink);
 }
 
 .formError {
@@ -225,7 +225,7 @@
   padding: 0.7rem 0.9rem;
   border-radius: 12px;
   background: var(--st-red-bg);
-  color: #b3261e;
+  color: var(--st-red-ink);
   font-size: 0.92rem;
   font-weight: 800;
 }
@@ -259,7 +259,7 @@
 }
 
 .savedMsg {
-  color: #2b7a0b;
+  color: var(--st-green-ink);
   animation: rise 200ms ease-out both;
 }
 
@@ -300,44 +300,37 @@
 
 /* ---- Danger zone ---- */
 .section.danger {
-  border-color: #ffc1c1;
+  border-color: var(--st-red-line);
 }
 
 .danger .deleteBtn:not(:disabled) {
   --btn-bg: var(--st-surface);
-  --btn-edge: #ffc1c1;
-  --btn-fg: var(--st-red-dark);
+  --btn-edge: var(--st-red-line);
+  --btn-fg: var(--st-red-ink);
 }
 
-/* ---- Confirm dialog ---- */
-.overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
-  background: rgba(0, 0, 0, 0.45);
-  animation: fade 180ms ease-out both;
-}
-
+/* ---- Confirm dialog (native <dialog>, components/ui/Dialog) ---- */
+/* Floating card near the bottom (thumb reach) on phones, centered from 480px */
 .dialog {
-  width: 100%;
+  width: calc(100% - 2rem);
   max-width: 420px;
   max-height: calc(100dvh - 2rem);
+  margin: auto auto calc(1rem + env(safe-area-inset-bottom));
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 1.5rem 1.25rem 1.25rem;
   border-radius: var(--st-radius-lg);
   border: 2px solid var(--st-line);
   border-bottom-width: 5px;
   background: var(--st-surface);
+  box-shadow: var(--st-shadow-modal);
+  color: var(--st-ink);
   text-align: center;
   animation: slideUp 220ms ease-out both;
 }
 
-.dialog:focus {
-  outline: none;
+.dialog::backdrop {
+  animation: fade 180ms ease-out both;
 }
 
 .dialogEmoji {
@@ -383,8 +376,8 @@
 }
 
 @media (min-width: 480px) {
-  .overlay {
-    align-items: center;
+  .dialog {
+    margin: auto;
   }
 
   .dialogActions {
@@ -423,8 +416,8 @@
   .formCard,
   .section,
   .savedMsg,
-  .overlay,
-  .dialog {
+  .dialog,
+  .dialog::backdrop {
     animation: none;
   }
 
@@ -487,7 +480,7 @@
 }
 
 .switch:checked {
-  background: var(--st-green);
+  background: var(--st-green-strong); /* the on state must stand out (≥ 3:1) */
 }
 
 .switch:checked::after {
@@ -495,7 +488,7 @@
 }
 
 .switch:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
 }
 

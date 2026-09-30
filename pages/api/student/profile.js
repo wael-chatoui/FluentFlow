@@ -3,8 +3,7 @@ import { allowMethods, requireUser } from '@/utils/auth/server'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { fail, handleError } from '@/utils/api/errors'
 import { bodyOf, parseProfileInput } from '@/utils/api/validate'
-
-const PROFILE_FIELDS = 'id, email, full_name, level, goals, interests, drive_folder_url, onboarded_at, created_at, updated_at'
+import { PROFILE_FIELDS } from '@/utils/supabase/profiles'
 
 function parse(body) {
   const input = parseProfileInput(body, { partial: true })
@@ -37,7 +36,8 @@ export default async function handler(req, res) {
     if (error) throw error
     if (!profile) return res.status(404).json({ error: 'Profile not found.' })
 
-    // Keep the auth display name in sync (shown in the header). Not critical.
+    // Keep the auth display name in sync with the profile (back-office lists and the
+    // onboarding prefill fall back to it). Not critical.
     if (update.full_name !== undefined && update.full_name !== user.user_metadata?.full_name) {
       const { error: metaError } = await admin.auth.admin.updateUserById(user.id, {
         user_metadata: { ...(user.user_metadata || {}), full_name: update.full_name },

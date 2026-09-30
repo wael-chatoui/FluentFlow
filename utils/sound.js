@@ -4,22 +4,27 @@
 //
 // The AudioContext is created lazily on the first sound, which always follows a
 // user gesture (click / key), so browsers (incl. iOS Safari) allow playback.
-// The on/off preference is stored per device in localStorage.
-import { useEffect, useState } from 'react'
+// The on/off preference is stored per device in localStorage and shared live by
+// every component (and every tab) through useSoundEnabled().
+import { useSyncExternalStore } from 'react'
 
 const STORAGE_KEY = 'preply:sound'
 const MASTER_VOLUME = 0.22
 
 let ctx = null
 let master = null
+let enabledCache = null // null = not read yet (also keeps the choice when storage is blocked)
 const listeners = new Set()
 
 function readEnabled() {
-  try {
-    return localStorage.getItem(STORAGE_KEY) !== 'off'
-  } catch {
-    return true
+  if (enabledCache === null) {
+    try {
+      enabledCache = localStorage.getItem(STORAGE_KEY) !== 'off'
+    } catch {
+      enabledCache = true
+    }
   }
+  return enabledCache
 }
 
 export function isSoundEnabled() {
@@ -27,29 +32,40 @@ export function isSoundEnabled() {
 }
 
 export function setSoundEnabled(enabled) {
+  enabledCache = Boolean(enabled)
   try {
     localStorage.setItem(STORAGE_KEY, enabled ? 'on' : 'off')
   } catch {
     // Storage blocked: the setting just won't persist
   }
-  listeners.forEach((fn) => fn(enabled))
+  listeners.forEach((fn) => fn())
   if (enabled) playSound('select')
 }
 
-/** [enabled, setEnabled] — stays in sync across every component using it. */
+function subscribe(onChange) {
+  listeners.add(onChange)
+  // Another tab changed the setting
+  const onStorage = (e) => {
+    if (e.key !== STORAGE_KEY && e.key !== null) return
+    enabledCache = null
+    onChange()
+  }
+  window.addEventListener('storage', onStorage)
+  return () => {
+    listeners.delete(onChange)
+    window.removeEventListener('storage', onStorage)
+  }
+}
+
+/** [enabled, setEnabled] — stays in sync across every component and tab. On by default (and on the server). */
 export function useSoundEnabled() {
-  const [enabled, setEnabled] = useState(true)
-  useEffect(() => {
-    setEnabled(readEnabled())
-    listeners.add(setEnabled)
-    return () => listeners.delete(setEnabled)
-  }, [])
+  const enabled = useSyncExternalStore(subscribe, readEnabled, () => true)
   return [enabled, setSoundEnabled]
 }
 
 function audio() {
   if (typeof window === 'undefined') return null
-  if (!ctx) {
+  if (!ctx || ctx.state === 'closed') {
     const AudioCtx = window.AudioContext || window.webkitAudioContext
     if (!AudioCtx) return null
     ctx = new AudioCtx()
@@ -57,7 +73,8 @@ function audio() {
     master.gain.value = MASTER_VOLUME
     master.connect(ctx.destination)
   }
-  if (ctx.state === 'suspended') ctx.resume().catch(() => {})
+  // 'suspended' (autoplay policy) or iOS's 'interrupted' (call, Siri, background)
+  if (ctx.state !== 'running') ctx.resume().catch(() => {})
   return ctx
 }
 

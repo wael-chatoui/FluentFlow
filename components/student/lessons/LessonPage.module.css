@@ -25,7 +25,7 @@
 }
 
 .back:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
 }
 
@@ -33,7 +33,7 @@
 .header {
   position: relative;
   /* The fade-in animation makes the header a stacking context: lift it above the
-     recap so its fixed PRACTISE dock (mobile) isn't painted under the lesson text.
+     recap so its fixed PRACTICE dock (mobile) isn't painted under the lesson text.
      Stays below the shell's top/tab bars (z-index 40). */
   z-index: 31;
   overflow: hidden;
@@ -123,6 +123,21 @@
   overflow-wrap: anywhere;
 }
 
+.updated {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  background: var(--st-surface);
+  border: 2px solid var(--st-blue);
+  color: var(--st-blue-ink);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
 .score {
   position: relative;
   display: flex;
@@ -164,19 +179,19 @@
   min-height: 44px;
 }
 
-.dock .practise {
+.dock .practice {
   min-height: 54px;
   font-size: 1.05rem;
 }
 
-.practiseCount {
+.practiceCount {
   font-weight: 800;
   opacity: 0.9;
 }
 
 .actions .dockSkel {
   display: block;
-  height: 44px; /* mobile: the real Practise button is docked, only the 44px secondary row stays */
+  height: 44px; /* mobile: the real Practice button is docked, only the 44px secondary row stays */
   border-radius: 12px;
 }
 
@@ -184,7 +199,7 @@
   margin-top: 1.25rem;
 }
 
-/* ---- Mobile: the Practise button docks above the bottom tab bar ---- */
+/* ---- Mobile: the Practice button docks above the bottom tab bar ---- */
 .dockSpacer {
   height: 76px;
 }
@@ -201,7 +216,7 @@
     animation: dockIn 220ms ease-out both;
   }
 
-  .dock .practise {
+  .dock .practice {
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
   }
 }
@@ -236,7 +251,7 @@
     flex: none;
   }
 
-  .dock .practise {
+  .dock .practice {
     width: auto;
     min-width: 240px;
   }

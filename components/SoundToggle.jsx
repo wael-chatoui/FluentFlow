@@ -1,7 +1,8 @@
 import { useSoundEnabled } from '@/utils/sound'
 
 /**
- * Speaker button that turns the UI sound effects on/off (saved on this device).
+ * Speaker toggle button for the UI sound effects (saved on this device).
+ * The accessible name stays the same; aria-pressed carries the on/off state.
  * @param {{ className?: string }} props
  */
 export default function SoundToggle({ className }) {
@@ -12,8 +13,8 @@ export default function SoundToggle({ className }) {
       className={className}
       onClick={() => setEnabled(!enabled)}
       aria-pressed={enabled}
-      aria-label={enabled ? 'Sound effects on — turn off' : 'Sound effects off — turn on'}
-      title={enabled ? 'Sound on' : 'Sound off'}
+      aria-label="Sound effects"
+      title={enabled ? 'Sound effects: on' : 'Sound effects: off'}
     >
       <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M11 5 6 9H3v6h3l5 4V5z" fill="currentColor" />
