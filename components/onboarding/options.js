@@ -1,6 +1,31 @@
 // Answer options for the student onboarding + (de)serialisation helpers.
 // goals / interests are stored as plain text (≤ 1000 chars, see utils/api/validate.js)
 // because the AI reads them as-is: "Travel, Work — I want to pass the DELF B2".
+import {
+  BookOpen,
+  Briefcase,
+  Clapperboard,
+  CookingPot,
+  Film,
+  Flower2,
+  Gamepad2,
+  GraduationCap,
+  Heart,
+  House,
+  Landmark,
+  Laptop,
+  Leaf,
+  Luggage,
+  MessagesSquare,
+  Microscope,
+  Music,
+  Newspaper,
+  Palette,
+  Plane,
+  Shirt,
+  TrendingUp,
+  Volleyball,
+} from 'lucide-react'
 import { LEVEL_INFO, LEVELS, levelShort } from '@/utils/profile/levels'
 
 export const STEP_COUNT = 5
@@ -21,33 +46,34 @@ export function levelLabel(code) {
   return code === 'unknown' ? LEVEL_INFO.unknown.name : levelShort(code)
 }
 
+// icon: lucide-react component shown next to the label (decorative)
 export const GOAL_OPTIONS = [
-  { id: 'travel', emoji: '✈️', label: 'Travel' },
-  { id: 'work', emoji: '💼', label: 'Work' },
-  { id: 'exams', emoji: '🎓', label: 'Exams (DELF/DALF)' },
-  { id: 'moving', emoji: '🏡', label: 'Moving to France' },
-  { id: 'family', emoji: '❤️', label: 'Family & friends' },
-  { id: 'culture', emoji: '🎬', label: 'Culture & fun' },
-  { id: 'conversation', emoji: '🗣️', label: 'Conversation confidence' },
+  { id: 'travel', icon: Plane, label: 'Travel' },
+  { id: 'work', icon: Briefcase, label: 'Work' },
+  { id: 'exams', icon: GraduationCap, label: 'Exams (DELF/DALF)' },
+  { id: 'moving', icon: House, label: 'Moving to France' },
+  { id: 'family', icon: Heart, label: 'Family & friends' },
+  { id: 'culture', icon: Clapperboard, label: 'Culture & fun' },
+  { id: 'conversation', icon: MessagesSquare, label: 'Conversation confidence' },
 ]
 
 export const INTEREST_OPTIONS = [
-  { id: 'food', emoji: '🍳', label: 'Food & cooking' },
-  { id: 'music', emoji: '🎵', label: 'Music' },
-  { id: 'film', emoji: '🎬', label: 'Film & TV' },
-  { id: 'sport', emoji: '⚽', label: 'Sport' },
-  { id: 'books', emoji: '📚', label: 'Books' },
-  { id: 'tech', emoji: '💻', label: 'Tech' },
-  { id: 'business', emoji: '📈', label: 'Business' },
-  { id: 'art', emoji: '🎨', label: 'Art & design' },
-  { id: 'nature', emoji: '🌿', label: 'Nature' },
-  { id: 'travel', emoji: '🧳', label: 'Travel' },
-  { id: 'games', emoji: '🎮', label: 'Games' },
-  { id: 'history', emoji: '🏛️', label: 'History' },
-  { id: 'science', emoji: '🔬', label: 'Science' },
-  { id: 'fashion', emoji: '👗', label: 'Fashion' },
-  { id: 'news', emoji: '📰', label: 'News & politics' },
-  { id: 'wellness', emoji: '🧘', label: 'Wellness' },
+  { id: 'food', icon: CookingPot, label: 'Food & cooking' },
+  { id: 'music', icon: Music, label: 'Music' },
+  { id: 'film', icon: Film, label: 'Film & TV' },
+  { id: 'sport', icon: Volleyball, label: 'Sport' },
+  { id: 'books', icon: BookOpen, label: 'Books' },
+  { id: 'tech', icon: Laptop, label: 'Tech' },
+  { id: 'business', icon: TrendingUp, label: 'Business' },
+  { id: 'art', icon: Palette, label: 'Art & design' },
+  { id: 'nature', icon: Leaf, label: 'Nature' },
+  { id: 'travel', icon: Luggage, label: 'Travel' },
+  { id: 'games', icon: Gamepad2, label: 'Games' },
+  { id: 'history', icon: Landmark, label: 'History' },
+  { id: 'science', icon: Microscope, label: 'Science' },
+  { id: 'fashion', icon: Shirt, label: 'Fashion' },
+  { id: 'news', icon: Newspaper, label: 'News & politics' },
+  { id: 'wellness', icon: Flower2, label: 'Wellness' },
 ]
 
 const SEPARATOR = ' — '

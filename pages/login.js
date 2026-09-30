@@ -1,64 +1,27 @@
 import { useEffect, useRef, useState } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
+import { Languages, MailCheck, Ticket } from 'lucide-react'
 import { useAuth } from '@/components/AuthProvider'
 import AuthScreen, { AuthHeader } from '@/components/auth/AuthScreen'
 import LoadingScreen from '@/components/ui/LoadingScreen'
+import Icon from '@/components/ui/Icon'
+import GoogleLogo from '@/components/auth/GoogleLogo'
 import { destinationAfterSignIn, fallbackDestination } from '@/components/auth/afterSignIn'
 import { createClient } from '@/utils/supabase/client'
 import { takePartialSignOut } from '@/utils/supabase/signOut'
 import { safeNext } from '@/utils/auth/routing'
+import {
+  EMAIL_RE,
+  MESSAGES,
+  RESEND_COOLDOWN_S,
+  isNetworkError,
+  isRateLimited,
+  isServerError,
+  redirectUrl,
+} from '@/components/auth/signInHelpers'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/auth/AuthForm.module.css'
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-// Supabase accepts one sign-in email per address per minute (default settings)
-const RESEND_COOLDOWN_S = 60
-
-const MESSAGES = {
-  invalidEmail: 'Enter a valid email address, like name@example.com.',
-  rateLimited: 'Too many sign-in emails were requested. Please wait a minute and try again.',
-  network: 'We couldn’t reach the server. Check your connection and try again.',
-  sendFailed: 'We couldn’t send the email right now. Please try again in a few minutes.',
-  google: 'Google sign-in couldn’t start. Please try again.',
-  banned: 'This account has been suspended. Contact your teacher if you think this is a mistake.',
-  signedOutHereOnly:
-    'You’re signed out on this device. We couldn’t reach the server to sign you out on your other devices: sign out there too if needed.',
-}
-
-const isRateLimited = (error) =>
-  error?.status === 429 || /rate.?limit/i.test(`${error?.code || ''} ${error?.message || ''}`)
-const isNetworkError = (error) => error?.name === 'AuthRetryableFetchError' || error?.status === 0
-// Email provider or Auth server failure. An unknown address gets a 4xx, so saying so
-// does not reveal which addresses have an account.
-const isServerError = (error) => Number(error?.status) >= 500
-
-function redirectUrl(next) {
-  return `${window.location.origin}/auth/callback${next ? `?next=${encodeURIComponent(next)}` : ''}`
-}
-
-function GoogleLogo() {
-  return (
-    <svg className={styles.logo} viewBox="0 0 48 48" aria-hidden="true" focusable="false">
-      <path
-        fill="#FFC107"
-        d="M43.61 20.08H42V20H24v8h11.3C33.65 32.66 29.22 36 24 36c-6.63 0-12-5.37-12-12s5.37-12 12-12c3.06 0 5.84 1.15 7.96 3.04l5.66-5.66C34.05 6.05 29.27 4 24 4 12.95 4 4 12.95 4 24s8.95 20 20 20 20-8.95 20-20c0-1.34-.14-2.65-.39-3.92z"
-      />
-      <path
-        fill="#FF3D00"
-        d="M6.31 14.69l6.57 4.82C14.66 15.11 18.96 12 24 12c3.06 0 5.84 1.15 7.96 3.04l5.66-5.66C34.05 6.05 29.27 4 24 4 16.32 4 9.66 8.34 6.31 14.69z"
-      />
-      <path
-        fill="#4CAF50"
-        d="M24 44c5.17 0 9.86-1.98 13.41-5.19l-6.19-5.24C29.21 35.09 26.72 36 24 36c-5.2 0-9.62-3.32-11.28-7.95l-6.52 5.02C9.51 39.56 16.23 44 24 44z"
-      />
-      <path
-        fill="#1976D2"
-        d="M43.61 20.08H42V20H24v8h11.3c-.79 2.24-2.23 4.17-4.09 5.57l6.19 5.24C36.97 39.21 44 34 44 24c0-1.34-.14-2.65-.39-3.92z"
-      />
-    </svg>
-  )
-}
 
 /**
  * Passwordless, invite-only sign-in: "Continue with Google" or a magic link
@@ -243,7 +206,7 @@ export default function LoginPage() {
       {head}
       <AuthHeader
         id="login-title"
-        emoji="🇫🇷"
+        icon={Languages}
         title="Preply Lessons"
         subtitle="Sign in to see your French lessons and practice"
       />
@@ -251,7 +214,7 @@ export default function LoginPage() {
       {sentTo ? (
         <div className={styles.panel}>
           <h2 ref={sentTitleRef} tabIndex={-1} className={styles.panelTitle}>
-            <span aria-hidden="true">📬</span> Check your inbox
+            <Icon icon={MailCheck} size="1.1em" /> Check your inbox
           </h2>
           <p className={styles.text}>
             If an account exists for <span className={styles.email}>{sentTo}</span>, we’ve sent you a sign-in link. Open
@@ -333,10 +296,10 @@ export default function LoginPage() {
           </form>
 
           <p className={styles.note}>
-            <span className={styles.noteIcon} aria-hidden="true">
-              💌
+            <span className={styles.noteIcon}>
+              <Icon icon={Ticket} size={18} />
             </span>
-            <span>Access is by invitation. New here? Ask your teacher to invite you: you’ll get a personal sign-in link.</span>
+            <span>Access is by invitation. New here? Ask your teacher for your invitation link and open it to join.</span>
           </p>
         </div>
       )}

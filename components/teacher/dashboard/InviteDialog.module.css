@@ -78,3 +78,150 @@
     flex: 1 1 auto;
   }
 }
+
+/* ---- Invitation type: join link (default) or email ---- */
+.modes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  padding: 0.3rem;
+  border-radius: calc(var(--st-radius) + 4px);
+  background: var(--st-bg);
+}
+
+.mode {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 44px;
+  padding: 0.45rem 0.6rem;
+  border: 2px solid transparent;
+  border-radius: var(--st-radius);
+  background: transparent;
+  color: var(--st-ink-soft);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.mode:hover:not(:disabled) {
+  color: var(--st-ink);
+}
+
+.mode:focus-visible {
+  outline: 3px solid var(--st-focus);
+  outline-offset: 2px;
+}
+
+.mode:disabled {
+  cursor: default;
+}
+
+.modeOn {
+  border-color: var(--st-blue-line-strong, var(--st-blue));
+  background: var(--st-surface);
+  color: var(--st-blue-ink);
+}
+
+.modeHint {
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.share {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+/* ---- Recent join links ---- */
+.links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.9rem;
+  border-top: 2px solid var(--st-line);
+}
+
+.linksTitle {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: var(--st-ink);
+}
+
+.linksEmpty {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--st-ink-soft);
+}
+
+.linkList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 14rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.linkItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.5rem 0.7rem;
+  border: 2px solid var(--st-line);
+  border-radius: var(--st-radius);
+}
+
+.linkMain {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.linkName {
+  font-weight: 900;
+  color: var(--st-ink);
+  overflow-wrap: anywhere;
+}
+
+.linkMeta {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--st-ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 900;
+}
+
+.active {
+  background: var(--st-blue-bg);
+  color: var(--st-blue-ink);
+}
+
+.used {
+  background: var(--st-green-bg);
+  color: var(--st-green-ink);
+}
+
+.off {
+  background: var(--st-bg);
+  color: var(--st-ink-soft);
+}
