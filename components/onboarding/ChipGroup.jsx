@@ -1,4 +1,5 @@
 import { CheckIcon } from '@/components/onboarding/Icons'
+import steps from '@/components/onboarding/Steps.module.css'
 import styles from '@/components/onboarding/ChipGroup.module.css'
 
 /** Multi-select chips backed by native checkboxes (Tab / Space accessible). */
@@ -10,7 +11,7 @@ export default function ChipGroup({ name, legend, labelledBy, describedBy, optio
       aria-describedby={describedBy}
       disabled={disabled}
     >
-      {legend ? <legend className={styles.srOnly}>{legend}</legend> : null}
+      {legend ? <legend className="sr-only">{legend}</legend> : null}
       <div className={styles.chips}>
         {options.map((option) => {
           const checked = selected.includes(option.id)
@@ -19,7 +20,7 @@ export default function ChipGroup({ name, legend, labelledBy, describedBy, optio
             <label key={option.id} htmlFor={inputId} className={`${styles.chip} ${checked ? styles.chipOn : ''}`}>
               <input
                 id={inputId}
-                className={styles.srInput}
+                className={steps.srInput}
                 type="checkbox"
                 name={name}
                 value={option.id}

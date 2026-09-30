@@ -1,21 +1,37 @@
-/* Onboarding page frame + design tokens (scoped to the onboarding page) */
+/* Onboarding page frame + design tokens (scoped to the onboarding page; the
+   delete dialog is rendered inside .page so it shares them). Contrast (on white):
+   --ob-muted 5.74, --ob-subtle 5.10, --ob-focus 5.18, --ob-danger-fill 4.83. */
 
 .page {
   --ob-fg: #0a0a0a;
   --ob-fg-soft: #262626;
   --ob-muted: #666666;
-  --ob-subtle: #8a8a8a;
+  --ob-subtle: #6e6e6e;
   --ob-border: #e8e8e8;
   --ob-border-strong: #d4d4d4;
+  --ob-border-hover: #bdbdbd;
   --ob-surface: #ffffff;
   --ob-surface-soft: #fafafa;
   --ob-surface-muted: #f4f4f5;
-  --ob-accent: #ff69b4;
-  --ob-accent-strong: #d94c96;
+  --ob-surface-glass: rgba(255, 255, 255, 0.92);
+  --ob-skeleton-hi: #ececee;
+  --ob-on-fill: #ffffff; /* text / icons on --ob-fg, accent and danger fills */
+  --ob-disabled-fg: #a3a3a3;
+  --ob-accent: #ff69b4; /* decorative: borders, tints */
+  --ob-accent-strong: #c2327f; /* check marks and selected dots (≥ 3:1) */
   --ob-accent-tint: rgba(255, 105, 180, 0.07);
-  --ob-ring: 0 0 0 3px rgba(255, 105, 180, 0.3);
+  --ob-accent-halo: rgba(255, 105, 180, 0.35);
+  --ob-focus: var(--ob-accent-strong);
+  --ob-ring: 0 0 0 2px var(--ob-surface), 0 0 0 4px var(--ob-focus);
+  --ob-danger: #b91c1c;
+  --ob-danger-bg: #fef2f2;
+  --ob-danger-line: #fecaca;
+  --ob-danger-fill: #dc2626;
+  --ob-overlay: rgba(10, 10, 10, 0.4);
   --ob-shadow-sm: 0 1px 2px rgba(10, 10, 10, 0.04);
   --ob-shadow-md: 0 4px 12px -2px rgba(10, 10, 10, 0.08), 0 1px 3px rgba(10, 10, 10, 0.04);
+  --ob-shadow-button: 0 1px 2px rgba(10, 10, 10, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --ob-shadow-dialog: 0 24px 48px -12px rgba(10, 10, 10, 0.25), 0 2px 6px rgba(10, 10, 10, 0.06);
   --ob-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --ob-header-h: 76px;
   --ob-gutter: 16px;
@@ -26,7 +42,7 @@
   min-height: 100dvh;
   background: var(--ob-surface);
   color: var(--ob-fg);
-  font-family: var(--font-sans);
+  font-family: var(--font-sans, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif);
   line-height: 1.5;
   overflow-x: clip;
 }
@@ -44,7 +60,7 @@
   z-index: 20;
   height: var(--ob-header-h);
   flex: none;
-  background: rgba(255, 255, 255, 0.92);
+  background: var(--ob-surface-glass);
   -webkit-backdrop-filter: saturate(180%) blur(10px);
   backdrop-filter: saturate(180%) blur(10px);
 }
@@ -146,7 +162,7 @@
 }
 
 .dangerButton:hover:not(:disabled) {
-  color: #b91c1c;
+  color: var(--ob-danger);
 }
 
 /* ---- Skeleton (before we know who the user is) ---- */
@@ -160,7 +176,7 @@
 .skeletonBar {
   height: 14px;
   border-radius: 8px;
-  background: linear-gradient(90deg, var(--ob-surface-muted) 25%, #ececee 50%, var(--ob-surface-muted) 75%);
+  background: linear-gradient(90deg, var(--ob-surface-muted) 25%, var(--ob-skeleton-hi) 50%, var(--ob-surface-muted) 75%);
   background-size: 200% 100%;
   animation: obShimmer 1.4s ease-in-out infinite;
 }

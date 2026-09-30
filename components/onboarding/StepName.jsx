@@ -15,7 +15,7 @@ export default function StepName({ value, onChange, autoFocus, disabled }) {
         autoFocus={autoFocus}
       />
       <div className={styles.body}>
-        <label htmlFor="ob-name" className={styles.srOnly}>
+        <label htmlFor="ob-name" className="sr-only">
           Your name
         </label>
         <input

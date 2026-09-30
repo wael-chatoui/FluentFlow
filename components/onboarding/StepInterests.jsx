@@ -1,7 +1,7 @@
 import ChipGroup from '@/components/onboarding/ChipGroup'
 import FreeTextField from '@/components/onboarding/FreeTextField'
 import StepHeading from '@/components/onboarding/StepHeading'
-import { INTEREST_OPTIONS } from '@/components/onboarding/options'
+import { INTEREST_OPTIONS, freeTextMax } from '@/components/onboarding/options'
 import styles from '@/components/onboarding/Steps.module.css'
 
 export default function StepInterests({ selected, text, onToggle, onTextChange, onEnter, autoFocus, disabled }) {
@@ -28,6 +28,7 @@ export default function StepInterests({ selected, text, onToggle, onTextChange, 
           id="ob-interests-text"
           label="Anything else?"
           value={text}
+          max={freeTextMax(INTEREST_OPTIONS, selected)}
           onChange={onTextChange}
           onEnter={onEnter}
           placeholder="e.g. Italian cooking, Formula 1, 19th-century novels"

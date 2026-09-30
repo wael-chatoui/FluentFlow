@@ -1,11 +1,11 @@
 // In-progress onboarding answers, kept in sessionStorage so a refresh doesn't
 // lose them. Browser-only: call from effects / event handlers, never during render.
-import { LEVELS } from '@/utils/lesson/schema'
+import { LEVELS } from '@/utils/profile/levels'
 import {
-  FREE_TEXT_MAX,
   GOAL_OPTIONS,
   INTEREST_OPTIONS,
   NAME_MAX,
+  PROFILE_TEXT_MAX,
   STEP_COUNT,
   cleanIds,
 } from '@/components/onboarding/options'
@@ -31,9 +31,9 @@ export function loadDraft(userId) {
         fullName: text(a.fullName, NAME_MAX),
         level: LEVELS.includes(a.level) ? a.level : '',
         goals: cleanIds(GOAL_OPTIONS, a.goals),
-        goalsText: text(a.goalsText, FREE_TEXT_MAX),
+        goalsText: text(a.goalsText, PROFILE_TEXT_MAX),
         interests: cleanIds(INTEREST_OPTIONS, a.interests),
-        interestsText: text(a.interestsText, FREE_TEXT_MAX),
+        interestsText: text(a.interestsText, PROFILE_TEXT_MAX),
       },
     }
   } catch {

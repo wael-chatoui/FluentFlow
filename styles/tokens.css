@@ -1,34 +1,96 @@
 :root {
   /* ============================================
      App design tokens (playful, Duolingo-like). Used by every page except the
-     onboarding flow, which has its own minimal SaaS look.
+     onboarding flow, which has its own minimal SaaS look (--ob-* tokens).
+
+     Contrast rules (WCAG AA, ratios in the comments are against white):
+     - The bright hues (--st-green, --st-blue…) and their -dark / -bg / -line
+       shades are for decoration only: surfaces, borders, 3D edges, progress
+       bars, illustrations. Never for text, and never behind white text.
+     - White text sits on a -strong fill (≥ 4.5:1, still ≥ 4.5:1 under the 4 %
+       hover brightening of ui.btn), with -strong-dark as its edge.
+     - Colored text uses -ink (≥ 4.5:1 on white, --st-bg and its own -bg tint).
      ============================================ */
+  color-scheme: light;
+
   --st-green: #58cc02;
   --st-green-dark: #46a302;
   --st-green-bg: #e9f9dc;
+  --st-green-line: #b8e994;
+  --st-green-strong: #327d00; /* 5.16, 4.84 on hover */
+  --st-green-strong-dark: #286300;
+  --st-green-ink: #2b7a0b; /* 5.40 */
+
   --st-blue: #1cb0f6;
   --st-blue-dark: #1899d6;
   --st-blue-bg: #ddf4ff;
+  --st-blue-line: #b3e5fc;
+  --st-blue-line-strong: #84d8ff;
+  --st-blue-strong: #0a78b0; /* 4.85, 4.54 on hover */
+  --st-blue-strong-dark: #075a85;
+  --st-blue-ink: #0b6a99; /* 5.94 */
+
   --st-orange: #ff9600;
   --st-orange-dark: #e08600;
   --st-orange-bg: #fff1dc;
+  --st-orange-line: #ffd59e;
+  --st-orange-strong: #a85c00; /* 5.00, 4.69 on hover */
+  --st-orange-strong-dark: #844800;
+  --st-orange-ink: #a35a00; /* 5.22 */
+
   --st-red: #ff4b4b;
   --st-red-dark: #ea2b2b;
   --st-red-bg: #ffe5e5;
+  --st-red-line: #ffc1c1;
+  --st-red-strong: #d32f2f; /* 4.98, 4.66 on hover */
+  --st-red-strong-dark: #a32020;
+  --st-red-ink: #c62828; /* 5.62 */
+
   --st-purple: #ce82ff;
   --st-purple-dark: #a568cc;
   --st-purple-bg: #f6e9ff;
+  --st-purple-line: #e6c6ff;
+  --st-purple-strong: #9150c0; /* 5.11, 4.79 on hover */
+  --st-purple-strong-dark: #6f3b99;
+  --st-purple-ink: #6f3b99; /* 7.60 */
+
   --st-yellow: #ffc800;
   --st-yellow-dark: #e5b400;
   --st-yellow-bg: #fff7d6;
+  --st-yellow-line: #ffe27a;
+  --st-yellow-ink: #6b5400; /* 7.26 */
+
   --st-pink: #ff69b4;
   --st-pink-dark: #e0559e;
   --st-pink-bg: #ffe6f3;
-  --st-ink: #3c3c3c;
-  --st-ink-soft: #777777;
+  --st-pink-strong: #c8317f; /* 5.00, 4.68 on hover */
+  --st-pink-strong-dark: #9a2462;
+  --st-pink-ink: #b3246f; /* 6.18 */
+
+  --st-ink: #3c3c3c; /* 11.03 */
+  --st-ink-soft: #666666; /* 5.74, 5.36 on --st-bg */
+  --st-on-color: #ffffff; /* text on -strong fills */
   --st-line: #e5e5e5;
   --st-surface: #ffffff;
+  --st-surface-glass: rgba(255, 255, 255, 0.92); /* sticky bars over content */
   --st-bg: #f7f7f7;
+
+  /* Interaction */
+  --st-focus: #0b6a99; /* focus ring: 5.94 on white, 5.54 on --st-bg (≥ 3:1 needed) */
+  --st-link: var(--st-pink-ink);
+  --st-link-hover: #8f1c58;
+  --st-disabled-bg: var(--st-line);
+  --st-disabled-edge: #d0d0d0;
+  --st-disabled-fg: #8f8f8f;
+
+  /* Elevation */
+  --st-overlay: rgba(30, 30, 30, 0.45);
+  --st-shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.12);
+  --st-shadow-sheet: 0 -12px 32px rgba(0, 0, 0, 0.12); /* bottom sheets */
+  --st-shadow-modal: 0 20px 48px rgba(0, 0, 0, 0.18);
+  --st-skeleton: #ececec;
+  --st-skeleton-hi: #f5f5f5;
+
   --st-radius: 16px;
   --st-radius-lg: 20px;
   --st-tabbar-h: 64px;

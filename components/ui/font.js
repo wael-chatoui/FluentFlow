@@ -1,5 +1,7 @@
 // App font (rounded, friendly). Applied globally in pages/_app.js as --font-app.
-// The onboarding flow keeps its own Inter look via --font-sans.
+// Variable font: one file renders every weight used in the CSS (400–900) exactly.
+// The latin subset covers French and English (œ, «», accents); the onboarding
+// flow loads its own Inter (pages/onboarding.js).
 import { Nunito } from 'next/font/google'
 
-export const appFont = Nunito({ subsets: ['latin', 'latin-ext'], weight: ['500', '700', '800', '900'], display: 'swap' })
+export const appFont = Nunito({ subsets: ['latin'], display: 'swap' })
