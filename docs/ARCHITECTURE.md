@@ -85,6 +85,43 @@ Page chrome: `StudentShell` / `TeacherShell` (both built on `components/ui/Shell
 OpenAI-compatible `chat/completions`. Env: `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`.
 Without `AI_API_KEY` outside production, a demo generator returns `SAMPLE_LESSON`.
 
+## Lesson import (teacher)
+
+Besides transcript + Canva, a teacher can create lessons from existing documents
+(his old PDF recaps, or a public Google Docs / Drive link). Each document becomes ONE
+full lesson (recap + exercises) for the chosen student, through the same AI pipeline
+in "import" mode: the document is already a tutor-written lesson, so the AI restructures
+it faithfully (no invented content) and builds exercises according to the teacher's
+options. Migration: `supabase/migrations/0005_lesson_import.sql`
+(`lessons.source_kind 'transcript'|'import'`, `source_name`, `source_text`, `generation_options`).
+
+Generation options (import, and accepted by regenerate): `{ count: 4–20 (default 10),
+types: subset of ['mcq','fill_blank','match'] (≥ 1, default all), instructions: string ≤ 1000 }`.
+
+- `POST /api/teacher/import/extract` — raw PDF body (`Content-Type: application/pdf`,
+  max 4 MB, header `X-File-Name` URI-encoded) → `{ sourceName, text, pages, warning }`.
+  Text extracted server-side with `unpdf`; `warning` = French message when the text is
+  too short (likely a scanned PDF) — `text` may be ''.
+- `POST /api/teacher/import/resolve` `{ url }` → `{ sourceName, text, pages, warning }` for a
+  Google Docs link (`docs.google.com/document/d/<id>` → plain-text export) or a Drive file
+  link (`drive.google.com/file/d/<id>`, `open?id=`, `uc?id=` → download, must be a PDF).
+  Only these hosts; the server builds the fetch URL itself from the id (no SSRF), 20 s
+  timeout, 15 MB max. Non-public or too-large files → 400 with a French explanation
+  ("Le document doit être partagé en « Tous les utilisateurs disposant du lien »").
+  Drive folders → 400 (not supported).
+- `POST /api/teacher/lessons/import` `{ studentId, lessonDate, title?, sourceName, text, options }`
+  → `201 { lesson: { id, status, error } }` — same flow as `POST /api/teacher/lessons`
+  (row created in 'generating', AI runs synchronously, 'published' or 'failed'),
+  `source_kind = 'import'`. `text` 200–150 000 chars.
+- `POST /api/teacher/lessons/[id]/regenerate` also accepts `{ options }`; for imported
+  lessons it regenerates from `source_text` with the stored (or new) options.
+- `GET /api/teacher/lessons/[id]` additionally returns `source_kind, source_name,
+  source_text, generation_options`.
+
+Teacher page: `/teacher/lessons/import` (tab "Importer" in TeacherShell): pick a student,
+add several PDFs and/or links (each = one lesson, with editable title + date), set the
+exercise options once, run the queue sequentially with per-item progress.
+
 ## Back office (admin)
 
 Served by the same app under `/admin`. `proxy.js` keeps back-office hosts

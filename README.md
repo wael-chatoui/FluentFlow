@@ -11,7 +11,7 @@ grammaire, devoirs), l'exporte en PDF, et s'entraîne avec des exercices façon 
 (QCM à 3 choix, phrases à trous, associer mot ↔ traduction).
 
 Stack : Next.js 16 (Pages Router) · Supabase (auth + Postgres) · n'importe quel LLM
-compatible OpenAI (par défaut Qwen `qwen-flash`). Détails techniques :
+compatible OpenAI (par défaut Qwen via OpenRouter). Détails techniques :
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Mise en place
@@ -20,6 +20,7 @@ compatible OpenAI (par défaut Qwen `qwen-flash`). Détails techniques :
 
 1. Exécute `supabase/migrations/0001_lesson_pipeline.sql` (idempotent, peut être relancé).
 2. Exécute `supabase/migrations/0003_student_review.sql` (révision des erreurs côté élève).
+   Puis `supabase/migrations/0005_lesson_import.sql` (import de leçons PDF / Google Docs).
 3. Connecte-toi une fois sur le site avec ton compte prof.
 4. Ouvre `supabase/migrations/0002_set_teacher.sql`, remplace l'email par le tien,
    exécute-le, puis déconnecte-toi / reconnecte-toi.
@@ -31,17 +32,19 @@ compatible OpenAI (par défaut Qwen `qwen-flash`). Détails techniques :
   la connexion Google en local renvoie vers la version Vercel.
 - **Providers → Google** activé (client OAuth Google Cloud avec l'URL de callback Supabase).
 
-### 3. Clé IA (Qwen, le moins cher)
+### 3. Clé IA (OpenRouter + Qwen, le moins cher)
 
-1. Crée un compte sur Alibaba Cloud Model Studio (site international) :
-   <https://bailian.console.alibabacloud.com/> — un numéro de téléphone européen suffit.
-2. Crée une clé API (API Keys), région Singapour/international.
-3. Renseigne `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL` (voir `.env.example`).
+1. Crée un compte sur <https://openrouter.ai> (email ou Google — pas de pièce d'identité).
+2. **Credits** : ajoute quelques dollars ; **Keys** : crée une clé (`sk-or-…`), avec une
+   limite de dépense si tu veux.
+3. Renseigne `AI_BASE_URL=https://openrouter.ai/api/v1`, `AI_MODEL=qwen/qwen3.7-flash`,
+   `AI_API_KEY` (voir `.env.example`), en local et sur Vercel (Production + Preview).
 
-Coût estimé : < 1 $/mois pour ~60 leçons. Sans clé en local, un **mode démo**
-renvoie une leçon d'exemple pour tester l'interface.
+Coût mesuré : ~0,001 $ par leçon (≈ 9 000 tokens, ~75 s). Sans clé en local, un
+**mode démo** renvoie une leçon d'exemple pour tester l'interface.
 
-Alternative : DeepSeek (`AI_BASE_URL=https://api.deepseek.com`, `AI_MODEL=deepseek-flash`).
+Alternatives compatibles (voir `.env.example`) : Alibaba Model Studio en direct (demande
+une vérification d'identité), DeepSeek.
 
 ### 4. Variables d'environnement
 
@@ -62,6 +65,14 @@ pnpm dev
 
 - <http://localhost:3000> — l'app
 - <http://localhost:3000/dev/preview> — aperçu d'une leçon + exercices sans connexion (dev uniquement)
+
+## Import de leçons existantes
+
+Onglet **Importer** (espace prof) : choisis un élève, dépose tes anciens bilans PDF et/ou
+colle des liens Google Docs / Drive (partagés en « Tous les utilisateurs disposant du
+lien »), règle le nombre et les types d'exercices, puis lance l'import. Chaque document
+devient une leçon complète (bilan + exercices interactifs) publiée à l'élève. Les PDF
+scannés (images) contiennent peu de texte : colle le texte à la main dans ce cas.
 
 ## Back office (`backoffice.lurl.com`)
 

@@ -15,7 +15,13 @@ export const TEACHER_TABS = [
     href: '/teacher/lessons/new',
     label: 'Nouvelle leçon',
     icon: '✨',
-    match: (p) => p.startsWith('/teacher/lessons'),
+    match: (p) => p.startsWith('/teacher/lessons') && !p.startsWith('/teacher/lessons/import'),
+  },
+  {
+    href: '/teacher/lessons/import',
+    label: 'Importer',
+    icon: '📥',
+    match: (p) => p.startsWith('/teacher/lessons/import'),
   },
 ]
 
