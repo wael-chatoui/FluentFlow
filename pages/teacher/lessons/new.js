@@ -1,39 +1,37 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 import Head from 'next/head'
-import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { api, ApiError } from '@/utils/apiClient'
+import useUnsavedGuard from '@/components/ui/useUnsavedGuard'
 import ConfirmDialog from '@/components/teacher/ConfirmDialog'
-import GenerationProgress from '@/components/teacher/GenerationProgress'
 import TeacherShell from '@/components/teacher/TeacherShell'
+import StepCard from '@/components/teacher/import/StepCard'
 import BackLink from '@/components/teacher/lessons/BackLink'
+import OptionsDisclosure, { hasOptionErrors, optionsToSend } from '@/components/teacher/lessons/OptionsDisclosure'
+import { PasteButton, SourceCounter, appendText } from '@/components/teacher/lessons/SourceInput'
 import StudentPicker, { CHIP_LIMIT } from '@/components/teacher/lessons/StudentPicker'
-import { readDraft, removeDraft, writeDraft, hasDraftContent } from '@/components/teacher/lessonDraft'
+import useLessonDraft from '@/components/teacher/lessons/useLessonDraft'
+import { hasDraftContent, readPref, writePref } from '@/components/teacher/lessonDraft'
 import {
   LEVEL_LABELS,
+  SOURCE_LIMITS,
+  SOURCE_MIN_CHARS,
   formatLessonDate,
   isAbortError,
   isValidId,
   parseLocalDate,
   plural,
+  sourcesError,
   studentDisplayName,
   todayLocal,
 } from '@/components/teacher/format'
-import { useBeforeUnload, useMountedRef } from '@/components/teacher/hooks'
+import { useApiResource, useMountedRef } from '@/components/teacher/hooks'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/NewLesson.module.css'
 
-const MIN_CHARS = 20
-const SAVE_DELAY = 600
-
-// A draft keeps its date only if it was saved today; an older draft defaults to today
-function draftDate(draft) {
-  if (!draft?.lessonDate || !draft.savedAt) return todayLocal()
-  const saved = new Date(draft.savedAt)
-  const today = new Date()
-  return saved.toDateString() === today.toDateString() ? draft.lessonDate : todayLocal()
-}
+const REVIEW_PREF = 'reviewBeforePublish'
+const LEAVE_WHILE_SENDING = "La leçon est en cours d'envoi. Quitter maintenant peut l'interrompre. Quitter quand même ?"
 
 function formatTime(ts) {
   return new Date(ts).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
@@ -48,36 +46,15 @@ function formatSavedAt(ts) {
     : `le ${d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} à ${formatTime(ts)}`
 }
 
-function charCount(n) {
-  return `${n.toLocaleString('fr-FR')} caractère${n > 1 ? 's' : ''}`
-}
-
-// One numbered card of the form. `htmlFor` turns the title into the field's label.
-function StepCard({ id, number, tone, title, htmlFor, sub, aside, children }) {
+function Banner({ tone, icon, children, actions, role = 'status' }) {
   return (
-    <section className={`${styles.step} ${styles[tone]}`} aria-labelledby={id}>
-      <div className={styles.stepHead}>
-        <span className={styles.stepNumber} aria-hidden="true">{number}</span>
-        <div className={styles.stepHeadText}>
-          <h2 id={id} className={styles.stepTitle}>
-            {htmlFor ? <label htmlFor={htmlFor}>{title}</label> : title}
-          </h2>
-          {sub && <p className={styles.stepSub}>{sub}</p>}
-        </div>
-        {aside}
+    <div className={`${bits.alert} ${bits[tone]}`} role={role}>
+      <span className={bits.alertIcon} aria-hidden="true">{icon}</span>
+      <div className={bits.alertBody}>
+        <span>{children}</span>
+        {actions && <div className={bits.alertActions}>{actions}</div>}
       </div>
-      {children}
-    </section>
-  )
-}
-
-function Counter({ length }) {
-  const ok = length >= MIN_CHARS
-  return (
-    <span className={`${styles.counter} ${ok ? styles.counterOk : ''}`}>
-      {ok && <span aria-hidden="true">✓ </span>}
-      {charCount(length)}
-    </span>
+    </div>
   )
 }
 
@@ -87,296 +64,126 @@ export default function NewLessonPage() {
   const uid = useId()
   const fieldId = (name) => `${uid}-${name}`
 
-  // null until the router is ready (query + localStorage are client-only)
-  const [form, setForm] = useState(null)
-  const formRef = useRef(form)
-  formRef.current = form
+  const studentsRes = useApiResource('/api/teacher/students', {
+    errorMessage: 'Impossible de charger la liste des élèves.',
+  })
+  const students = useMemo(() => {
+    const list = studentsRes.data?.students
+    if (!Array.isArray(list)) return null
+    return [...list].sort((a, b) => studentDisplayName(a).localeCompare(studentDisplayName(b), 'fr'))
+  }, [studentsRes.data])
 
-  const [students, setStudents] = useState(null)
-  const [studentsError, setStudentsError] = useState(null)
-  const [missingStudent, setMissingStudent] = useState(false)
-  const studentsController = useRef(null)
-  const checkedQueryStudent = useRef(false)
+  const [phase, setPhase] = useState('form') // 'form' | 'sending' | 'redirecting'
+  const draft = useLessonDraft({
+    ready: router.isReady,
+    queryStudent: router.query.student,
+    students,
+    paused: phase === 'redirecting',
+  })
+  const { form, restored, conflict } = draft
+  const bypassGuard = useUnsavedGuard(phase === 'sending', LEAVE_WHILE_SENDING)
 
-  const [restoredAt, setRestoredAt] = useState(null)
-  const [conflictDraft, setConflictDraft] = useState(null)
-  const [savedAt, setSavedAt] = useState(null)
-  const [storageFailed, setStorageFailed] = useState(false)
+  const [review, setReview] = useState(() => readPref(REVIEW_PREF) === '1')
   const [confirmClear, setConfirmClear] = useState(false)
-  const saveTimer = useRef(null)
-  const lastSaved = useRef('')
-
   const [attempted, setAttempted] = useState(false)
   const [submitError, setSubmitError] = useState(null)
-  // 'form' | 'generating' | 'done' | 'failed' | 'lost'
-  const [phase, setPhase] = useState('form')
-  const [startedAt, setStartedAt] = useState(null)
-  const [outcome, setOutcome] = useState(null)
-  const busyRef = useRef(false)
-  const requestController = useRef(null)
-  const progressRef = useRef(null)
-
-  useBeforeUnload(phase === 'generating')
-
-  // ---- Init from ?student= and the saved draft ----
-  useEffect(() => {
-    if (!router.isReady || formRef.current) return
-    const q = router.query.student
-    const studentId = isValidId(q) ? q : ''
-    const draft = readDraft(studentId)
-    const initial = {
-      studentId,
-      lessonDate: draftDate(draft),
-      title: draft?.title || '',
-      transcript: draft?.transcript || '',
-      canva: draft?.canva || '',
-    }
-    lastSaved.current = draft
-      ? JSON.stringify([initial.studentId, initial.lessonDate, initial.title, initial.transcript, initial.canva])
-      : ''
-    setForm(initial)
-    if (draft) {
-      setRestoredAt(draft.savedAt || Date.now())
-      setSavedAt(draft.savedAt || null)
-    }
-  }, [router.isReady, router.query.student])
-
-  // ---- Students ----
-  const loadStudents = useCallback(async () => {
-    studentsController.current?.abort()
-    const controller = new AbortController()
-    studentsController.current = controller
-    setStudentsError(null)
-    setStudents(null)
-    try {
-      const data = await api('/api/teacher/students', { signal: controller.signal })
-      if (!mounted.current || controller.signal.aborted) return
-      const list = Array.isArray(data.students) ? data.students : []
-      setStudents([...list].sort((a, b) => studentDisplayName(a).localeCompare(studentDisplayName(b), 'fr')))
-    } catch (err) {
-      if (isAbortError(err) || !mounted.current) return
-      setStudentsError(err.message || 'Impossible de charger la liste des élèves.')
-    }
-  }, [mounted])
-
-  useEffect(() => {
-    loadStudents()
-    return () => studentsController.current?.abort()
-  }, [loadStudents])
-
-  // The ?student= id must exist in the list
-  useEffect(() => {
-    if (!students || !form || checkedQueryStudent.current) return
-    checkedQueryStudent.current = true
-    if (form.studentId && !students.some((s) => s.id === form.studentId)) {
-      setMissingStudent(true)
-      setForm((f) => ({ ...f, studentId: '' }))
-    }
-  }, [students, form])
-
-  // ---- Draft autosave (debounced) ----
-  const flushDraft = useCallback(() => {
-    clearTimeout(saveTimer.current)
-    saveTimer.current = null
-    const f = formRef.current
-    if (!f) return
-    const signature = JSON.stringify([f.studentId, f.lessonDate, f.title, f.transcript, f.canva])
-    if (signature === lastSaved.current) return
-    const result = writeDraft(f.studentId, f)
-    lastSaved.current = result === null ? '' : signature
-    if (!mounted.current) return
-    if (result === null) {
-      setStorageFailed(true)
-    } else {
-      setStorageFailed(false)
-      setSavedAt(result || null)
-    }
-  }, [mounted])
-
-  useEffect(() => {
-    clearTimeout(saveTimer.current)
-    saveTimer.current = null
-    // Paused while a draft conflict is pending, so the other student's draft is not overwritten
-    if (!form || phase !== 'form' || conflictDraft) return undefined
-    saveTimer.current = setTimeout(flushDraft, SAVE_DELAY)
-    return undefined
-  }, [form, phase, flushDraft, conflictDraft])
-
-  // Flush a pending save when leaving (unmount, tab hidden/closed) and abort requests
-  useEffect(() => {
-    const flushPending = () => {
-      if (!saveTimer.current) return
-      clearTimeout(saveTimer.current)
-      saveTimer.current = null
-      if (formRef.current) writeDraft(formRef.current.studentId, formRef.current)
-    }
-    window.addEventListener('pagehide', flushPending)
-    return () => {
-      window.removeEventListener('pagehide', flushPending)
-      flushPending()
-      requestController.current?.abort()
-    }
-  }, [])
 
   // ---- Field handlers ----
-  const setField = (key) => (e) => {
-    const { value } = e.target
-    setForm((f) => ({ ...f, [key]: value }))
+  const update = (patch) => {
+    draft.update(patch)
     if (submitError) setSubmitError(null)
   }
+  const setField = (key) => (e) => update({ [key]: e.target.value })
+  const setOptions = (next) => update((f) => ({ options: typeof next === 'function' ? next(f.options) : next }))
 
-  const handleStudentChange = (e) => {
-    const newId = e.target.value
-    const current = formRef.current
-    if (!current || newId === current.studentId) return
-    setMissingStudent(false)
-    setConflictDraft(null)
-    const newDraft = readDraft(newId)
-    if (!hasDraftContent(current)) {
-      if (newDraft) {
-        setForm({
-          studentId: newId,
-          lessonDate: draftDate(newDraft),
-          title: newDraft.title,
-          transcript: newDraft.transcript,
-          canva: newDraft.canva,
-        })
-        setRestoredAt(newDraft.savedAt || Date.now())
-      } else {
-        setForm({ ...current, studentId: newId })
-        setRestoredAt(null)
-      }
-      return
-    }
-    // The text already typed moves with the selection; the old key is re-saved under the new one.
-    clearTimeout(saveTimer.current)
-    saveTimer.current = null
-    // On conflict the typed text stays saved under its old key until the teacher chooses
-    if (!newDraft) removeDraft(current.studentId)
-    setForm({ ...current, studentId: newId })
-    if (newDraft) setConflictDraft(newDraft)
-  }
-
-  const restoreConflictDraft = () => {
-    if (!conflictDraft) return
-    setForm((f) => ({
-      ...f,
-      lessonDate: draftDate(conflictDraft),
-      title: conflictDraft.title,
-      transcript: conflictDraft.transcript,
-      canva: conflictDraft.canva,
-    }))
-    setRestoredAt(conflictDraft.savedAt || Date.now())
-    setConflictDraft(null)
+  const toggleReview = (e) => {
+    setReview(e.target.checked)
+    writePref(REVIEW_PREF, e.target.checked ? '1' : '0')
   }
 
   const clearForm = () => {
-    clearTimeout(saveTimer.current)
-    saveTimer.current = null
-    removeDraft(formRef.current?.studentId)
-    setForm((f) => ({ ...f, title: '', transcript: '', canva: '', lessonDate: todayLocal() }))
-    setRestoredAt(null)
-    setSavedAt(null)
+    draft.clear()
     setAttempted(false)
+    setSubmitError(null)
     setConfirmClear(false)
   }
 
-  // ---- Validation ----
-  const transcriptLen = form?.transcript.trim().length || 0
-  const canvaLen = form?.canva.trim().length || 0
+  // ---- Validation (same rules as the API) ----
   const errors = useMemo(() => {
     if (!form) return {}
     const e = {}
     if (!form.studentId) e.student = 'Choisis un élève.'
     if (!parseLocalDate(form.lessonDate)) e.date = 'Indique la date du cours.'
-    if (transcriptLen < MIN_CHARS && canvaLen < MIN_CHARS) {
-      e.sources = `Colle la transcription ou les notes Canva (au moins ${MIN_CHARS} caractères).`
-    }
+    const sources = sourcesError(form.transcript, form.canva)
+    if (sources) e.sources = sources
+    if (hasOptionErrors(form.options)) e.options = 'Corrige les options des exercices.'
     return e
-  }, [form, transcriptLen, canvaLen])
+  }, [form])
 
-  // ---- Generation ----
-  const runGeneration = async (request, { lessonId = null, studentId }) => {
-    requestController.current?.abort()
-    const controller = new AbortController()
-    requestController.current = controller
-    busyRef.current = true
-    setOutcome(null)
-    setSubmitError(null)
-    setStartedAt(Date.now())
-    setPhase('generating')
-    requestAnimationFrame(() => progressRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
-
-    try {
-      const res = await request(controller.signal)
-      if (!mounted.current) return
-      const lesson = res?.lesson
-      if (!lesson?.id) throw new ApiError('Réponse inattendue du serveur.', 500)
-      // The lesson row now stores the transcript + notes: the local draft is no longer needed.
-      removeDraft(studentId)
-      if (lesson.status === 'published') {
-        setPhase('done')
-        router.push(`/teacher/lessons/${lesson.id}`)
-        return
-      }
-      setOutcome({ lessonId: lesson.id, studentId, error: lesson.error || 'La génération a échoué.' })
-      setPhase('failed')
-    } catch (err) {
-      if (isAbortError(err) || !mounted.current) return
-      const status = err?.status || 0
-      if (status >= 400 && status < 500) {
-        if (!lessonId) {
-          // Rejected before anything was created (validation, unknown student…)
-          setSubmitError(err.message)
-          setPhase('form')
-        } else {
-          setOutcome({ lessonId, studentId, error: err.message })
-          setPhase('failed')
-        }
-        return
-      }
-      // Network error, timeout or 5xx: the lesson may still exist on the server
-      setOutcome({ lessonId, studentId, message: err.message })
-      setPhase('lost')
-    } finally {
-      busyRef.current = false
-    }
-  }
-
-  const handleSubmit = (e) => {
+  // ---- Submit: the API answers right away (202), the lesson page shows the progress ----
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (busyRef.current || phase !== 'form' || !form) return
+    // !students: same as the disabled button (⌘/Ctrl+Entrée calls requestSubmit() anyway)
+    if (phase !== 'form' || !form || !students) return
+    if (conflict) {
+      // Sending now would silently replace the student's other saved draft
+      setSubmitError('Un autre brouillon existe : choisis d’abord « Remplacer par ce brouillon » ou « Garder mon texte ».')
+      document.getElementById(fieldId('conflict'))?.focus()
+      return
+    }
     setAttempted(true)
     const order = [
       ['student', fieldId('student')],
       ['date', fieldId('date')],
       ['sources', fieldId('transcript')],
+      ['options', null],
     ]
     const firstInvalid = order.find(([key]) => errors[key])
     if (firstInvalid) {
-      document.getElementById(firstInvalid[1])?.focus()
+      if (firstInvalid[1]) document.getElementById(firstInvalid[1])?.focus()
       return
     }
-    flushDraft()
-    const body = {
-      studentId: form.studentId,
-      lessonDate: form.lessonDate,
-      transcript: form.transcript,
-      canva: form.canva,
-    }
-    if (form.title.trim()) body.title = form.title.trim()
-    runGeneration((signal) => api('/api/teacher/lessons', { method: 'POST', body, signal }), {
-      studentId: form.studentId,
-    })
-  }
 
-  const handleRetry = () => {
-    if (busyRef.current || !outcome?.lessonId) return
-    const { lessonId, studentId } = outcome
-    runGeneration(
-      (signal) => api(`/api/teacher/lessons/${lessonId}/regenerate`, { method: 'POST', body: {}, signal }),
-      { lessonId, studentId }
-    )
+    // Mark the draft as sent: if the answer is lost, the next visit says so (and the
+    // same clientKey makes a retry return the lesson already created, never a duplicate)
+    const sent = draft.markSent()
+    const body = {
+      studentId: sent.studentId,
+      lessonDate: sent.lessonDate,
+      transcript: sent.transcript,
+      canva: sent.canva,
+      clientKey: sent.clientKey,
+      publish: !review,
+    }
+    if (sent.title.trim()) body.title = sent.title.trim()
+    // « Laisser l'IA choisir »: nothing sent; any fixed setting is sent as shown (even 10)
+    const options = optionsToSend(sent.options)
+    if (options) body.options = options
+
+    setPhase('sending')
+    setSubmitError(null)
+    try {
+      const res = await api('/api/teacher/lessons', { method: 'POST', body })
+      const lessonId = res?.lesson?.id
+      if (!isValidId(lessonId)) throw new ApiError('Réponse inattendue du serveur.', 500)
+      // Done even if the page was left meanwhile: the lesson row now holds the sources
+      draft.finish(sent.studentId)
+      if (!mounted.current) return
+      setPhase('redirecting')
+      bypassGuard.current = true
+      router.push(`/teacher/lessons/${lessonId}${res.duplicate ? '?duplicate=1' : ''}`)
+    } catch (err) {
+      if (isAbortError(err) || !mounted.current) return
+      setPhase('form')
+      const status = err?.status || 0
+      // Rejected (validation, unknown student…): nothing was created, the draft is not "sent"
+      if (status >= 400 && status < 500) draft.update({ submittedAt: 0 })
+      setSubmitError(
+        status === 0 || status >= 500
+          ? `${err.message} Ton texte est conservé. Si la leçon a quand même été créée, un nouvel essai t'y mènera directement (pas de doublon).`
+          : err.message
+      )
+    }
   }
 
   // ---- Render ----
@@ -387,87 +194,14 @@ export default function NewLessonPage() {
   const backLabel = selected ? studentDisplayName(selected) : form?.studentId ? "Fiche de l'élève" : 'Mes élèves'
   const hasContent = form ? hasDraftContent(form) : false
   const sourcesDescribedBy = `${fieldId('sources-hint')}${showErrors && errors.sources ? ` ${fieldId('sources-error')}` : ''}`
-
-  let statusPanel = null
-  if (phase === 'generating') {
-    statusPanel = (
-      <GenerationProgress
-        startedAt={startedAt}
-        heading={selected ? `Leçon de ${studentDisplayName(selected)} en préparation…` : undefined}
-      />
-    )
-  } else if (phase === 'done') {
-    statusPanel = (
-      <div className={`${bits.alert} ${bits.success} ${styles.doneAlert}`} role="status">
-        <span className={bits.alertIcon} aria-hidden="true">🎉</span>
-        <span className={bits.alertBody}>Leçon publiée ! Ouverture de la leçon…</span>
-        <span className={bits.spinner} aria-hidden="true" />
-      </div>
-    )
-  } else if (phase === 'failed' && outcome) {
-    statusPanel = (
-      <section className={`${styles.outcome} ${styles.outcomeFailed}`} role="alert" aria-labelledby={fieldId('failed-title')}>
-        <span className={styles.outcomeIcon} aria-hidden="true">😵</span>
-        <div className={styles.outcomeBody}>
-          <h2 id={fieldId('failed-title')} className={styles.outcomeTitle}>La génération a échoué</h2>
-          <p className={styles.outcomeError}>{outcome.error}</p>
-          <p className={styles.outcomeText}>
-            La leçon est enregistrée avec ta transcription et tes notes : tu peux relancer la génération sans
-            rien recoller.
-          </p>
-          <div className={styles.outcomeActions}>
-            <button type="button" className={`${ui.btn} ${ui.green}`} onClick={handleRetry}>
-              <span aria-hidden="true">🔄</span> Réessayer
-            </button>
-            <Link href={`/teacher/lessons/${outcome.lessonId}`} className={`${ui.btn} ${ui.ghost}`}>
-              Voir la leçon
-            </Link>
-          </div>
-        </div>
-      </section>
-    )
-  } else if (phase === 'lost' && outcome) {
-    statusPanel = (
-      <section className={`${styles.outcome} ${styles.outcomeLost}`} role="alert" aria-labelledby={fieldId('lost-title')}>
-        <span className={styles.outcomeIcon} aria-hidden="true">📡</span>
-        <div className={styles.outcomeBody}>
-          <h2 id={fieldId('lost-title')} className={styles.outcomeTitle}>La connexion a été interrompue</h2>
-          <p className={styles.outcomeError}>{outcome.message}</p>
-          <p className={styles.outcomeText}>
-            {outcome.lessonId
-              ? 'La génération continue peut-être sur le serveur. Ouvre la leçon pour voir son état.'
-              : "La leçon a peut-être quand même été créée. Vérifie la page de l'élève avant de réessayer, pour éviter un doublon. Ton texte est toujours enregistré ici."}
-          </p>
-          <div className={styles.outcomeActions}>
-            {outcome.lessonId ? (
-              <Link href={`/teacher/lessons/${outcome.lessonId}`} className={`${ui.btn} ${ui.blue}`}>
-                Voir la leçon
-              </Link>
-            ) : (
-              <Link href={`/teacher/students/${outcome.studentId}`} className={`${ui.btn} ${ui.blue}`}>
-                Voir la page de l&apos;élève
-              </Link>
-            )}
-            {!outcome.lessonId && (
-              <button type="button" className={`${ui.btn} ${ui.ghost}`} onClick={() => setPhase('form')}>
-                Revenir au formulaire
-              </button>
-            )}
-          </div>
-        </div>
-      </section>
-    )
-  }
-
-  const hideForm = phase === 'failed' || phase === 'lost'
   const draftPill = !form
     ? null
-    : storageFailed
+    : draft.storageFailed
       ? { tone: styles.pillWarn, icon: '⚠️', text: 'Brouillon non enregistré (stockage du navigateur indisponible)' }
-      : savedAt && hasContent
-        ? { tone: '', icon: '💾', text: `Brouillon enregistré à ${formatTime(savedAt)}` }
+      : draft.savedAt && hasContent
+        ? { tone: '', icon: '💾', text: `Brouillon enregistré à ${formatTime(draft.savedAt)}` }
         : null
-  const showClear = hasContent && !locked
+  const notToday = form && form.lessonDate !== todayLocal()
 
   return (
     <TeacherShell>
@@ -475,7 +209,7 @@ export default function NewLessonPage() {
         <title>Nouvelle leçon — Preply Lessons</title>
       </Head>
 
-      {phase !== 'generating' && phase !== 'done' && <BackLink href={backHref} label={backLabel} />}
+      <BackLink href={backHref} label={backLabel} />
 
       <div className={styles.page}>
         <div className={styles.pageHead}>
@@ -485,14 +219,15 @@ export default function NewLessonPage() {
           <p className={styles.pageSub}>
             Colle la transcription et tes notes Canva : l&apos;IA prépare le bilan et les exercices.
           </p>
-          {(draftPill || (showClear && !hideForm)) && (
+          {(draftPill || (hasContent && !locked && !conflict)) && (
             <div className={styles.draftRow}>
               {draftPill && (
                 <span className={`${styles.draftPill} ${draftPill.tone}`}>
                   <span aria-hidden="true">{draftPill.icon}</span> {draftPill.text}
                 </span>
               )}
-              {showClear && !hideForm && (
+              {/* During a draft conflict the banner's two choices come first */}
+              {hasContent && !locked && !conflict && (
                 <button
                   type="button"
                   className={`${ui.btn} ${ui.small} ${bits.redGhost} ${bits.tap}`}
@@ -505,257 +240,316 @@ export default function NewLessonPage() {
           )}
         </div>
 
-        {statusPanel && (
-          <div ref={progressRef} className={styles.statusAnchor}>
-            {statusPanel}
-          </div>
-        )}
+        <form
+          className={`${styles.form} ${locked ? styles.locked : ''}`}
+          onSubmit={handleSubmit}
+          onKeyDown={(e) => {
+            // ⌘/Ctrl + Entrée sends the form from any field
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault()
+              e.currentTarget.requestSubmit()
+            }
+          }}
+          noValidate
+          aria-busy={locked}
+        >
+          {!form ? (
+            <div className={styles.formLoading}>
+              <span className="sr-only" role="status">
+                Chargement du formulaire…
+              </span>
+              <span className={`${ui.skel} ${styles.skelCard}`} aria-hidden="true" />
+              <span className={`${ui.skel} ${styles.skelCard}`} aria-hidden="true" />
+              <span className={`${ui.skel} ${styles.skelCard} ${styles.skelTall}`} aria-hidden="true" />
+            </div>
+          ) : (
+            <fieldset className={styles.fieldset} disabled={locked}>
+              <legend className="sr-only">Informations de la leçon</legend>
 
-        {!hideForm && (
-          <form
-            className={`${styles.form} ${locked ? styles.locked : ''}`}
-            onSubmit={handleSubmit}
-            noValidate
-            aria-busy={locked}
-          >
-            {!form ? (
-              <div className={styles.formLoading}>
-                <span className="sr-only" role="status">
-                  Chargement du formulaire…
-                </span>
-                <span className={`${ui.skel} ${styles.skelCard}`} aria-hidden="true" />
-                <span className={`${ui.skel} ${styles.skelCard}`} aria-hidden="true" />
-                <span className={`${ui.skel} ${styles.skelCard} ${styles.skelTall}`} aria-hidden="true" />
-              </div>
-            ) : (
-              <fieldset className={styles.fieldset} disabled={locked}>
-                <legend className="sr-only">Informations de la leçon</legend>
-
-                {restoredAt && phase === 'form' && (
-                  <div className={`${bits.alert} ${bits.info}`} role="status">
-                    <span className={bits.alertIcon} aria-hidden="true">📝</span>
-                    <div className={bits.alertBody}>
-                      <span>Brouillon restauré (enregistré {formatSavedAt(restoredAt)}).</span>
-                      <div className={bits.alertActions}>
-                        <button
-                          type="button"
-                          className={`${ui.btn} ${ui.small} ${bits.redGhost} ${bits.tap}`}
-                          onClick={() => setConfirmClear(true)}
-                        >
+              {restored && !conflict && (
+                restored.submittedAt ? (
+                  <Banner
+                    tone="warning"
+                    icon="📨"
+                    actions={
+                      <button type="button" className={`${ui.btn} ${ui.small} ${bits.redGhost} ${bits.tap}`} onClick={() => setConfirmClear(true)}>
+                        Effacer le brouillon
+                      </button>
+                    }
+                  >
+                    Ce brouillon a déjà été envoyé {formatSavedAt(restored.submittedAt)}, mais la réponse n&apos;est pas
+                    arrivée : la leçon a peut-être été créée. Clique sur « Générer » : si elle existe, tu seras redirigé
+                    vers elle, sans doublon.
+                  </Banner>
+                ) : (
+                  <Banner
+                    tone="info"
+                    icon="📝"
+                    actions={
+                      <>
+                        {notToday && (
+                          <button type="button" className={`${ui.btn} ${ui.small} ${bits.tap}`} onClick={() => update({ lessonDate: todayLocal() })}>
+                            Mettre la date d&apos;aujourd&apos;hui
+                          </button>
+                        )}
+                        <button type="button" className={`${ui.btn} ${ui.small} ${bits.redGhost} ${bits.tap}`} onClick={() => setConfirmClear(true)}>
                           Effacer le brouillon
                         </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                      </>
+                    }
+                  >
+                    Brouillon restauré (enregistré {formatSavedAt(restored.savedAt)}). Date du cours :{' '}
+                    <strong>{formatLessonDate(form.lessonDate, { long: true })}</strong>
+                    {notToday ? " — ce n'est pas aujourd'hui, vérifie-la." : '.'}
+                  </Banner>
+                )
+              )}
 
-                {conflictDraft && phase === 'form' && (
-                  <div className={`${bits.alert} ${bits.warning}`} role="status">
-                    <span className={bits.alertIcon} aria-hidden="true">🗂️</span>
-                    <div className={bits.alertBody}>
-                      <span>
-                        Un autre brouillon existe pour cet élève (enregistré {formatSavedAt(conflictDraft.savedAt)}).
-                      </span>
-                      <div className={bits.alertActions}>
-                        <button
-                          type="button"
-                          className={`${ui.btn} ${ui.small} ${ui.orange} ${bits.tap}`}
-                          onClick={restoreConflictDraft}
-                        >
-                          Remplacer par ce brouillon
-                        </button>
-                        <button
-                          type="button"
-                          className={`${ui.btn} ${ui.small} ${bits.tap}`}
-                          onClick={() => setConflictDraft(null)}
-                        >
-                          Garder mon texte
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {missingStudent && (
-                  <div className={`${bits.alert} ${bits.warning}`} role="alert">
-                    <span className={bits.alertIcon} aria-hidden="true">🔍</span>
-                    <span className={bits.alertBody}>
-                      L&apos;élève indiqué dans le lien est introuvable. Choisis-le dans la liste.
-                    </span>
-                  </div>
-                )}
-
-                <StepCard
-                  id={fieldId('student-title')}
-                  number="1"
-                  tone="blue"
-                  title="Élève"
-                  htmlFor={students && students.length > CHIP_LIMIT ? fieldId('student') : undefined}
-                >
-                  <StudentPicker
-                    id={fieldId('student')}
-                    labelledBy={fieldId('student-title')}
-                    students={students}
-                    error={studentsError}
-                    value={students ? form.studentId : ''}
-                    onChange={handleStudentChange}
-                    onRetry={loadStudents}
-                    invalid={showErrors && Boolean(errors.student)}
-                    describedBy={showErrors && errors.student ? fieldId('student-error') : undefined}
-                  />
-                  {showErrors && errors.student && (
-                    <p id={fieldId('student-error')} className={bits.fieldError}>
-                      <span aria-hidden="true">⚠️</span> {errors.student}
-                    </p>
-                  )}
-                  {selected && (
-                    <p className={bits.hint}>
-                      {LEVEL_LABELS[selected.level] || LEVEL_LABELS.unknown} ·{' '}
-                      {plural(selected.lesson_count || 0, 'leçon')}
-                      {selected.last_lesson_date && ` · dernière le ${formatLessonDate(selected.last_lesson_date)}`}
-                    </p>
-                  )}
-                </StepCard>
-
-                <StepCard id={fieldId('when-title')} number="2" tone="purple" title="Date & titre">
-                  <div className={styles.row}>
-                    <div className={styles.field}>
-                      <label htmlFor={fieldId('date')} className={bits.label}>Date du cours</label>
-                      <input
-                        id={fieldId('date')}
-                        type="date"
-                        className={`${bits.input} ${showErrors && errors.date ? bits.invalid : ''}`}
-                        value={form.lessonDate}
-                        onChange={setField('lessonDate')}
-                        aria-invalid={(showErrors && Boolean(errors.date)) || undefined}
-                        aria-describedby={showErrors && errors.date ? fieldId('date-error') : undefined}
-                        required
-                      />
-                      {showErrors && errors.date && (
-                        <p id={fieldId('date-error')} className={bits.fieldError}>
-                          <span aria-hidden="true">⚠️</span> {errors.date}
-                        </p>
-                      )}
-                    </div>
-                    <div className={styles.field}>
-                      <label htmlFor={fieldId('title')} className={bits.label}>
-                        Titre <span className={bits.optional}>(facultatif)</span>
-                      </label>
-                      <input
-                        id={fieldId('title')}
-                        className={bits.input}
-                        value={form.title}
-                        onChange={setField('title')}
-                        placeholder="Laisse vide : l'IA proposera un titre"
-                        maxLength={120}
-                        autoComplete="off"
-                      />
-                    </div>
-                  </div>
-                </StepCard>
-
-                <StepCard
-                  id={fieldId('transcript-title')}
-                  number="3"
-                  tone="orange"
-                  title="Transcription"
-                  htmlFor={fieldId('transcript')}
-                  sub={
+              {conflict && (
+                <Banner
+                  tone="warning"
+                  icon="🗂️"
+                  actions={
                     <>
-                      <span aria-hidden="true">📋 </span>Colle ici la transcription Preply
+                      <button
+                        id={fieldId('conflict')}
+                        type="button"
+                        className={`${ui.btn} ${ui.small} ${ui.orange} ${bits.tap}`}
+                        onClick={() => {
+                          draft.takeConflictDraft()
+                          setSubmitError(null)
+                        }}
+                      >
+                        Remplacer par ce brouillon
+                      </button>
+                      <button
+                        type="button"
+                        className={`${ui.btn} ${ui.small} ${bits.tap}`}
+                        onClick={() => {
+                          draft.keepTypedText()
+                          setSubmitError(null)
+                        }}
+                      >
+                        Garder mon texte
+                      </button>
                     </>
                   }
-                  aside={<Counter length={transcriptLen} />}
                 >
-                  <textarea
-                    id={fieldId('transcript')}
-                    className={`${bits.textarea} ${styles.bigTextarea} ${showErrors && errors.sources ? bits.invalid : ''}`}
-                    value={form.transcript}
-                    onChange={setField('transcript')}
-                    rows={14}
-                    placeholder="Colle ici la transcription Preply du cours…"
-                    spellCheck={false}
-                    aria-invalid={(showErrors && Boolean(errors.sources)) || undefined}
-                    aria-describedby={sourcesDescribedBy}
-                  />
-                </StepCard>
+                  {form.studentId ? 'Un autre brouillon existe pour cet élève' : 'Un brouillon sans élève choisi existe déjà'}{' '}
+                  (enregistré {formatSavedAt(conflict.draft.savedAt)}).
+                </Banner>
+              )}
 
-                <StepCard
-                  id={fieldId('canva-title')}
-                  number="4"
-                  tone="pink"
-                  title="Notes Canva"
-                  htmlFor={fieldId('canva')}
-                  sub={
-                    <>
-                      <span aria-hidden="true">🎨 </span>Colle ici le texte de tes notes Canva
-                    </>
-                  }
-                  aside={<Counter length={canvaLen} />}
-                >
-                  <textarea
-                    id={fieldId('canva')}
-                    className={`${bits.textarea} ${styles.midTextarea} ${showErrors && errors.sources ? bits.invalid : ''}`}
-                    value={form.canva}
-                    onChange={setField('canva')}
-                    rows={8}
-                    placeholder="Colle ici le texte de tes notes Canva…"
-                    spellCheck={false}
-                    aria-invalid={(showErrors && Boolean(errors.sources)) || undefined}
-                    aria-describedby={sourcesDescribedBy}
-                  />
-                </StepCard>
+              {draft.missingStudent && (
+                <Banner tone="warning" icon="🔍" role="alert">
+                  L&apos;élève indiqué dans le lien est introuvable. Choisis-le dans la liste.
+                </Banner>
+              )}
 
-                <div className={styles.sourcesNote}>
-                  <p id={fieldId('sources-hint')} className={styles.sourcesHint}>
-                    <span aria-hidden="true">💡 </span>
-                    Au moins l&apos;un des deux est nécessaire ({MIN_CHARS} caractères minimum). Ton texte est
-                    enregistré automatiquement sur cet appareil jusqu&apos;à la génération.
+              <StepCard
+                id={fieldId('student-title')}
+                number="1"
+                tone="blue"
+                title="Élève"
+                htmlFor={students && students.length > CHIP_LIMIT ? fieldId('student') : undefined}
+              >
+                <StudentPicker
+                  id={fieldId('student')}
+                  labelledBy={fieldId('student-title')}
+                  students={students}
+                  error={studentsRes.error}
+                  value={students ? form.studentId : ''}
+                  onChange={(e) => draft.changeStudent(e.target.value)}
+                  onRetry={studentsRes.reload}
+                  invalid={showErrors && Boolean(errors.student)}
+                  describedBy={showErrors && errors.student ? fieldId('student-error') : undefined}
+                />
+                {showErrors && errors.student && (
+                  <p id={fieldId('student-error')} className={bits.fieldError}>
+                    <span aria-hidden="true">⚠️</span> {errors.student}
                   </p>
-                  {showErrors && errors.sources && (
-                    <p id={fieldId('sources-error')} className={bits.fieldError}>
-                      <span aria-hidden="true">⚠️</span> {errors.sources}
-                    </p>
-                  )}
+                )}
+                {selected && (
+                  <p className={bits.hint}>
+                    {LEVEL_LABELS[selected.level] || LEVEL_LABELS.unknown} · {plural(selected.lesson_count || 0, 'leçon')}
+                    {selected.last_lesson_date && ` · dernière le ${formatLessonDate(selected.last_lesson_date)}`}
+                  </p>
+                )}
+              </StepCard>
+
+              <StepCard id={fieldId('when-title')} number="2" tone="purple" title="Date & titre">
+                <div className={styles.row}>
+                  <div className={styles.field}>
+                    <label htmlFor={fieldId('date')} className={bits.label}>Date du cours</label>
+                    <input
+                      id={fieldId('date')}
+                      type="date"
+                      className={`${bits.input} ${showErrors && errors.date ? bits.invalid : ''}`}
+                      value={form.lessonDate}
+                      onChange={setField('lessonDate')}
+                      aria-invalid={(showErrors && Boolean(errors.date)) || undefined}
+                      aria-describedby={showErrors && errors.date ? fieldId('date-error') : undefined}
+                      required
+                    />
+                    {showErrors && errors.date && (
+                      <p id={fieldId('date-error')} className={bits.fieldError}>
+                        <span aria-hidden="true">⚠️</span> {errors.date}
+                      </p>
+                    )}
+                  </div>
+                  <div className={styles.field}>
+                    <label htmlFor={fieldId('title')} className={bits.label}>
+                      Titre <span className={bits.optional}>(facultatif)</span>
+                    </label>
+                    <input
+                      id={fieldId('title')}
+                      className={bits.input}
+                      value={form.title}
+                      onChange={setField('title')}
+                      placeholder="Laisse vide : l'IA proposera un titre"
+                      maxLength={120}
+                      autoComplete="off"
+                    />
+                  </div>
                 </div>
-              </fieldset>
-            )}
+              </StepCard>
 
-            {submitError && (
-              <div className={`${bits.alert} ${bits.error}`} role="alert">
-                <span className={bits.alertIcon} aria-hidden="true">⚠️</span>
-                <span className={bits.alertBody}>{submitError}</span>
-              </div>
-            )}
+              <StepCard
+                id={fieldId('transcript-title')}
+                number="3"
+                tone="orange"
+                title="Transcription"
+                htmlFor={fieldId('transcript')}
+                sub={
+                  <>
+                    <span aria-hidden="true">📋 </span>Colle ici la transcription Preply
+                  </>
+                }
+                aside={<SourceCounter value={form.transcript} max={SOURCE_LIMITS.transcript} />}
+              >
+                <textarea
+                  id={fieldId('transcript')}
+                  className={`${bits.textarea} ${styles.bigTextarea} ${showErrors && errors.sources ? bits.invalid : ''}`}
+                  value={form.transcript}
+                  onChange={setField('transcript')}
+                  rows={14}
+                  placeholder="Colle ici la transcription Preply du cours…"
+                  spellCheck={false}
+                  aria-invalid={(showErrors && Boolean(errors.sources)) || undefined}
+                  aria-describedby={sourcesDescribedBy}
+                />
+                <PasteButton
+                  targetId={fieldId('transcript')}
+                  onPaste={(text) => update((f) => ({ transcript: appendText(f.transcript, text) }))}
+                  disabled={locked}
+                  what="la transcription"
+                />
+              </StepCard>
 
-            {form && (
-              <div className={`${styles.actionBar} no-print`}>
-                <button
-                  type="submit"
-                  className={`${ui.btn} ${ui.green} ${ui.block} ${styles.submit}`}
-                  disabled={locked || !students}
-                  aria-busy={phase === 'generating' || undefined}
-                >
-                  {phase === 'generating' ? (
-                    <>
-                      <span className={bits.spinner} aria-hidden="true" /> Génération en cours…
-                    </>
-                  ) : (
-                    <>
-                      <span aria-hidden="true">✨</span> Générer la leçon
-                    </>
-                  )}
-                </button>
+              <StepCard
+                id={fieldId('canva-title')}
+                number="4"
+                tone="pink"
+                title="Notes Canva"
+                htmlFor={fieldId('canva')}
+                sub={
+                  <>
+                    <span aria-hidden="true">🎨 </span>Colle ici le texte de tes notes Canva
+                  </>
+                }
+                aside={<SourceCounter value={form.canva} max={SOURCE_LIMITS.canva} />}
+              >
+                <textarea
+                  id={fieldId('canva')}
+                  className={`${bits.textarea} ${styles.midTextarea} ${showErrors && errors.sources ? bits.invalid : ''}`}
+                  value={form.canva}
+                  onChange={setField('canva')}
+                  rows={8}
+                  placeholder="Colle ici le texte de tes notes Canva…"
+                  spellCheck={false}
+                  aria-invalid={(showErrors && Boolean(errors.sources)) || undefined}
+                  aria-describedby={sourcesDescribedBy}
+                />
+                <PasteButton
+                  targetId={fieldId('canva')}
+                  onPaste={(text) => update((f) => ({ canva: appendText(f.canva, text) }))}
+                  disabled={locked}
+                  what="les notes Canva"
+                />
+              </StepCard>
+
+              <div className={styles.sourcesNote}>
+                <p id={fieldId('sources-hint')} className={styles.sourcesHint}>
+                  <span aria-hidden="true">💡 </span>
+                  Au moins l&apos;un des deux est nécessaire ({SOURCE_MIN_CHARS} caractères minimum, hors espaces). Ton
+                  texte est enregistré automatiquement sur cet appareil jusqu&apos;à l&apos;envoi.
+                </p>
+                {showErrors && errors.sources && (
+                  <p id={fieldId('sources-error')} className={bits.fieldError}>
+                    <span aria-hidden="true">⚠️</span> {errors.sources}
+                  </p>
+                )}
               </div>
-            )}
-          </form>
-        )}
+
+              <OptionsDisclosure
+                value={form.options}
+                onChange={setOptions}
+                disabled={locked}
+                allowAuto
+                hint="Réglages pour cette leçon uniquement."
+              />
+
+              <label className={styles.review}>
+                <input type="checkbox" checked={review} onChange={toggleReview} aria-describedby={fieldId('review-hint')} />
+                <span className={styles.reviewText}>
+                  <span className={styles.reviewTitle}>Relire avant de publier</span>
+                  <span id={fieldId('review-hint')} className={styles.reviewHint}>
+                    {review
+                      ? "La leçon sera créée en brouillon, invisible pour l'élève, jusqu'à ce que tu la publies."
+                      : "Décoché : l'élève voit la leçon dès qu'elle est prête."}
+                  </span>
+                </span>
+              </label>
+            </fieldset>
+          )}
+
+          {submitError && (
+            <Banner tone="error" icon="⚠️" role="alert">
+              {submitError}
+            </Banner>
+          )}
+
+          {form && (
+            <div className={`${styles.actionBar} no-print`}>
+              <button
+                type="submit"
+                className={`${ui.btn} ${ui.green} ${ui.block} ${styles.submit}`}
+                disabled={locked || !students}
+                aria-busy={locked || undefined}
+                aria-describedby={fieldId('shortcut')}
+              >
+                {locked ? (
+                  <>
+                    <span className={bits.spinner} aria-hidden="true" /> Envoi…
+                  </>
+                ) : (
+                  <>
+                    <span aria-hidden="true">✨</span> {review ? 'Générer en brouillon' : 'Générer et publier'}
+                  </>
+                )}
+              </button>
+              <p id={fieldId('shortcut')} className={styles.shortcut}>
+                Raccourci : ⌘ / Ctrl + Entrée
+              </p>
+            </div>
+          )}
+        </form>
       </div>
 
       <ConfirmDialog
         open={confirmClear}
         title="Vider le formulaire ?"
-        message="Le titre, la transcription et les notes Canva seront effacés, ainsi que le brouillon enregistré."
+        message="Le titre, la transcription, les notes Canva et les options seront effacés, ainsi que le brouillon enregistré."
         confirmLabel="Vider"
         icon="🧹"
         danger

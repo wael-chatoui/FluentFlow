@@ -27,9 +27,9 @@
   text-align: center;
 }
 
-.statBlue { --tile-bg: var(--st-blue-bg); --tile-edge: #b3e5fc; --tile-fg: var(--st-blue-dark); }
-.statGreen { --tile-bg: var(--st-green-bg); --tile-edge: #b8e994; --tile-fg: var(--st-green-dark); }
-.statOrange { --tile-bg: var(--st-orange-bg); --tile-edge: #ffd59e; --tile-fg: #c46a00; }
+.statBlue { --tile-bg: var(--st-blue-bg); --tile-edge: var(--st-blue-line); --tile-fg: var(--st-blue-ink); }
+.statGreen { --tile-bg: var(--st-green-bg); --tile-edge: var(--st-green-line); --tile-fg: var(--st-green-ink); }
+.statOrange { --tile-bg: var(--st-orange-bg); --tile-edge: var(--st-orange-line); --tile-fg: var(--st-orange-ink); }
 
 .statValue {
   margin: 0;
@@ -134,9 +134,9 @@
   background: rgba(255, 255, 255, 0.4);
 }
 
-.good { --tone: var(--st-green); --tone-bg: var(--st-green-bg); --tone-fg: var(--st-green-dark); }
-.ok { --tone: var(--st-orange); --tone-bg: var(--st-orange-bg); --tone-fg: #c46a00; }
-.low { --tone: var(--st-red); --tone-bg: var(--st-red-bg); --tone-fg: var(--st-red-dark); }
+.good { --tone: var(--st-green); --tone-bg: var(--st-green-bg); --tone-fg: var(--st-green-ink); }
+.ok { --tone: var(--st-orange); --tone-bg: var(--st-orange-bg); --tone-fg: var(--st-orange-ink); }
+.low { --tone: var(--st-red); --tone-bg: var(--st-red-bg); --tone-fg: var(--st-red-ink); }
 
 @media (min-width: 768px) {
   .stats {
@@ -156,4 +156,15 @@
   .statValue {
     font-size: 1.1rem;
   }
+}
+
+.older {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--st-radius);
+  background: var(--st-bg);
+  color: var(--st-ink-soft);
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.45;
 }

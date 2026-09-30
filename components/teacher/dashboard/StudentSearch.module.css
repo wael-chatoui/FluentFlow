@@ -30,13 +30,14 @@
   transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 
+/* The label is sr-only: the placeholder is the visible hint (≥ 4.5:1) */
 .input::placeholder {
-  color: #afafaf;
+  color: var(--st-placeholder, #6f6f6f);
   font-weight: 700;
 }
 
 .input:hover {
-  border-color: #d0d0d0;
+  border-color: var(--st-disabled-edge);
 }
 
 .input:focus {
@@ -78,6 +79,6 @@
 }
 
 .clear:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: -4px;
 }

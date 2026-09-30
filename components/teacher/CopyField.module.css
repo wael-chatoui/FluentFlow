@@ -1,0 +1,30 @@
+/* Read-only value + "Copier" button (sign-in links, messages to paste in the Preply chat). */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.head label {
+  margin: 0;
+}
+
+.control {
+  font-size: 0.95rem;
+  font-weight: 600;
+  background: var(--st-bg);
+  overflow-wrap: anywhere;
+}
+
+input.control {
+  text-overflow: ellipsis;
+}

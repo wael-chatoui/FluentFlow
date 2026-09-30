@@ -1,26 +1,38 @@
 import Link from 'next/link'
 import Skeleton from '@/components/teacher/Skeleton'
 import { accentStyle } from '@/components/ui/accents'
-import { formatLessonDate, initialsOf, levelBadgeText, studentDisplayName } from '@/components/teacher/format'
+import {
+  ACCOUNT_STATE_LABELS,
+  accountState,
+  formatLessonDate,
+  initialsOf,
+  levelBadgeText,
+  studentDisplayName,
+} from '@/components/teacher/format'
 import styles from '@/components/teacher/StudentCard.module.css'
 
-/** Clickable student card for the teacher dashboard grid (accent color per student). */
+/**
+ * Student card of the teacher dashboard grid (accent color per student). The name links
+ * to the student page (the whole card is clickable); « Nouvelle leçon » goes straight to
+ * the form with the student preselected.
+ */
 export default function StudentCard({ student, index = 0 }) {
   const name = studentDisplayName(student)
   const hasName = Boolean(student.full_name?.trim())
   const level = levelBadgeText(student.level)
   const count = student.lesson_count || 0
+  const state = accountState(student)
 
   return (
-    <Link
-      href={`/teacher/students/${student.id}`}
-      className={styles.card}
-      style={{ ...accentStyle(student.id), '--i': Math.min(index, 6) }}
-    >
+    <article className={styles.card} style={{ ...accentStyle(student.id), '--i': Math.min(index, 6) }}>
       <div className={styles.head}>
         <span className={styles.avatar} aria-hidden="true">{initialsOf(name)}</span>
         <div className={styles.identity}>
-          <div className={styles.name}>{name}</div>
+          <h3 className={styles.name}>
+            <Link href={`/teacher/students/${student.id}`} className={styles.link}>
+              {name}
+            </Link>
+          </h3>
           {hasName && <div className={styles.email}>{student.email}</div>}
         </div>
         <span className={styles.chevron} aria-hidden="true">›</span>
@@ -36,9 +48,9 @@ export default function StudentCard({ student, index = 0 }) {
         ) : (
           <span className={styles.pill}>Niveau ?</span>
         )}
-        {!student.onboarded_at && (
+        {state !== 'active' && (
           <span className={`${styles.pill} ${styles.pillPending}`}>
-            <span aria-hidden="true">⏳</span> Pas encore inscrit
+            <span aria-hidden="true">{ACCOUNT_STATE_LABELS[state].icon}</span> {ACCOUNT_STATE_LABELS[state].label}
           </span>
         )}
       </div>
@@ -59,7 +71,11 @@ export default function StudentCard({ student, index = 0 }) {
           </dd>
         </div>
       </dl>
-    </Link>
+
+      <Link href={`/teacher/lessons/new?student=${student.id}`} className={styles.quick}>
+        <span aria-hidden="true">✨</span> Nouvelle leçon<span className="sr-only"> pour {name}</span>
+      </Link>
+    </article>
   )
 }
 
@@ -80,6 +96,7 @@ export function StudentCardSkeleton() {
         <Skeleton height={58} radius={14} />
         <Skeleton height={58} radius={14} />
       </div>
+      <Skeleton height={44} radius={14} />
     </div>
   )
 }

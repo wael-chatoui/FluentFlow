@@ -1,0 +1,230 @@
+/* Dashboard panels: « À traiter », inactive students, recent activity. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+  padding: 1.1rem;
+  background: var(--st-surface);
+  border: 2px solid var(--st-line);
+  border-bottom-width: 4px;
+  border-radius: var(--st-radius-lg);
+}
+
+.panelTodo {
+  border-color: var(--st-orange);
+  border-bottom-color: var(--st-orange-dark);
+}
+
+.panelTitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--st-ink);
+}
+
+.panelTitle:focus {
+  outline: none;
+}
+
+.panelTitle:focus-visible {
+  outline: 3px solid var(--st-focus);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+.badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  background: var(--st-orange-strong);
+  color: var(--st-on-color);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.allGood,
+.empty {
+  margin: 0;
+  font-size: 0.93rem;
+  font-weight: 700;
+  color: var(--st-ink-soft);
+}
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+/* ---- Groups (À traiter) ---- */
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.groupTitle {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--st-ink-soft);
+}
+
+.groupHint {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--st-ink-soft);
+}
+
+/* ---- Rows ---- */
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  --accent: var(--st-blue);
+  --accent-dark: var(--st-blue-dark);
+  --accent-strong: var(--st-blue-strong);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 14px;
+  background: var(--st-bg);
+}
+
+.avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  /* White initials need the -strong fill; the translucent edge darkens it */
+  background: var(--accent-strong);
+  border-bottom: 3px solid rgba(0, 0, 0, 0.22);
+  color: var(--st-on-color);
+  font-weight: 900;
+}
+
+.itemText {
+  flex: 1 1 180px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.itemTitle,
+.itemLink {
+  font-size: 0.98rem;
+  font-weight: 900;
+  color: var(--st-ink);
+  overflow-wrap: anywhere;
+}
+
+.itemLink:link,
+.itemLink:visited {
+  color: var(--st-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--st-line);
+  text-underline-offset: 3px;
+}
+
+.itemLink:hover {
+  text-decoration-color: currentColor;
+}
+
+.itemLink:focus-visible {
+  outline: 3px solid var(--st-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.itemMeta {
+  font-size: 0.83rem;
+  font-weight: 700;
+  color: var(--st-ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.itemDetail {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  font-size: 0.83rem;
+  font-weight: 700;
+  color: var(--st-orange-ink);
+}
+
+.itemError {
+  font-size: 0.83rem;
+  font-weight: 800;
+  color: var(--st-red-ink);
+}
+
+.itemActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+/* ---- Score pill (activity) ---- */
+.score {
+  flex: none;
+  min-width: 56px;
+  padding: 0.3rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 900;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.scoreGood { background: var(--st-green-bg); color: var(--st-green-ink); }
+.scoreOk { background: var(--st-orange-bg); color: var(--st-orange-ink); }
+.scoreLow { background: var(--st-red-bg); color: var(--st-red-ink); }
+
+@media (max-width: 479px) {
+  .itemActions {
+    flex: 1 1 100%;
+    margin-left: 0;
+  }
+
+  .itemActions > * {
+    flex: 1 1 auto;
+  }
+}
+
+@media (min-width: 768px) {
+  .panel {
+    padding: 1.25rem 1.4rem;
+  }
+}

@@ -13,6 +13,7 @@
   --accent: var(--st-blue);
   --accent-dark: var(--st-blue-dark);
   --accent-bg: var(--st-blue-bg);
+  --accent-ink: var(--st-blue-ink);
   min-width: 0;
 }
 
@@ -52,7 +53,7 @@ a.card:active {
 
 a.card:focus-visible {
   border-color: var(--accent);
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
 }
 
@@ -88,7 +89,7 @@ a.card:focus-visible {
   font-weight: 900;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--accent-dark);
+  color: var(--accent-ink);
 }
 
 .body {
@@ -206,12 +207,28 @@ a.card:focus-visible {
 
 .noteBlue {
   background: var(--st-blue-bg);
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
 }
 
 .noteRed {
   background: var(--st-red-bg);
-  color: var(--st-red-dark);
+  color: var(--st-red-ink);
+}
+
+.noteOrange {
+  background: var(--st-orange-bg);
+  color: var(--st-orange-ink);
+}
+
+.kind {
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  background: var(--st-purple-bg);
+  color: var(--st-ink);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .chevron {
@@ -220,7 +237,7 @@ a.card:focus-visible {
   font-size: 1.9rem;
   font-weight: 900;
   line-height: 1;
-  color: var(--accent-dark);
+  color: var(--accent-ink);
   transition: transform 150ms ease;
 }
 

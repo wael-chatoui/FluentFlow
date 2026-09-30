@@ -3,6 +3,7 @@
   --accent: var(--st-blue);
   --accent-dark: var(--st-blue-dark);
   --accent-bg: var(--st-blue-bg);
+  --accent-strong: var(--st-blue-strong);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -74,9 +75,11 @@
 .avatar {
   display: grid;
   place-items: center;
-  background: var(--accent);
-  border-bottom: 5px solid var(--accent-dark);
-  color: #fff;
+  /* White initials need the -strong fill; the translucent edge darkens it
+     (accentStyle has no -strong-dark) */
+  background: var(--accent-strong);
+  border-bottom: 5px solid rgba(0, 0, 0, 0.22);
+  color: var(--st-on-color);
   font-size: 1.5rem;
   font-weight: 900;
   letter-spacing: 0.02em;
@@ -140,15 +143,31 @@
 }
 
 .pillOk {
-  border-color: #b8eb8f;
+  border-color: var(--st-green-line);
   background: var(--st-green-bg);
-  color: #2b7a0b;
+  color: var(--st-green-ink);
 }
 
 .pillPending {
-  border-color: #ffe27a;
+  border-color: var(--st-yellow-line);
   background: var(--st-yellow-bg);
-  color: #8a6d00;
+  color: var(--st-yellow-ink);
+}
+
+/* Links to the account block below */
+a.pillPending:link,
+a.pillPending:visited {
+  color: var(--st-yellow-ink);
+  text-decoration: none;
+}
+
+a.pillPending:hover {
+  text-decoration: underline;
+}
+
+a.pillPending:focus-visible {
+  outline: 3px solid var(--st-focus);
+  outline-offset: 2px;
 }
 
 .actions {

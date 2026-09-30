@@ -6,20 +6,41 @@ function tone(pct) {
   return pct >= 80 ? styles.good : pct >= 50 ? styles.ok : styles.low
 }
 
-/** Practice sessions of a lesson: summary tiles + score bars (newest first). */
-export default function LessonResults({ sessions }) {
+function OlderNote({ count }) {
+  if (!count) return null
+  return (
+    <p className={styles.older}>
+      <span aria-hidden="true">🕰️ </span>
+      {plural(count, 'essai')} sur une version précédente de la leçon (avant la dernière génération ou
+      modification des exercices) : non comptés ici.
+    </p>
+  )
+}
+
+/**
+ * Practice sessions of the current version of a lesson: summary tiles + score bars (newest first).
+ * @param {{ sessions: object[], olderCount?: number }} props  olderCount = sessions on previous versions
+ */
+export default function LessonResults({ sessions, olderCount = 0 }) {
   const list = [...(sessions || [])].sort((a, b) =>
     (b.completed_at || '').localeCompare(a.completed_at || '')
   )
 
   if (list.length === 0) {
     return (
-      <EmptyNote
-        emoji="🎯"
-        tone="orange"
-        title="Pas encore de résultats"
-        text="L'élève n'a pas encore fait les exercices de cette leçon."
-      />
+      <div className={styles.results}>
+        <EmptyNote
+          emoji="🎯"
+          tone="orange"
+          title="Pas encore de résultats"
+          text={
+            olderCount
+              ? "L'élève n'a pas encore refait les exercices de cette version."
+              : "L'élève n'a pas encore fait les exercices de cette leçon."
+          }
+        />
+        <OlderNote count={olderCount} />
+      </div>
     )
   }
 
@@ -73,6 +94,7 @@ export default function LessonResults({ sessions }) {
           )
         })}
       </ul>
+      <OlderNote count={olderCount} />
     </div>
   )
 }

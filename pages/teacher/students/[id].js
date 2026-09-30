@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
@@ -7,65 +7,63 @@ import LessonList, { LessonListSkeleton } from '@/components/teacher/LessonList'
 import StudentProfileForm from '@/components/teacher/StudentProfileForm'
 import PageState from '@/components/teacher/PageState'
 import Skeleton from '@/components/teacher/Skeleton'
+import BackLink from '@/components/teacher/lessons/BackLink'
+import AccountPanel from '@/components/teacher/students/AccountPanel'
+import PlanPanel from '@/components/teacher/students/PlanPanel'
 import StudentHero, { StudentHeroSkeleton } from '@/components/teacher/students/StudentHero'
 import { api } from '@/utils/apiClient'
 import { accentStyle } from '@/components/ui/accents'
-import { isAbortError, isValidId, studentDisplayName } from '@/components/teacher/format'
-import { useMountedRef } from '@/components/teacher/hooks'
+import { isStaleGeneration, isValidId, studentDisplayName } from '@/components/teacher/format'
+import { useApiResource, usePolling } from '@/components/teacher/hooks'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/teacher/StudentPage.module.css'
 
-function formatDate(iso) {
-  const d = new Date(iso)
-  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
-}
+// Anchors other pages link to (dashboard « Préparer », hero pills)
+const ANCHORS = ['#plan', '#compte']
 
 export default function TeacherStudentPage() {
   const router = useRouter()
-  const mounted = useMountedRef()
-  const controllerRef = useRef(null)
   const id = router.isReady ? router.query.id : undefined
   const validId = isValidId(id)
-
-  const [data, setData] = useState(null)
-  const [error, setError] = useState(null)
-  const [notFound, setNotFound] = useState(false)
-
-  const load = useCallback(async () => {
-    if (!validId) return
-    controllerRef.current?.abort()
-    const controller = new AbortController()
-    controllerRef.current = controller
-    setError(null)
-    setNotFound(false)
-    setData(null)
-    try {
-      const res = await api(`/api/teacher/students/${id}`, { signal: controller.signal })
-      if (!mounted.current || controller.signal.aborted) return
-      setData(res)
-    } catch (err) {
-      if (isAbortError(err) || !mounted.current) return
-      if (err.status === 404) setNotFound(true)
-      else setError(err.message || "Impossible de charger l'élève.")
-    }
-  }, [id, validId, mounted])
-
-  useEffect(() => {
-    load()
-    return () => controllerRef.current?.abort()
-  }, [load])
-
-  const handleSaved = useCallback((res) => {
-    setData((prev) => ({ ...prev, ...res, lessons: res.lessons || prev?.lessons || [] }))
-  }, [])
+  const path = validId ? `/api/teacher/students/${id}` : null
+  const { data, error, notFound, loading: fetching, reload, setData } = useApiResource(path, {
+    errorMessage: "Impossible de charger l'élève.",
+  })
+  const scrolled = useRef(false)
 
   const student = data?.student
-  const name = student ? studentDisplayName(student) : ''
   const lessons = data?.lessons || []
+  const name = student ? studentDisplayName(student) : ''
   const newLessonHref = validId ? `/teacher/lessons/new?student=${id}` : '/teacher/lessons/new'
 
+  // Lessons being generated refresh by themselves (stops once they are done or stuck)
+  const generating = lessons.some((l) => l.status === 'generating' && !isStaleGeneration(l))
+  const pollLessons = useCallback(
+    async (signal) => {
+      const next = await api(path, { signal })
+      // Only the lessons: the profile form keeps what is being typed
+      setData((prev) => (prev ? { ...prev, lessons: next.lessons || [] } : next))
+    },
+    [path, setData]
+  )
+  usePolling(generating, pollLessons, { interval: 6000, retryInterval: 12000 })
+
+  // Links to #plan / #compte arrive before the content exists: scroll once it is there
+  useEffect(() => {
+    if (!student || scrolled.current) return
+    scrolled.current = true
+    if (ANCHORS.includes(window.location.hash)) {
+      document.querySelector(window.location.hash)?.scrollIntoView({ block: 'start' })
+    }
+  }, [student])
+
+  const handleSaved = useCallback(
+    (res) => setData((prev) => ({ ...prev, ...res, lessons: res.lessons || prev?.lessons || [] })),
+    [setData]
+  )
+
   const invalid = router.isReady && !validId
-  const loading = !invalid && !data && !error && !notFound
+  const loading = !router.isReady || fetching
 
   let content
   if (invalid || notFound) {
@@ -87,7 +85,7 @@ export default function TeacherStudentPage() {
         headingLevel={1}
         title="Impossible de charger l'élève"
         text={error}
-        onRetry={load}
+        onRetry={reload}
       />
     )
   } else {
@@ -131,14 +129,13 @@ export default function TeacherStudentPage() {
           )}
         </section>
 
+        {!loading && <PlanPanel key={student.id} studentId={student.id} studentName={name} />}
+
         <section className={`${ui.card} ${styles.profileCard}`} aria-labelledby="profile-title">
           <div className={styles.sectionHead}>
             <h2 id="profile-title" className={`${ui.sectionTitle} ${styles.sectionTitle}`}>
               <span aria-hidden="true">🗂️</span> Fiche élève
             </h2>
-            {!loading && student.created_at && (
-              <span className={styles.since}>Compte créé le {formatDate(student.created_at)}</span>
-            )}
           </div>
           {loading ? (
             <div className={styles.formSkeleton} aria-hidden="true">
@@ -155,10 +152,13 @@ export default function TeacherStudentPage() {
               studentId={student.id}
               student={student}
               notes={data.notes}
+              aiContext={data.ai_context}
               onSaved={handleSaved}
             />
           )}
         </section>
+
+        {!loading && <AccountPanel key={student.id} student={student} />}
       </div>
     )
   }
@@ -169,16 +169,14 @@ export default function TeacherStudentPage() {
         <title>{name ? `${name} — Preply Lessons` : 'Élève — Preply Lessons'}</title>
       </Head>
 
-      <nav className={styles.crumbs} aria-label="Fil d’Ariane">
-        <Link href="/teacher" className={styles.back}>
-          <span aria-hidden="true">‹</span> Mes élèves
-        </Link>
-      </nav>
+      <BackLink href="/teacher" label="Mes élèves" />
 
-      {loading && (
+      {loading && !invalid && !error && !notFound && (
         <>
           <h1 className="sr-only">Élève</h1>
-          <span className="sr-only" role="status">Chargement de l&apos;élève…</span>
+          <span className="sr-only" role="status">
+            Chargement de l&apos;élève…
+          </span>
         </>
       )}
       {content}

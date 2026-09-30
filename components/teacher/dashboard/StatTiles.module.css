@@ -76,7 +76,7 @@
 
 .skeleton .icon {
   border: none;
-  background: #ececec;
+  background: var(--st-skeleton);
 }
 
 @media (max-width: 359px) {

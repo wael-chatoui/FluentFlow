@@ -2,7 +2,7 @@ import Link from 'next/link'
 import StatusBadge from '@/components/teacher/StatusBadge'
 import Skeleton from '@/components/teacher/Skeleton'
 import { accentStyle } from '@/components/ui/accents'
-import { formatLessonDate, parseLocalDate, plural } from '@/components/teacher/format'
+import { formatLessonDate, isStaleGeneration, lessonTitle, parseLocalDate, plural } from '@/components/teacher/format'
 import styles from '@/components/teacher/LessonList.module.css'
 
 function sortNewestFirst(lessons) {
@@ -26,9 +26,14 @@ function scoreTone(pct) {
   return { '--score': `var(--st-${tone})` }
 }
 
-function Footer({ lesson }) {
+function Footer({ lesson, stale }) {
   if (lesson.status === 'generating') {
-    return (
+    return stale ? (
+      <p className={`${styles.note} ${styles.noteOrange}`}>
+        <span aria-hidden="true">⏳</span>
+        <span className={styles.noteText}>Semble bloquée — ouvre-la pour relancer</span>
+      </p>
+    ) : (
       <p className={`${styles.note} ${styles.noteBlue}`}>
         <span aria-hidden="true">⏳</span>
         <span className={styles.noteText}>Génération en cours…</span>
@@ -44,6 +49,23 @@ function Footer({ lesson }) {
     )
   }
   if (lesson.status !== 'published') return null
+  // A failed regeneration keeps the previous version online
+  if (lesson.error) {
+    return (
+      <p className={`${styles.note} ${styles.noteOrange}`} title={lesson.error}>
+        <span aria-hidden="true">⚠️</span>
+        <span className={styles.noteText}>Dernière régénération échouée (l&apos;ancienne version reste en ligne)</span>
+      </p>
+    )
+  }
+  if (lesson.hidden) {
+    return (
+      <p className={`${styles.note} ${styles.noteOrange}`}>
+        <span aria-hidden="true">🙈</span>
+        <span className={styles.noteText}>Invisible pour l&apos;élève — à relire puis publier</span>
+      </p>
+    )
+  }
 
   const pct = bestPct(lesson)
   const attempts = lesson.attempts || 0
@@ -68,16 +90,23 @@ function Footer({ lesson }) {
   )
 }
 
-/** Lessons of one student, newest first, each card linking to the teacher lesson page. */
+/**
+ * Lessons of one student, newest first, each card linking to the teacher lesson page.
+ * Status pill: Publiée / Brouillon (hidden) / En cours / Bloquée (the API's `stale` flag) /
+ * Échec, plus « Importée » for lessons made from an imported document (source_kind).
+ */
 export default function LessonList({ lessons }) {
   const sorted = sortNewestFirst(lessons || [])
+  const now = Date.now()
 
   return (
     <ul className={styles.list}>
       {sorted.map((lesson, i) => {
         const date = parseLocalDate(lesson.lesson_date)
-        const title = lesson.title?.trim() || 'Leçon sans titre'
+        const title = lessonTitle(lesson)
         const count = lesson.exercise_count || 0
+        // The API flag wins (server clock); updated_at is only the fallback
+        const stale = isStaleGeneration(lesson, now)
         return (
           <li key={lesson.id} className={styles.item} style={{ ...accentStyle(lesson.id), '--i': Math.min(i, 6) }}>
             <Link href={`/teacher/lessons/${lesson.id}`} className={styles.card}>
@@ -99,7 +128,8 @@ export default function LessonList({ lessons }) {
                   <time className={styles.date} dateTime={lesson.lesson_date || undefined}>
                     {formatLessonDate(lesson.lesson_date)}
                   </time>
-                  <StatusBadge status={lesson.status} />
+                  <StatusBadge status={lesson.status} hidden={lesson.hidden} stale={stale} />
+                  {lesson.source_kind === 'import' && <span className={styles.kind}>Importée</span>}
                 </span>
                 <span className={styles.title}>{title}</span>
                 {lesson.status === 'published' && (
@@ -110,7 +140,7 @@ export default function LessonList({ lessons }) {
               </span>
 
               <span className={styles.footer}>
-                <Footer lesson={lesson} />
+                <Footer lesson={lesson} stale={stale} />
                 <span className={styles.chevron} aria-hidden="true">›</span>
               </span>
             </Link>

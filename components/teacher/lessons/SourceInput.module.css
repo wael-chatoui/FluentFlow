@@ -1,0 +1,40 @@
+/* Transcript / Canva field of the lesson page editor + the "Coller" button. */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+}
+
+.head label {
+  margin: 0;
+}
+
+.field textarea {
+  min-height: 160px;
+}
+
+.paste {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+}
+
+.pasteMessage {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--st-ink-soft);
+}
+
+.pasteMessage:empty {
+  display: none;
+}
