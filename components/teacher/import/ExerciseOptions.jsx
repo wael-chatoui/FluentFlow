@@ -36,12 +36,19 @@ export function buildOptions(options) {
 }
 
 /**
- * Exercise settings applied to every document of the run: count stepper,
- * exercise type toggles and optional instructions for the AI.
+ * Exercise settings: count stepper, exercise type toggles and optional
+ * instructions for the AI. Used by the import page (every document of the run),
+ * the new-lesson form and the regenerate editor, which pass their own `hint`.
  * @param {{ value: { count: string, types: string[], instructions: string },
- *   onChange: React.Dispatch<React.SetStateAction<object>>, disabled?: boolean }} props
+ *   onChange: React.Dispatch<React.SetStateAction<object>>, disabled?: boolean,
+ *   hint?: string|null }} props  hint: text under the block (null = none)
  */
-export default function ExerciseOptions({ value, onChange, disabled = false }) {
+export default function ExerciseOptions({
+  value,
+  onChange,
+  disabled = false,
+  hint = "Ces réglages s'appliquent à tous les documents de cet import.",
+}) {
   const uid = useId()
   const errors = optionErrors(value)
   const count = parseCount(value.count)
@@ -181,7 +188,7 @@ export default function ExerciseOptions({ value, onChange, disabled = false }) {
           aria-invalid={Boolean(errors.instructions) || undefined}
           aria-describedby={`${instrId}-count`}
         />
-        <p className={bits.hint}>Ces réglages s&apos;appliquent à tous les documents de cet import.</p>
+        {hint && <p className={bits.hint}>{hint}</p>}
       </div>
     </div>
   )

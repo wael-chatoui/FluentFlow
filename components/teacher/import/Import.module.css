@@ -4,7 +4,7 @@
 
 .pageEmoji {
   background: var(--st-blue-bg);
-  border-color: #b3e5fc;
+  border-color: var(--st-blue-line);
 }
 
 /* ---- Documents card ---- */
@@ -54,10 +54,6 @@
   color: var(--st-ink-soft);
 }
 
-.lockedHint {
-  margin: 0;
-}
-
 /* ---- Sticky action bar ---- */
 .bar {
   position: sticky;
@@ -102,12 +98,12 @@
 }
 
 .barRunning .barTitle {
-  color: var(--st-purple-dark);
+  color: var(--st-purple-ink);
 }
 
 .barMuted {
   font-weight: 800;
-  color: #a35a00;
+  color: var(--st-orange-ink);
 }
 
 .barSub {
@@ -120,7 +116,25 @@
   color: var(--st-ink-soft);
 }
 
-.bar .submit {
+.barNote {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--st-purple-ink);
+}
+
+.barActions {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.bar .submit,
+.bar .retryAll {
   width: 100%;
   min-height: 56px;
   font-size: 1.05rem;
@@ -155,7 +169,7 @@
   font-size: 0.95rem;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
-  color: var(--st-purple-dark);
+  color: var(--st-purple-ink);
 }
 
 .bar .stop {
@@ -182,13 +196,13 @@
 }
 
 .summary:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 3px;
 }
 
-.sumGreen { --sum-bg: var(--st-green-bg); --sum-edge: #b8e994; --sum-dark: var(--st-green); --sum-fg: #3a7d05; }
-.sumOrange { --sum-bg: var(--st-orange-bg); --sum-edge: #ffd59e; --sum-dark: var(--st-orange); --sum-fg: #a35a00; }
-.sumRed { --sum-bg: var(--st-red-bg); --sum-edge: #ffc1c1; --sum-dark: var(--st-red); --sum-fg: var(--st-red-dark); }
+.sumGreen { --sum-bg: var(--st-green-bg); --sum-edge: var(--st-green-line); --sum-dark: var(--st-green); --sum-fg: var(--st-green-ink); }
+.sumOrange { --sum-bg: var(--st-orange-bg); --sum-edge: var(--st-orange-line); --sum-dark: var(--st-orange); --sum-fg: var(--st-orange-ink); }
+.sumRed { --sum-bg: var(--st-red-bg); --sum-edge: var(--st-red-line); --sum-dark: var(--st-red); --sum-fg: var(--st-red-ink); }
 
 .sumIcon {
   flex: none;
@@ -238,8 +252,9 @@
   font-weight: 900;
 }
 
-.countGreen { color: #3a7d05; }
-.countRed { color: var(--st-red-dark); }
+.countGreen { color: var(--st-green-ink); }
+.countOrange { color: var(--st-orange-ink); }
+.countRed { color: var(--st-red-ink); }
 .countGrey { color: var(--st-ink-soft); }
 
 .sumText {
@@ -282,9 +297,18 @@
     padding: 0.85rem 1rem;
   }
 
-  .bar .submit {
+  .barActions {
+    flex: none;
+    flex-direction: row;
+  }
+
+  .bar .submit,
+  .bar .retryAll {
     width: auto;
-    min-width: 260px;
+  }
+
+  .bar .submit {
+    min-width: 240px;
   }
 
   .bar .stop {

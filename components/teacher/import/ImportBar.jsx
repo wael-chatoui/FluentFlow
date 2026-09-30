@@ -1,78 +1,105 @@
 import { plural } from '@/components/teacher/format'
+import { RUN_CONCURRENCY } from '@/components/teacher/import/useImportRunner'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/import/Import.module.css'
 
+function quoteList(titles) {
+  return titles.map((t) => `« ${t} »`).join(', ')
+}
+
 /**
  * Sticky bottom bar of the import page (docked above the mobile tab bar).
- * Idle: summary + big IMPORTER button. Running: overall progress + "stop after this one".
- * @param {{ running: boolean, readyCount: number, pendingCount: number, extractingCount: number,
- *   blocker: string | null,
- *   onImport: () => void, run: { total: number, done: number, currentTitle: string } | null,
- *   stopRequested: boolean, onStop: () => void }} props
+ * Idle: summary + IMPORTER (+ "retry the failed ones"). Running: overall progress,
+ * the lessons being generated and "stop launching the next ones".
+ * @param {{ running: boolean,
+ *   progress: { total: number, done: number, queued: number, waiting: number, current: string[] } | null,
+ *   stopRequested: boolean, onStop: () => void,
+ *   readyCount: number, pendingCount: number, extractingCount: number, retryCount: number,
+ *   blocker: string | null, review: boolean, retryDisabled?: boolean,
+ *   onImport: () => void, onRetryFailed: () => void }} props
  */
 export default function ImportBar({
   running,
+  progress,
+  stopRequested,
+  onStop,
   readyCount,
   pendingCount,
   extractingCount = 0,
+  retryCount = 0,
   blocker,
+  review,
+  retryDisabled = false,
   onImport,
-  run,
-  stopRequested,
-  onStop,
+  onRetryFailed,
 }) {
-  if (running && run) {
-    const percent = run.total ? Math.round((run.done / run.total) * 100) : 0
-    const position = Math.min(run.done + 1, run.total)
+  if (running && progress) {
+    const { total, done, queued, waiting, current } = progress
+    const percent = total ? Math.round((done / total) * 100) : 0
     return (
       <div className={`${styles.bar} ${styles.barRunning} no-print`}>
         <div className={styles.barInfo}>
           <p className={styles.barTitle} aria-live="polite" aria-atomic="true">
-            <span className={bits.spinner} aria-hidden="true" /> Import en cours · leçon {position} sur {run.total}
+            <span className={bits.spinner} aria-hidden="true" /> Import en cours ·{' '}
+            {plural(done, 'leçon terminée', 'leçons terminées')} sur {total}
           </p>
-          {run.currentTitle && (
-            <p className={styles.barSub}>
-              « {run.currentTitle} » en génération…
+          {current.length > 0 && (
+            <p className={styles.barSub} title={quoteList(current)}>
+              En génération : {quoteList(current)}
             </p>
           )}
           <div className={styles.overall}>
             <div
               className={styles.overallTrack}
               role="progressbar"
-              aria-label="Leçons traitées"
+              aria-label="Leçons terminées"
               aria-valuemin={0}
-              aria-valuemax={run.total}
-              aria-valuenow={run.done}
-              aria-valuetext={`${run.done} sur ${run.total}`}
+              aria-valuemax={total}
+              aria-valuenow={done}
+              aria-valuetext={`${done} sur ${total}`}
             >
               <div className={styles.overallFill} style={{ width: `${Math.max(percent, 4)}%` }} />
             </div>
             <span className={styles.overallCount}>
-              {run.done} / {run.total}
+              {done} / {total}
             </span>
           </div>
+          <p className={styles.barNote}>
+            {waiting > 0
+              ? "Garde cette page ouverte jusqu'à l'envoi du dernier document : les leçons déjà envoyées continuent d'être générées même si tu pars."
+              : "Tout est envoyé : tu peux quitter la page, les leçons continuent d'être générées."}
+          </p>
         </div>
-        <button
-          type="button"
-          className={`${ui.btn} ${ui.small} ${bits.redGhost} ${bits.tap} ${styles.stop}`}
-          onClick={onStop}
-          disabled={stopRequested || position >= run.total}
-        >
-          {stopRequested ? (
-            'Arrêt après cette leçon…'
-          ) : (
-            <>
-              <span aria-hidden="true">✋</span> Arrêter après celle-ci
-            </>
-          )}
-        </button>
+        {(queued > 0 || stopRequested) && (
+          <button
+            type="button"
+            className={`${ui.btn} ${ui.small} ${bits.redGhost} ${bits.tap} ${styles.stop}`}
+            onClick={onStop}
+            disabled={stopRequested}
+          >
+            {stopRequested ? (
+              'Arrêt : les leçons en cours se terminent…'
+            ) : (
+              <>
+                <span aria-hidden="true">✋</span> Ne pas lancer les suivantes
+              </>
+            )}
+          </button>
+        )}
       </div>
     )
   }
 
   const canImport = !blocker && readyCount > 0
   const summary = readyCount > 0 ? plural(readyCount, 'document prêt', 'documents prêts') : 'Aucun document prêt'
+  let sub = blocker
+  if (!sub && extractingCount > 0) sub = `Extraction en cours pour ${plural(extractingCount, 'document')}…`
+  if (!sub && readyCount > 0) {
+    sub = review
+      ? "Brouillons : l'élève ne les verra qu'une fois publiés."
+      : `Publiées pour l'élève dès qu'elles sont prêtes · ${RUN_CONCURRENCY} leçons générées à la fois.`
+  }
 
   return (
     <div className={`${styles.bar} no-print`}>
@@ -82,25 +109,25 @@ export default function ImportBar({
           {summary}
           {pendingCount > 0 && <span className={styles.barMuted}> · {pendingCount} à vérifier</span>}
         </p>
-        {blocker ? (
-          <p className={styles.barSub}>{blocker}</p>
-        ) : (
-          extractingCount > 0 && (
-            <p className={styles.barSub}>
-              Extraction en cours pour {extractingCount} document{extractingCount > 1 ? 's' : ''}…
-            </p>
-          )
+        {sub && <p className={styles.barSub}>{sub}</p>}
+      </div>
+      <div className={styles.barActions}>
+        {retryCount > 0 && (
+          <button
+            type="button"
+            className={`${ui.btn} ${ui.orange} ${styles.retryAll}`}
+            onClick={onRetryFailed}
+            disabled={retryDisabled}
+          >
+            <span aria-hidden="true">🔄</span> Réessayer {retryCount > 1 ? `les ${retryCount} échecs` : "l'échec"}
+          </button>
+        )}
+        {(readyCount > 0 || retryCount === 0) && (
+          <button type="button" className={`${ui.btn} ${ui.green} ${styles.submit}`} onClick={onImport} disabled={!canImport}>
+            <span aria-hidden="true">📥</span> {readyCount > 0 ? `Importer ${plural(readyCount, 'leçon')}` : 'Importer'}
+          </button>
         )}
       </div>
-      <button
-        type="button"
-        className={`${ui.btn} ${ui.green} ${styles.submit}`}
-        onClick={onImport}
-        disabled={!canImport}
-      >
-        <span aria-hidden="true">📥</span>{' '}
-        {readyCount > 0 ? `Importer ${plural(readyCount, 'leçon')}` : 'Importer'}
-      </button>
     </div>
   )
 }

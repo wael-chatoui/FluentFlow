@@ -1,6 +1,6 @@
 import { useId } from 'react'
 import Link from 'next/link'
-import { formatElapsed } from '@/components/teacher/format'
+import { formatElapsed, formatLessonDate, todayLocal } from '@/components/teacher/format'
 import { useElapsedSeconds } from '@/components/teacher/hooks'
 import {
   MAX_TEXT,
@@ -10,14 +10,26 @@ import {
   formatCount,
   sourceIssue,
 } from '@/components/teacher/import/importUtils'
+import { canRetry } from '@/components/teacher/import/rows'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/import/SourceRow.module.css'
 
-/** Compact "the AI is cooking" line for the item being generated. */
+const KIND = {
+  pdf: { icon: '📄', tone: styles.kindPdf, sr: 'PDF' },
+  text: { icon: '📝', tone: styles.kindText, sr: 'fichier texte' },
+  link: { icon: '🔗', tone: styles.kindLink, sr: 'lien' },
+}
+
+const DATE_FROM = {
+  name: 'Date trouvée dans le nom du document',
+  text: 'Date trouvée dans le texte du document',
+}
+
+/** Compact "the AI is cooking" line for a document being generated. */
 function RowProgress({ startedAt }) {
   const elapsed = useElapsedSeconds(startedAt)
-  // Asymptotic, like GenerationProgress: never 100 % before the answer arrives
+  // Asymptotic, like GenerationProgress: never 100 % before the lesson is ready
   const percent = Math.min(96, Math.round((1 - Math.exp(-elapsed / 50)) * 100))
   return (
     <div className={styles.progress}>
@@ -34,9 +46,12 @@ function RowProgress({ startedAt }) {
 }
 
 function pillFor(row, issue, dateError) {
-  if (row.run === 'running') return { tone: styles.pillPurple, text: 'Génération…' }
+  if (row.run === 'sending') return { tone: styles.pillPurple, text: 'Envoi…' }
+  if (row.run === 'generating') return { tone: styles.pillPurple, text: 'Génération…' }
   if (row.run === 'queued') return { tone: styles.pillGrey, text: 'En attente' }
-  if (row.run === 'published') return { tone: styles.pillGreen, text: '✅ Publiée' }
+  if (row.run === 'published') {
+    return row.hidden ? { tone: styles.pillOrange, text: '📝 Brouillon' } : { tone: styles.pillGreen, text: '✅ Publiée' }
+  }
   if (row.run === 'failed') return { tone: styles.pillRed, text: '❌ Échec' }
   if (issue?.tone === 'loading') return { tone: styles.pillBlue, text: 'Extraction…' }
   if (issue?.tone === 'error') return { tone: styles.pillRed, text: 'Erreur' }
@@ -46,44 +61,60 @@ function pillFor(row, issue, dateError) {
 
 function extractSummary(row) {
   const len = row.text.trim().length
-  const parts = [`${formatCount(len)} caractère${len > 1 ? 's' : ''}`]
-  if (row.manual) return `Texte saisi à la main · ${parts[0]}`
+  const chars = `${formatCount(len)} caractère${len > 1 ? 's' : ''}`
+  if (row.manual) return `Texte saisi à la main · ${chars}`
+  const parts = [chars]
   if (Number.isFinite(row.pages)) parts.push(`${row.pages} page${row.pages > 1 ? 's' : ''}`)
   return `${row.textEdited ? 'Texte modifié · ' : ''}${parts.join(' · ')}`
 }
 
+function metaFor(row) {
+  if (row.restored) return 'Envoyé avant le rechargement de la page'
+  if (row.kind === 'link') return 'Lien Google'
+  return `${row.kind === 'pdf' ? 'PDF' : 'Texte'} · ${formatBytes(row.size)}`
+}
+
 /**
  * One document of the import list: editable title + date, extraction status,
- * editable text, then the generation status once the queue runs.
+ * editable text, then the generation status once it is sent.
  * @param {{ row: object, index: number, title: string, dateError: string | null,
- *   busy: boolean, retryDisabled?: boolean, onChange: (patch: object) => void, onRemove: () => void,
+ *   existing: { title: string } | null, busy: boolean, retryDisabled?: boolean,
+ *   canApplyDate?: boolean, newTab?: boolean,
+ *   onChange: (patch: object) => void, onApplyDate: () => void, onRemove: () => void,
  *   onRetryExtract: () => void, onRetryRun: () => void }} props
- *   `busy` = the queue is running (every row is read-only).
+ *   `busy` = the queue is running (rows are read-only); `existing` = a lesson of the
+ *   student already has this date; `newTab` opens lesson links in a new tab (keeps the run on screen).
  */
 export default function SourceRow({
   row,
   index,
   title,
   dateError,
+  existing = null,
   busy,
   retryDisabled = false,
+  canApplyDate = false,
+  newTab = false,
   onChange,
+  onApplyDate,
   onRemove,
   onRetryExtract,
   onRetryRun,
 }) {
   const uid = useId()
-  const issue = sourceIssue(row)
+  const issue = row.lessonId ? null : sourceIssue(row)
   const pill = pillFor(row, issue, dateError)
-  const inRun = row.run === 'queued' || row.run === 'running'
+  const inRun = row.run === 'queued' || row.run === 'sending' || row.run === 'generating'
   // Once the lesson exists on the server its text / title / date are stored there
   const locked = busy || inRun || Boolean(row.lessonId)
-  const isPdf = row.kind === 'pdf'
+  const kind = KIND[row.kind] || KIND.pdf
   const name = row.sourceName || row.label
   const textLen = row.text.trim().length
   const textOpen = row.showText
-  const canEditText = row.extract === 'done' || row.extract === 'error'
+  const canEditText = !row.restored && (row.extract === 'done' || row.extract === 'error')
   const textLabel = row.extract === 'error' ? 'Coller le texte à la main' : 'Voir le texte'
+  const linkProps = newTab ? { target: '_blank', rel: 'noopener noreferrer' } : {}
+  const newTabNote = newTab ? <span className="sr-only"> (nouvel onglet)</span> : null
 
   const setText = (value) => {
     if (row.extract === 'error') {
@@ -93,6 +124,13 @@ export default function SourceRow({
     }
   }
 
+  const lessonLink = (label, tone) => (
+    <Link href={`/teacher/lessons/${row.lessonId}`} className={`${ui.btn} ${ui.small} ${tone} ${bits.tap}`} {...linkProps}>
+      {label}
+      {newTabNote}
+    </Link>
+  )
+
   // ---- Status line (live) + its actions ----
   let tone = ''
   let icon = null
@@ -100,31 +138,32 @@ export default function SourceRow({
   let actions = null
   let note = null
 
-  if (row.run === 'running') {
+  if (row.run === 'sending' || row.run === 'generating') {
     tone = styles.statusPurple
     icon = <span className={bits.spinner} aria-hidden="true" />
-    message = "Génération… L'IA prépare le bilan et les exercices."
+    message = row.run === 'sending' ? 'Envoi du document…' : "Génération… L'IA prépare le bilan et les exercices."
+    if (row.pollTrouble) note = 'Connexion instable : nouvel essai automatique… La génération continue sur le serveur.'
+    if (row.lessonId) actions = lessonLink('Voir la leçon', bits.blueGhost)
   } else if (row.run === 'queued') {
     tone = styles.statusGrey
     icon = '⏳'
     message = 'En attente…'
   } else if (row.run === 'published') {
-    tone = styles.statusGreen
-    icon = '🎉'
-    message = 'Leçon publiée !'
-    actions = (
-      <Link href={`/teacher/lessons/${row.lessonId}`} className={`${ui.btn} ${ui.small} ${ui.green} ${bits.tap}`}>
-        Voir la leçon
-      </Link>
-    )
+    tone = row.hidden ? styles.statusOrange : styles.statusGreen
+    icon = row.hidden ? '📝' : '🎉'
+    message = row.hidden ? "Brouillon prêt : relis-le puis publie-le pour l'élève." : 'Leçon publiée !'
+    actions = lessonLink(row.hidden ? 'Relire la leçon' : 'Voir la leçon', row.hidden ? ui.orange : ui.green)
   } else if (row.run === 'failed') {
     tone = styles.statusRed
     icon = '😵'
     message = row.runError || 'La génération a échoué.'
-    if (row.maybeCreated) {
-      note = "La leçon a peut-être quand même été créée : vérifie la fiche de l'élève avant de réessayer, pour éviter un doublon."
-    } else if (row.lessonId) {
+    if (row.lessonId && !row.stale) {
       note = 'La leçon est enregistrée avec le texte du document : « Réessayer » relance seulement la génération.'
+    } else if (row.restored && !row.lessonId) {
+      note = 'Ajoute à nouveau le document pour réessayer.'
+    } else if (!row.lessonId && (issue || dateError)) {
+      // Why « Réessayer » is disabled
+      note = issue?.message || dateError
     }
     actions = (
       <>
@@ -132,21 +171,17 @@ export default function SourceRow({
           type="button"
           className={`${ui.btn} ${ui.small} ${ui.orange} ${bits.tap}`}
           onClick={onRetryRun}
-          disabled={busy || retryDisabled || (!row.lessonId && Boolean(issue || dateError))}
+          disabled={retryDisabled || !canRetry(row)}
         >
           <span aria-hidden="true">🔄</span> Réessayer
         </button>
-        {row.lessonId && (
-          <Link href={`/teacher/lessons/${row.lessonId}`} className={`${ui.btn} ${ui.small} ${bits.blueGhost} ${bits.tap}`}>
-            Voir la leçon
-          </Link>
-        )}
+        {row.lessonId && lessonLink('Voir la leçon', bits.blueGhost)}
       </>
     )
   } else if (issue?.tone === 'loading') {
     tone = styles.statusBlue
     icon = <span className={bits.spinner} aria-hidden="true" />
-    message = isPdf ? 'Extraction du texte…' : 'Récupération du document…'
+    message = row.kind === 'link' ? 'Récupération du document…' : 'Extraction du texte…'
   } else if (issue?.tone === 'error') {
     tone = styles.statusRed
     icon = '⚠️'
@@ -167,7 +202,7 @@ export default function SourceRow({
         <button
           type="button"
           className={`${ui.btn} ${ui.small} ${bits.tap}`}
-          onClick={() => onChange({ textEdited: true })}
+          onClick={() => onChange({ warningDismissed: true })}
           disabled={locked}
         >
           Le texte me convient
@@ -175,9 +210,10 @@ export default function SourceRow({
       )
     }
   } else if (dateError) {
+    // The error itself is shown under the date field
     tone = styles.statusOrange
     icon = '📅'
-    message = dateError
+    message = `${extractSummary(row)} · date du cours à vérifier`
   } else {
     tone = styles.statusOk
     icon = '✓'
@@ -185,23 +221,30 @@ export default function SourceRow({
   }
 
   const titleId = `${uid}-title`
+  const titleHintId = `${uid}-title-hint`
   const dateId = `${uid}-date`
+  const dateNoteId = `${uid}-date-note`
   const textId = `${uid}-text`
+  // Not while extracting: the text may still give the date
+  const showDateError = Boolean(dateError) && !locked && issue?.tone !== 'loading'
+  const dateNote = showDateError ? dateError : DATE_FROM[row.dateFrom] || null
 
   return (
-    <li className={`${styles.row} ${row.run === 'running' ? styles.rowRunning : ''} ${row.run === 'published' ? styles.rowDone : ''}`}>
+    <li
+      className={`${styles.row} ${inRun ? styles.rowRunning : ''} ${row.run === 'published' ? styles.rowDone : ''}`}
+    >
       <div className={styles.head}>
-        <span className={`${styles.kind} ${isPdf ? styles.kindPdf : styles.kindLink}`} aria-hidden="true">
-          {isPdf ? '📄' : '🔗'}
+        <span className={`${styles.kind} ${kind.tone}`} aria-hidden="true">
+          {kind.icon}
         </span>
         <div className={styles.headText}>
           <p className={styles.name} title={name}>
-            <span className="sr-only">{`Document ${index + 1} (${isPdf ? 'PDF' : 'lien'}) : `}</span>
+            <span className="sr-only">{`Document ${index + 1} (${kind.sr}) : `}</span>
             {name}
           </p>
           <div className={styles.metaRow}>
             <span className={`${styles.pill} ${pill.tone}`}>{pill.text}</span>
-            <span className={styles.meta}>{isPdf ? `PDF · ${formatBytes(row.size)}` : 'Lien Google'}</span>
+            <span className={styles.meta}>{metaFor(row)}</span>
           </div>
         </div>
         <button
@@ -226,11 +269,16 @@ export default function SourceRow({
             className={bits.input}
             value={title}
             onChange={(e) => onChange({ title: e.target.value })}
-            placeholder="Laisse vide : l'IA proposera un titre"
             maxLength={MAX_TITLE}
             autoComplete="off"
             disabled={locked}
+            aria-describedby={!title && !locked ? titleHintId : undefined}
           />
+          {!title && !locked && (
+            <p id={titleHintId} className={`${bits.hint} ${styles.fieldNote}`}>
+              Vide : l&apos;IA proposera un titre.
+            </p>
+          )}
         </div>
         <div className={styles.field}>
           <label htmlFor={dateId} className={bits.label}>
@@ -239,25 +287,49 @@ export default function SourceRow({
           <input
             id={dateId}
             type="date"
-            className={`${bits.input} ${dateError && !locked ? bits.invalid : ''}`}
+            className={`${bits.input} ${showDateError ? bits.invalid : ''}`}
             value={row.lessonDate}
-            onChange={(e) => onChange({ lessonDate: e.target.value })}
+            max={todayLocal()}
+            onChange={(e) => onChange({ lessonDate: e.target.value, dateFrom: null })}
             disabled={locked}
-            aria-invalid={(Boolean(dateError) && !locked) || undefined}
             required
+            aria-invalid={showDateError || undefined}
+            aria-describedby={dateNote ? dateNoteId : undefined}
           />
+          {dateNote && (
+            <p id={dateNoteId} className={`${showDateError ? bits.fieldError : bits.hint} ${styles.fieldNote}`}>
+              <span aria-hidden="true">{showDateError ? '⚠️ ' : '📅 '}</span>
+              {dateNote}
+            </p>
+          )}
+          {canApplyDate && !locked && !dateError && (
+            <button type="button" className={styles.applyDate} onClick={onApplyDate}>
+              Appliquer cette date à toutes les lignes
+            </button>
+          )}
         </div>
       </div>
 
+      {existing && !row.lessonId && !locked && (
+        <p className={styles.existing}>
+          <span aria-hidden="true">👀 </span>
+          {`Une leçon du ${formatLessonDate(row.lessonDate)} existe déjà pour cet élève${
+            existing.title ? ` (« ${existing.title} »)` : ''
+          } : vérifie que ce document n'est pas déjà importé.`}
+        </p>
+      )}
+
       <div className={`${styles.status} ${tone}`}>
         <div className={styles.statusMain}>
-          <span className={styles.statusIcon} aria-hidden="true">{icon}</span>
+          <span className={styles.statusIcon} aria-hidden="true">
+            {icon}
+          </span>
           <div className={styles.statusBody}>
             <p className={styles.statusText} aria-live="polite" aria-atomic="true">
               <span className="sr-only">{`${title || name} : `}</span>
               {message}
             </p>
-            {row.run === 'running' && <RowProgress startedAt={row.startedAt} />}
+            {inRun && row.run !== 'queued' && row.startedAt && <RowProgress startedAt={row.startedAt} />}
             {note && <p className={styles.statusNote}>{note}</p>}
           </div>
         </div>

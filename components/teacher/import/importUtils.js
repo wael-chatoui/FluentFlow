@@ -1,24 +1,39 @@
-// Helpers for the lesson-import page (/teacher/lessons/import): limits, source
-// titles, Google link checks and the two extraction requests.
+// Helpers for the lesson-import page (/teacher/lessons/import): limits, files,
+// the extraction requests and the per-document text checks.
+import { api } from '@/utils/apiClient'
+import { EXERCISE_TYPES as TYPE_IDS } from '@/utils/lesson/schema'
+import { EXERCISE_TYPE_LABELS } from '@/components/teacher/format'
+import { GENERATION_LIMITS, IMPORT_LIMITS, megabytes } from '@/utils/import/limits'
+import { prepareImportText, sanitizeSourceName } from '@/utils/import/text'
 
-export const MAX_SOURCES = 20
-export const MAX_PDF_BYTES = 4 * 1024 * 1024
-export const MIN_TEXT = 200
-export const MAX_TEXT = 150000
-export const MAX_TITLE = 120
-export const MAX_INSTRUCTIONS = 1000
-export const COUNT_MIN = 4
-export const COUNT_MAX = 20
-export const COUNT_DEFAULT = 10
+// Same parser as /api/teacher/import/resolve: a link accepted here is accepted there
+export { parseGoogleLink } from '@/utils/import/googleLinks'
+
+export const MAX_SOURCES = IMPORT_LIMITS.maxSources
+export const MIN_TEXT = IMPORT_LIMITS.minText
+export const MAX_TEXT = IMPORT_LIMITS.maxText
+export const MAX_TITLE = IMPORT_LIMITS.maxTitle
+export const MAX_INSTRUCTIONS = GENERATION_LIMITS.maxInstructions
+export const COUNT_MIN = GENERATION_LIMITS.minCount
+export const COUNT_MAX = GENERATION_LIMITS.maxCount
+export const COUNT_DEFAULT = GENERATION_LIMITS.defaultCount
 export const EXTRACT_CONCURRENCY = 3
 
-export const EXERCISE_TYPES = [
-  { value: 'mcq', label: 'QCM', icon: '🔘' },
-  { value: 'fill_blank', label: 'Phrases à trous', icon: '✏️' },
-  { value: 'match', label: 'Association', icon: '🔗' },
-]
+const TYPE_ICONS = { mcq: '🔘', fill_blank: '✏️', match: '🔗' }
 
-export const NETWORK_ERROR = 'Connexion impossible. Vérifie ta connexion internet et réessaie.'
+export const EXERCISE_TYPES = TYPE_IDS.map((value) => ({
+  value,
+  label: EXERCISE_TYPE_LABELS[value] || value,
+  icon: TYPE_ICONS[value] || '•',
+}))
+
+const NETWORK_ERROR = 'Connexion impossible. Vérifie ta connexion internet et réessaie.'
+const TIMEOUT_ERROR = 'Le serveur met trop de temps à répondre. Réessaie dans un instant.'
+const SERVER_ERROR = 'Le serveur a rencontré un problème. Réessaie dans un instant.'
+// api()'s fallback when the body has no `error` (a platform error page, a crash…),
+// in English when <html lang> is not French yet
+const GENERIC_FAILURE = /^(Request failed|La requête a échoué) \(\d+\)\.$/
+const FILE_TOO_LARGE = `Fichier trop lourd (${megabytes(IMPORT_LIMITS.maxFileBytes)} maximum).`
 
 let keySeq = 0
 export function nextKey() {
@@ -26,10 +41,31 @@ export function nextKey() {
   return `src-${Date.now().toString(36)}-${keySeq}`
 }
 
-/** French message for an error thrown by `api()` or the upload helpers. */
+/**
+ * Random uuid v4 sent as `clientKey` so a retried import never creates a second
+ * lesson. crypto.randomUUID only exists on https / localhost: fall back to
+ * getRandomValues (a phone testing the dev server over the LAN).
+ */
+export function newClientKey() {
+  const c = globalThis.crypto
+  if (typeof c?.randomUUID === 'function') return c.randomUUID()
+  const bytes = c.getRandomValues(new Uint8Array(16))
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
+/** French message for an error thrown by `api()` or the file helpers. */
 export function frenchError(err, fallback = 'Une erreur est survenue. Réessaie.') {
   if (!err) return fallback
-  if (err.status === 0) return NETWORK_ERROR
+  if (err.status === 0) return err.code === 'timeout' ? TIMEOUT_ERROR : NETWORK_ERROR
+  // Platform body limit: the answer is not our JSON
+  if (err.status === 413 && !err.code) return FILE_TOO_LARGE
+  // Our routes always send a French `error`; without one the platform answered
+  if (err.status >= 500 && (!err.message || GENERIC_FAILURE.test(err.message))) {
+    return err.status === 504 ? TIMEOUT_ERROR : SERVER_ERROR
+  }
   return err.message || fallback
 }
 
@@ -43,120 +79,39 @@ export function formatBytes(bytes) {
   return `${(bytes / (1024 * 1024)).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} Mo`
 }
 
-function normalizeName(text) {
-  return String(text || '')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '')
-}
+// ---- Files ----
 
-/** Prefixes that count as "the student's name" at the start of a file name. */
-function studentPrefixes(student) {
-  if (!student) return []
-  const out = new Set()
-  const full = student.full_name?.trim()
-  if (full) {
-    out.add(normalizeName(full))
-    out.add(normalizeName(full.split(/\s+/)[0]))
-  }
-  const local = student.email?.split('@')[0]
-  if (local) {
-    out.add(normalizeName(local))
-    out.add(normalizeName(local.split(/[._-]/)[0]))
-  }
-  out.delete('')
-  return [...out]
-}
+export const FILE_ACCEPT = 'application/pdf,.pdf,text/plain,.txt,text/markdown,.md,.markdown'
 
-/**
- * Default lesson title from a file / document name:
- * "Rebecca_L07_Vouloir-Vocab.pdf" (student Rebecca) → "L07 Vouloir Vocab".
- */
-export function deriveTitle(sourceName, student) {
-  if (!sourceName) return ''
-  let base = String(sourceName).trim().replace(/\.(pdf|docx?|odt|txt)$/i, '')
-  const m = /^([^_]+)_(.+)$/.exec(base)
-  if (m && studentPrefixes(student).includes(normalizeName(m[1]))) base = m[2]
-  base = base.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim()
-  return base.slice(0, MAX_TITLE)
-}
-
-function isPdfFile(file) {
-  return file?.type === 'application/pdf' || /\.pdf$/i.test(file?.name || '')
+/** 'pdf' | 'text' for a supported file, else null. */
+export function fileKind(file) {
+  const name = file?.name || ''
+  if (file?.type === 'application/pdf' || /\.pdf$/i.test(name)) return 'pdf'
+  if (/\.(txt|md|markdown)$/i.test(name) || file?.type === 'text/plain' || file?.type === 'text/markdown') return 'text'
+  return null
 }
 
 /** Client-side check of a picked / dropped file → French error or null. */
 export function checkFile(file) {
-  if (!isPdfFile(file)) return `« ${file.name} » n'est pas un PDF.`
+  if (!fileKind(file)) return `« ${file.name} » n'est ni un PDF ni un fichier texte (.txt, .md).`
   if (file.size === 0) return `« ${file.name} » est vide.`
-  if (file.size > MAX_PDF_BYTES) {
-    return `« ${file.name} » est trop lourd (${formatBytes(file.size)}, 4 Mo maximum). Compresse-le ou colle son texte à la main.`
+  if (file.size > IMPORT_LIMITS.maxFileBytes) {
+    return `« ${file.name} » est trop lourd (${formatBytes(file.size)}, ${megabytes(IMPORT_LIMITS.maxFileBytes)} maximum). Compresse-le ou colle son texte à la main.`
   }
   return null
 }
 
+/** Same file picked twice = same name, size and modification date. */
 export function fileKey(file) {
-  return `file:${file.name}:${file.size}`
+  return `file:${file.name}:${file.size}:${file.lastModified || 0}`
 }
 
-/**
- * Checks a pasted Google Docs / Drive link.
- * @returns {{ url: string, dedupeKey: string, label: string } | { error: string }}
- */
-export function parseGoogleLink(raw) {
-  const value = String(raw || '').trim()
-  if (!value) return { error: 'Colle un lien Google Docs ou Google Drive.' }
-  let u
-  try {
-    u = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`)
-  } catch {
-    return { error: "Ce lien n'est pas valide." }
+function normalizeResult(data) {
+  if (!data || typeof data !== 'object') {
+    const err = new Error('Réponse inattendue du serveur.')
+    err.status = 500
+    throw err
   }
-  const host = u.hostname.toLowerCase()
-  if (host !== 'docs.google.com' && host !== 'drive.google.com') {
-    return { error: 'Seuls les liens Google Docs (docs.google.com) ou Google Drive (drive.google.com) sont acceptés.' }
-  }
-  if (host === 'drive.google.com' && /\/folders\//.test(u.pathname)) {
-    return { error: 'Les dossiers Drive ne sont pas pris en charge : ajoute les fichiers un par un.' }
-  }
-  if (host === 'docs.google.com' && !u.pathname.startsWith('/document/')) {
-    return { error: 'Seuls les documents Google Docs sont acceptés (pas Sheets ni Slides).' }
-  }
-  const id = /\/d\/([\w-]{10,})/.exec(u.pathname)?.[1] || u.searchParams.get('id') || ''
-  const isDoc = host === 'docs.google.com'
-  return {
-    url: u.toString(),
-    dedupeKey: `link:${id || u.toString()}`,
-    label: isDoc ? 'Document Google Docs' : 'Fichier Google Drive',
-  }
-}
-
-async function readError(res) {
-  const data = await res.json().catch(() => ({}))
-  if (res.status === 401 && typeof window !== 'undefined') window.location.href = '/login'
-  if (data?.error) return data.error
-  if (res.status === 413) return 'Fichier trop lourd (4 Mo maximum).'
-  return `La requête a échoué (${res.status}).`
-}
-
-function httpError(message, status) {
-  const err = new Error(message)
-  err.status = status
-  return err
-}
-
-async function postForText(path, init) {
-  let res
-  try {
-    res = await fetch(path, { method: 'POST', ...init })
-  } catch (err) {
-    if (err?.name === 'AbortError') throw err
-    throw httpError(NETWORK_ERROR, 0)
-  }
-  if (!res.ok) throw httpError(await readError(res), res.status)
-  const data = await res.json().catch(() => null)
-  if (!data || typeof data !== 'object') throw httpError('Réponse inattendue du serveur.', 500)
   return {
     sourceName: typeof data.sourceName === 'string' ? data.sourceName : '',
     text: typeof data.text === 'string' ? data.text : '',
@@ -166,28 +121,45 @@ async function postForText(path, init) {
 }
 
 /** POST /api/teacher/import/extract with the raw PDF. */
-export function extractPdf(file, signal) {
-  return postForText('/api/teacher/import/extract', {
+export async function extractPdf(file, signal) {
+  const data = await api('/api/teacher/import/extract', {
+    method: 'POST',
+    raw: file,
     signal,
-    headers: {
-      'Content-Type': 'application/pdf',
-      'X-File-Name': encodeURIComponent(file.name),
-    },
-    body: file,
+    timeout: 120_000, // up to 4 MB upload + server-side parsing
+    headers: { 'Content-Type': 'application/pdf', 'X-File-Name': encodeURIComponent(file.name) },
   })
+  return normalizeResult(data)
 }
 
 /** POST /api/teacher/import/resolve for a Google Docs / Drive link. */
-export function resolveLink(url, signal) {
-  return postForText('/api/teacher/import/resolve', {
-    signal,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url }),
+export async function resolveLink(url, signal) {
+  return normalizeResult(await api('/api/teacher/import/resolve', { method: 'POST', body: { url }, signal }))
+}
+
+/** A .txt / .md file is read in the browser (same cleanup as the server extraction). */
+export async function readTextFile(file) {
+  const unreadable = () => {
+    const err = new Error(`Impossible de lire « ${file.name} » : ce n'est pas un fichier texte lisible.`)
+    err.status = 400
+    return err
+  }
+  let raw
+  try {
+    raw = await file.text()
+  } catch {
+    throw unreadable()
+  }
+  if (raw.includes('\u0000')) throw unreadable()
+  const { text, warning } = prepareImportText(raw, {
+    lowText: 'Très peu de texte dans ce fichier : vérifie que c’est le bon document.',
   })
+  return { sourceName: sanitizeSourceName(file.name, 'Document texte'), text, pages: null, warning }
 }
 
 /**
  * What stops a source from being imported (null = ready as far as the text goes).
+ * The extraction warning disappears once the teacher edits the text or accepts it.
  * @returns {{ tone: 'loading'|'warning'|'error', message: string, dismissible?: boolean } | null}
  */
 export function sourceIssue(row) {
@@ -197,7 +169,7 @@ export function sourceIssue(row) {
   if (len > MAX_TEXT) {
     return { tone: 'error', message: `Texte trop long (${formatCount(len)} caractères, ${formatCount(MAX_TEXT)} maximum).` }
   }
-  if (row.warning && !row.textEdited) {
+  if (row.warning && !row.warningDismissed && !row.textEdited) {
     return { tone: 'warning', message: row.warning, dismissible: len >= MIN_TEXT }
   }
   if (len === 0) {

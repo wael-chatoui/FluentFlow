@@ -1,15 +1,17 @@
 // POST /api/teacher/import/extract — raw PDF body (Content-Type: application/pdf, max 4 MB,
 // header X-File-Name URI-encoded) → { sourceName, text, pages, warning }
+// `warning`: French note when the text looks scanned or was truncated (text may be '').
 import { allowMethods, requireTeacher } from '@/utils/auth/server'
 import { handleError } from '@/utils/api/errors'
 import { ImportError, sendImportError } from '@/utils/import/errors'
+import { IMPORT_LIMITS, megabytes } from '@/utils/import/limits'
 import { extractPdfText, isPdf } from '@/utils/import/pdf'
 import { sanitizeSourceName } from '@/utils/import/text'
 
 export const config = { api: { bodyParser: false }, maxDuration: 60 }
 
-const MAX_BYTES = 4 * 1024 * 1024
-const TOO_LARGE = 'Fichier trop volumineux (4 Mo max).'
+const MAX_BYTES = IMPORT_LIMITS.maxFileBytes
+const TOO_LARGE = `Fichier trop volumineux (${megabytes(MAX_BYTES)} max).`
 
 // Reads the raw request body, rejecting as soon as it exceeds maxBytes
 function readBody(req, maxBytes) {

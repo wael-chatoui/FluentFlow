@@ -1,6 +1,7 @@
 // POST /api/teacher/import/resolve { url } → { sourceName, text, pages, warning }
-// Public Google Docs link (plain-text export) or Drive PDF link. The server rebuilds
-// the download URL from the document id (never fetches the pasted URL itself).
+// Public Google Docs link (plain-text export) or Drive file link (PDF or text). The
+// server rebuilds the download URL from the document id (never fetches the pasted
+// URL itself) and only follows redirects to Google hosts (utils/import/google.js).
 import { allowMethods, requireTeacher } from '@/utils/auth/server'
 import { handleError } from '@/utils/api/errors'
 import { bodyOf } from '@/utils/api/validate'

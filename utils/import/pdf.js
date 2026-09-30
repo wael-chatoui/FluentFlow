@@ -1,7 +1,7 @@
-// PDF → text with unpdf (pdf.js build without a worker, fine on Vercel).
+// PDF → text with unpdf (pdf.js build without a worker, fine on Vercel). Server only.
 import { extractText, getDocumentProxy } from 'unpdf'
-import { ImportError } from './errors.js'
-import { cleanImportedText, lowTextWarning } from './text.js'
+import { ImportError } from '@/utils/import/errors'
+import { prepareImportText } from '@/utils/import/text'
 
 const MAGIC = '%PDF-'
 const MAGIC_WINDOW = 1024 // readers accept a little junk before the header
@@ -17,6 +17,7 @@ export function isPdf(buffer) {
  * Extracts and cleans the text of a PDF.
  * @param {Buffer|Uint8Array} buffer
  * @returns {Promise<{ text: string, pages: number, warning: string|null }>}
+ *   `warning`: French note when the text looks scanned or was truncated
  * @throws {ImportError} not a PDF, protected or unreadable
  */
 export async function extractPdfText(buffer) {
@@ -27,8 +28,8 @@ export async function extractPdfText(buffer) {
     // Copy: pdf.js may detach the array it is given
     pdf = await getDocumentProxy(new Uint8Array(buffer), { verbosity: 0 })
     const { text, totalPages } = await extractText(pdf, { mergePages: false })
-    const cleaned = cleanImportedText(Array.isArray(text) ? text : [text])
-    return { text: cleaned, pages: totalPages, warning: lowTextWarning(cleaned) }
+    const { text: cleaned, warning } = prepareImportText(Array.isArray(text) ? text : [text])
+    return { text: cleaned, pages: totalPages, warning }
   } catch (err) {
     if (err?.name === 'PasswordException') {
       throw new ImportError('Ce PDF est protégé par un mot de passe : enregistre-le sans protection puis réessaie.', 400, err)

@@ -6,34 +6,44 @@ import styles from '@/components/teacher/import/Import.module.css'
 
 /**
  * End-of-run card: counts + "Voir la fiche de l'élève" / "Importer d'autres documents".
- * @param {{ published: number, failed: number, skipped: number, studentId: string,
+ * @param {{ published: number, drafts: number, failed: number, skipped: number, studentId: string,
  *   onMore: () => void }} props
+ *   `published` includes the `drafts` (lessons ready but hidden until the teacher publishes them).
  */
 const ImportSummary = forwardRef(function ImportSummary(
-  { published, failed, skipped, studentId, onMore },
+  { published, drafts, failed, skipped, studentId, onMore },
   ref
 ) {
+  const live = published - drafts
   const allGood = failed === 0 && skipped === 0 && published > 0
   const none = published === 0
   const tone = allGood ? styles.sumGreen : none ? styles.sumRed : styles.sumOrange
-  const emoji = allGood ? '🎉' : none ? '😵' : '💪'
-  const title = allGood
-    ? published > 1
-      ? 'Toutes les leçons sont publiées !'
-      : 'La leçon est publiée !'
-    : none
-      ? "Aucune leçon n'a été publiée"
-      : 'Import terminé'
+  const emoji = allGood ? (drafts ? '📝' : '🎉') : none ? '😵' : '💪'
+  let title = 'Import terminé'
+  if (none) title = "Aucune leçon n'a été créée"
+  else if (allGood && drafts === published) title = published > 1 ? 'Les leçons sont prêtes à relire' : 'La leçon est prête à relire'
+  else if (allGood && !drafts) title = published > 1 ? 'Toutes les leçons sont publiées !' : 'La leçon est publiée !'
 
   return (
     <section ref={ref} tabIndex={-1} className={`${styles.summary} ${tone}`} aria-labelledby="import-summary-title">
-      <span className={styles.sumIcon} aria-hidden="true">{emoji}</span>
+      <span className={styles.sumIcon} aria-hidden="true">
+        {emoji}
+      </span>
       <div className={styles.sumBody}>
-        <h2 id="import-summary-title" className={styles.sumTitle}>{title}</h2>
+        <h2 id="import-summary-title" className={styles.sumTitle}>
+          {title}
+        </h2>
         <ul className={styles.sumCounts}>
-          <li className={styles.countGreen}>
-            <span aria-hidden="true">✅</span> {plural(published, 'publiée', 'publiées')}
-          </li>
+          {live > 0 && (
+            <li className={styles.countGreen}>
+              <span aria-hidden="true">✅</span> {plural(live, 'publiée', 'publiées')}
+            </li>
+          )}
+          {drafts > 0 && (
+            <li className={styles.countOrange}>
+              <span aria-hidden="true">📝</span> {plural(drafts, 'brouillon', 'brouillons')}
+            </li>
+          )}
           {failed > 0 && (
             <li className={styles.countRed}>
               <span aria-hidden="true">❌</span> {plural(failed, 'échec', 'échecs')}
@@ -45,9 +55,10 @@ const ImportSummary = forwardRef(function ImportSummary(
             </li>
           )}
         </ul>
-        {(failed > 0 || skipped > 0) && (
+        {(drafts > 0 || failed > 0 || skipped > 0) && (
           <p className={styles.sumText}>
-            {failed > 0 && 'Utilise « Réessayer » sur les documents en échec. '}
+            {drafts > 0 && "Les brouillons ne sont pas visibles par l'élève : ouvre chaque leçon et clique « Publier pour l'élève ». "}
+            {failed > 0 && 'Clique « Réessayer » sur les documents en échec (ou « Réessayer les échecs » en bas). '}
             {skipped > 0 && "Les documents non traités sont toujours dans la liste : relance l'import quand tu veux."}
           </p>
         )}
