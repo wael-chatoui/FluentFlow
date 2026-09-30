@@ -1,13 +1,36 @@
 import Link from 'next/link'
 import { safeDriveUrl } from '@/utils/lesson/schema'
 import { accentStyle } from '@/components/ui/accents'
-import { LEVEL_LABELS, initialsOf, levelBadgeText, studentDisplayName } from '@/components/teacher/format'
+import {
+  ACCOUNT_STATE_LABELS,
+  LEVEL_LABELS,
+  accountState,
+  initialsOf,
+  levelBadgeText,
+  studentDisplayName,
+} from '@/components/teacher/format'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/teacher/students/StudentHero.module.css'
 
 /**
+ * « #plan » / « #compte » shortcuts: scroll to the section and move the focus there, without
+ * adding a history entry (a same-page entry makes the browser's Back button stay on this page
+ * and ask the unsaved-changes question for nothing). Modified clicks keep the link behaviour.
+ */
+function jumpTo(e, id) {
+  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+  const target = document.getElementById(id)
+  if (!target) return
+  e.preventDefault()
+  const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  target.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' })
+  target.focus({ preventScroll: true })
+}
+
+/**
  * Colorful header card of the teacher student page (accent color per student):
- * avatar, name, email, level + sign-up pills, "Nouvelle leçon", "Importer" and Drive folder.
+ * avatar, name, email, level + account pills, "Nouvelle leçon", "Préparer le prochain
+ * cours", "Importer" and Drive folder.
  * @param {{ student: object, newLessonHref: string }} props
  */
 export default function StudentHero({ student, newLessonHref }) {
@@ -15,6 +38,7 @@ export default function StudentHero({ student, newLessonHref }) {
   const hasName = Boolean(student.full_name?.trim())
   const level = levelBadgeText(student.level)
   const driveUrl = safeDriveUrl(student.drive_folder_url)
+  const state = accountState(student)
 
   return (
     <section className={styles.hero} style={accentStyle(student.id)} aria-labelledby="student-name">
@@ -34,14 +58,14 @@ export default function StudentHero({ student, newLessonHref }) {
           <span className="sr-only">Niveau : </span>
           {LEVEL_LABELS[student.level] || LEVEL_LABELS.unknown}
         </span>
-        {student.onboarded_at ? (
+        {state === 'active' ? (
           <span className={`${styles.pill} ${styles.pillOk}`}>
-            <span aria-hidden="true">✅</span> Inscrit
+            <span aria-hidden="true">{ACCOUNT_STATE_LABELS.active.icon}</span> {ACCOUNT_STATE_LABELS.active.label}
           </span>
         ) : (
-          <span className={`${styles.pill} ${styles.pillPending}`}>
-            <span aria-hidden="true">⏳</span> Pas encore inscrit
-          </span>
+          <a href="#compte" className={`${styles.pill} ${styles.pillPending}`} onClick={(e) => jumpTo(e, 'compte')}>
+            <span aria-hidden="true">{ACCOUNT_STATE_LABELS[state].icon}</span> {ACCOUNT_STATE_LABELS[state].label}
+          </a>
         )}
       </div>
 
@@ -49,6 +73,9 @@ export default function StudentHero({ student, newLessonHref }) {
         <Link href={newLessonHref} className={`${ui.btn} ${ui.green} ${styles.primary}`}>
           <span aria-hidden="true">✨</span> Nouvelle leçon
         </Link>
+        <a href="#plan" className={`${ui.btn} ${ui.ghost} ${styles.secondary}`} onClick={(e) => jumpTo(e, 'plan')}>
+          <span aria-hidden="true">🗺️</span> Préparer le prochain cours
+        </a>
         <Link
           href={`/teacher/lessons/import?student=${encodeURIComponent(student.id)}`}
           className={`${ui.btn} ${ui.ghost} ${styles.secondary}`}

@@ -1,5 +1,5 @@
-import { Fragment, useState } from 'react'
-import ConfirmDialog from '@/components/teacher/ConfirmDialog'
+import { Fragment } from 'react'
+import { RichTextInline } from '@/components/lesson/RichText'
 import EmptyNote from '@/components/teacher/lessons/EmptyNote'
 import { EXERCISE_TYPE_LABELS } from '@/components/teacher/format'
 import { BLANK } from '@/utils/lesson/schema'
@@ -16,12 +16,14 @@ const TYPE_META = {
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F']
 
-// Plain text with optional **bold** markers (never HTML)
-function Inline({ text }) {
-  if (!text) return null
-  const parts = String(text).split(/\*\*(.+?)\*\*/g)
-  return parts.map((part, i) =>
-    i % 2 === 1 ? <strong key={i}>{part}</strong> : <Fragment key={i}>{part}</Fragment>
+// RichTextInline trims its text: keep the spaces around the blank
+function Piece({ text }) {
+  return (
+    <>
+      {/^\s/.test(text) && ' '}
+      <RichTextInline text={text} />
+      {/\S\s+$/.test(text) && ' '}
+    </>
   )
 }
 
@@ -30,13 +32,13 @@ function Sentence({ text, fill }) {
   if (!text) return null
   const pieces = String(text).split(BLANK)
   return (
-    <p className={styles.sentence}>
+    <p className={styles.sentence} lang="fr">
       {pieces.map((piece, i) => (
         <Fragment key={i}>
-          <Inline text={piece} />
+          <Piece text={piece} />
           {i < pieces.length - 1 && (
             <span className={`${styles.blank} ${fill ? styles.blankFilled : ''}`}>
-              {fill ? fill : <span className="sr-only">(blanc)</span>}
+              {fill ? <RichTextInline text={fill} /> : <span className="sr-only">(blanc)</span>}
             </span>
           )}
         </Fragment>
@@ -56,7 +58,7 @@ function McqBody({ exercise }) {
             <li key={i} className={`${styles.choice} ${correct ? styles.correct : ''}`}>
               <span className={styles.letter} aria-hidden="true">{correct ? '✓' : LETTERS[i]}</span>
               <span className={styles.choiceText}>
-                <Inline text={choice} />
+                <RichTextInline text={choice} />
                 {correct && <span className="sr-only"> (bonne réponse)</span>}
               </span>
             </li>
@@ -78,9 +80,9 @@ function FillBlankBody({ exercise }) {
         </span>
         <ul className={styles.chips}>
           {answers.map((a, i) => (
-            <li key={i} className={styles.chip}>
+            <li key={i} className={styles.chip} lang="fr">
               <span aria-hidden="true">✓ </span>
-              {a}
+              <RichTextInline text={a} />
             </li>
           ))}
         </ul>
@@ -88,7 +90,7 @@ function FillBlankBody({ exercise }) {
       {exercise.hint && (
         <p className={styles.hint}>
           <span aria-hidden="true">🔎 </span>
-          <strong>Indice :</strong> <Inline text={exercise.hint} />
+          <strong>Indice :</strong> <RichTextInline text={exercise.hint} />
         </p>
       )}
     </>
@@ -100,10 +102,14 @@ function MatchBody({ exercise }) {
     <ul className={styles.pairs}>
       {(exercise.pairs || []).map((pair) => (
         <li key={`${pair.fr}|${pair.en}`} className={styles.pair}>
-          <span className={`${styles.tile} ${styles.tileFr}`} lang="fr">{pair.fr}</span>
+          <span className={`${styles.tile} ${styles.tileFr}`} lang="fr">
+            <RichTextInline text={pair.fr} />
+          </span>
           <span className={styles.pairArrow} aria-hidden="true">↔</span>
           <span className="sr-only"> : </span>
-          <span className={styles.tile} lang="en">{pair.en}</span>
+          <span className={styles.tile} lang="en">
+            <RichTextInline text={pair.en} />
+          </span>
         </li>
       ))}
     </ul>
@@ -114,10 +120,12 @@ const BODIES = { mcq: McqBody, fill_blank: FillBlankBody, match: MatchBody }
 
 /**
  * Teacher review of a lesson's exercises, with the right answers shown.
- * @param {{ exercises: object[], onRemove?: (id: string) => void, removingIds?: Set<string>, disabled?: boolean }} props
+ * Optional actions per exercise: « Modifier » (the card then shows `renderEditor(exercise)`)
+ * and « Supprimer » (the parent offers an undo, so there is no confirmation here).
+ * @param {{ exercises: object[], onRemove?: (id: string) => void, onEdit?: (id: string) => void,
+ *   editingId?: string | null, renderEditor?: (exercise: object) => React.ReactNode, disabled?: boolean }} props
  */
-export default function ExerciseReview({ exercises, onRemove, removingIds, disabled = false }) {
-  const [pending, setPending] = useState(null)
+export default function ExerciseReview({ exercises, onRemove, onEdit, editingId = null, renderEditor, disabled = false }) {
   const list = Array.isArray(exercises) ? exercises : []
 
   if (list.length === 0) {
@@ -132,64 +140,72 @@ export default function ExerciseReview({ exercises, onRemove, removingIds, disab
   }
 
   return (
-    <>
-      <ol className={styles.list}>
-        {list.map((exercise, index) => {
-          const Body = BODIES[exercise.type]
-          const meta = TYPE_META[exercise.type]
-          const removing = removingIds?.has(exercise.id)
-          return (
-            <li key={exercise.id} className={`${styles.item} ${removing ? styles.removing : ''}`}>
-              <div className={styles.head}>
-                <span className={styles.number} aria-hidden="true">{index + 1}</span>
-                <span className="sr-only">Exercice {index + 1} : </span>
-                <span className={`${styles.type} ${meta?.tone || styles.gray}`}>
-                  {meta && <span aria-hidden="true">{meta.icon}</span>}
-                  {EXERCISE_TYPE_LABELS[exercise.type] || exercise.type}
-                </span>
-                {onRemove && (
-                  <button
-                    type="button"
-                    className={`${ui.btn} ${ui.small} ${bits.redGhost} ${bits.tap} ${styles.remove}`}
-                    onClick={() => setPending(exercise)}
-                    disabled={disabled || removing}
-                    aria-label={`Supprimer l'exercice ${index + 1}`}
-                  >
-                    {removing ? <span className={bits.spinner} aria-hidden="true" /> : <span aria-hidden="true">🗑️</span>}
-                    <span className={styles.removeLabel}>Supprimer</span>
-                  </button>
+    <ol className={styles.list}>
+      {list.map((exercise, index) => {
+        const Body = BODIES[exercise.type]
+        const meta = TYPE_META[exercise.type]
+        const editing = editingId === exercise.id && renderEditor
+        const locked = disabled || Boolean(editingId)
+        return (
+          <li key={exercise.id} className={`${styles.item} ${editing ? styles.editing : ''}`}>
+            <div className={styles.head}>
+              <span className={styles.number} aria-hidden="true">{index + 1}</span>
+              <span className="sr-only">Exercice {index + 1} : </span>
+              <span className={`${styles.type} ${meta?.tone || styles.gray}`}>
+                {meta && <span aria-hidden="true">{meta.icon}</span>}
+                {EXERCISE_TYPE_LABELS[exercise.type] || exercise.type}
+              </span>
+              {!editing && (onEdit || onRemove) && (
+                <div className={styles.tools}>
+                  {onEdit && (
+                    <button
+                      type="button"
+                      className={`${ui.btn} ${ui.small} ${bits.blueGhost} ${bits.tap} ${styles.tool}`}
+                      onClick={() => onEdit(exercise.id)}
+                      disabled={locked}
+                      data-exercise-edit={exercise.id}
+                      aria-label={`Modifier l'exercice ${index + 1}`}
+                    >
+                      <span aria-hidden="true">✏️</span>
+                      <span className={styles.toolLabel}>Modifier</span>
+                    </button>
+                  )}
+                  {onRemove && (
+                    <button
+                      type="button"
+                      className={`${ui.btn} ${ui.small} ${bits.redGhost} ${bits.tap} ${styles.tool}`}
+                      onClick={() => onRemove(exercise.id)}
+                      disabled={locked}
+                      aria-label={`Supprimer l'exercice ${index + 1}`}
+                    >
+                      <span aria-hidden="true">🗑️</span>
+                      <span className={styles.toolLabel}>Supprimer</span>
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+            {editing ? (
+              renderEditor(exercise)
+            ) : (
+              <>
+                {exercise.prompt && (
+                  <p className={styles.prompt}>
+                    <RichTextInline text={exercise.prompt} />
+                  </p>
                 )}
-              </div>
-              {exercise.prompt && (
-                <p className={styles.prompt}>
-                  <Inline text={exercise.prompt} />
-                </p>
-              )}
-              {Body ? <Body exercise={exercise} /> : <p className={styles.hint}>Type d&apos;exercice inconnu.</p>}
-              {exercise.explanation && (
-                <p className={styles.explanation}>
-                  <span aria-hidden="true">💡 </span>
-                  <Inline text={exercise.explanation} />
-                </p>
-              )}
-            </li>
-          )
-        })}
-      </ol>
-
-      <ConfirmDialog
-        open={Boolean(pending)}
-        title="Supprimer cet exercice ?"
-        message="L'exercice sera retiré de la leçon de l'élève. Cette action est définitive."
-        confirmLabel="Supprimer"
-        danger
-        onConfirm={() => {
-          const target = pending
-          setPending(null)
-          if (target) onRemove?.(target.id)
-        }}
-        onCancel={() => setPending(null)}
-      />
-    </>
+                {Body ? <Body exercise={exercise} /> : <p className={styles.hint}>Type d&apos;exercice inconnu.</p>}
+                {exercise.explanation && (
+                  <p className={styles.explanation}>
+                    <span aria-hidden="true">💡 </span>
+                    <RichTextInline text={exercise.explanation} />
+                  </p>
+                )}
+              </>
+            )}
+          </li>
+        )
+      })}
+    </ol>
   )
 }

@@ -161,7 +161,7 @@
   border-radius: 999px;
   background: var(--st-surface);
   border: 2px solid rgba(165, 104, 204, 0.35);
-  color: var(--st-purple-dark);
+  color: var(--st-purple-ink);
   font-size: 0.95rem;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
@@ -171,7 +171,7 @@
   margin: -0.25rem 0 0;
   font-size: 1rem;
   font-weight: 900;
-  color: var(--st-purple-dark);
+  color: var(--st-purple-ink);
 }
 
 /* ---- Steps ---- */
@@ -193,7 +193,7 @@
   min-height: 32px;
   font-size: 0.93rem;
   font-weight: 700;
-  color: #afafaf;
+  color: var(--st-ink-soft);
   transition: color 200ms ease;
 }
 
@@ -212,7 +212,7 @@
   border: 2px solid var(--st-line);
   border-bottom-width: 3px;
   background: var(--st-surface);
-  color: #afafaf;
+  color: var(--st-ink-soft);
   font-size: 0.78rem;
   font-weight: 900;
   line-height: 1;
@@ -223,9 +223,9 @@
 }
 
 .done .dot {
-  border-color: var(--st-green-dark);
-  background: var(--st-green);
-  color: #fff;
+  border-color: var(--st-green-strong-dark);
+  background: var(--st-green-strong);
+  color: var(--st-on-color);
   font-size: 0.9rem;
   animation: popIn 260ms ease-out both;
 }
@@ -253,8 +253,8 @@
   padding: 0.7rem 0.9rem;
   border-radius: var(--st-radius);
   background: var(--st-yellow-bg);
-  border: 2px solid #ffe38a;
-  color: #8a6d00;
+  border: 2px solid var(--st-yellow-line);
+  color: var(--st-yellow-ink);
   font-size: 0.9rem;
   font-weight: 700;
 }

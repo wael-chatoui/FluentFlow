@@ -20,14 +20,14 @@
   border: 2px solid var(--st-line);
   border-bottom-width: 4px;
   border-radius: var(--st-radius-lg);
-  transition: opacity 200ms ease;
 }
 
-.removing {
-  opacity: 0.5;
+.editing {
+  border-color: var(--st-blue);
+  border-bottom-color: var(--st-blue-dark);
 }
 
-/* ---- Head: number, type pill, remove ---- */
+/* ---- Head: number, type pill, edit / remove ---- */
 .head {
   display: flex;
   align-items: center;
@@ -66,23 +66,25 @@
   white-space: nowrap;
 }
 
-.blue { --type-bg: var(--st-blue-bg); --type-edge: #b3e5fc; --type-fg: var(--st-blue-dark); }
-.orange { --type-bg: var(--st-orange-bg); --type-edge: #ffd59e; --type-fg: #c46a00; }
-.purple { --type-bg: var(--st-purple-bg); --type-edge: #e6c6ff; --type-fg: var(--st-purple-dark); }
+.blue { --type-bg: var(--st-blue-bg); --type-edge: var(--st-blue-line); --type-fg: var(--st-blue-ink); }
+.orange { --type-bg: var(--st-orange-bg); --type-edge: var(--st-orange-line); --type-fg: var(--st-orange-ink); }
+.purple { --type-bg: var(--st-purple-bg); --type-edge: var(--st-purple-line); --type-fg: var(--st-purple-ink); }
 .gray { --type-bg: var(--st-bg); --type-edge: var(--st-line); --type-fg: var(--st-ink-soft); }
 
-.remove {
+.tools {
+  display: flex;
+  gap: 0.4rem;
   margin-left: auto;
   flex: none;
 }
 
-@media (max-width: 380px) {
-  /* Icon-only on tiny phones (the aria-label names the action) */
-  .removeLabel {
+@media (max-width: 479px) {
+  /* Icon-only on phones (the aria-label names the action) */
+  .toolLabel {
     display: none;
   }
 
-  .head .remove {
+  .head .tool {
     min-width: 44px;
     padding-left: 0.6rem;
     padding-right: 0.6rem;
@@ -124,7 +126,7 @@
   border-bottom-color: var(--st-green);
   background: var(--st-green-bg);
   border-radius: 8px 8px 0 0;
-  color: var(--st-green-dark);
+  color: var(--st-green-ink);
   font-weight: 900;
 }
 
@@ -176,13 +178,13 @@
   background: var(--st-green-bg);
   border-color: var(--st-green);
   border-bottom-color: var(--st-green-dark);
-  color: #3a7d05;
+  color: var(--st-green-ink);
 }
 
 .correct .letter {
-  border-color: var(--st-green-dark);
-  background: var(--st-green);
-  color: #fff;
+  border-color: var(--st-green-strong-dark);
+  background: var(--st-green-strong);
+  color: var(--st-on-color);
 }
 
 /* ---- Fill in the blank ---- */
@@ -215,8 +217,8 @@
   padding: 0.3rem 0.75rem;
   border-radius: 999px;
   background: var(--st-green-bg);
-  border: 2px solid #b8e994;
-  color: #3a7d05;
+  border: 2px solid var(--st-green-line);
+  color: var(--st-green-ink);
   font-size: 0.92rem;
   font-weight: 800;
   overflow-wrap: anywhere;
@@ -227,7 +229,7 @@
   padding: 0.6rem 0.8rem;
   border-radius: 12px;
   background: var(--st-blue-bg);
-  color: #0b6a99;
+  color: var(--st-blue-ink);
   font-size: 0.92rem;
   font-weight: 600;
   overflow-wrap: anywhere;
@@ -269,15 +271,15 @@
 }
 
 .tileFr {
-  border-color: #e6c6ff;
+  border-color: var(--st-purple-line);
   border-bottom-color: var(--st-purple);
   background: var(--st-purple-bg);
-  color: #7d44a6;
+  color: var(--st-purple-ink);
 }
 
 .pairArrow {
   align-self: center;
-  color: var(--st-purple-dark);
+  color: var(--st-purple-ink);
   font-weight: 900;
 }
 
@@ -287,8 +289,8 @@
   padding: 0.7rem 0.85rem;
   border-radius: 12px;
   background: var(--st-yellow-bg);
-  border: 2px solid #ffe38a;
-  color: #6b5500;
+  border: 2px solid var(--st-yellow-line);
+  color: var(--st-yellow-ink);
   font-size: 0.92rem;
   font-weight: 600;
   line-height: 1.5;
@@ -307,11 +309,5 @@
 
   .pair {
     gap: 0.75rem;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .item {
-    transition: none;
   }
 }

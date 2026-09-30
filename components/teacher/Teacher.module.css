@@ -1,31 +1,6 @@
 /* Shared styles for the teacher pages, on the app design system (--st-* tokens,
    see styles/tokens.css and components/ui/ui.module.css).
-   Used by StatusBadge, Skeleton, PageState and the teacher lesson pages. */
-
-/* Page root: bigger tap targets and visible keyboard focus for every control
-   (still covers pages that use the legacy global .btn / .input classes). */
-.page :global(.btn) {
-  min-height: 44px;
-}
-
-.page :global(.input),
-.page :global(.select) {
-  min-height: 44px;
-}
-
-.page :global(.btn):focus-visible,
-.page a:focus-visible,
-.page summary:focus-visible,
-.page [role='tab']:focus-visible {
-  outline: 3px solid var(--st-blue);
-  outline-offset: 2px;
-}
-
-.stack {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
+   Used by StatusBadge and PageState. */
 
 /* ---- Status pill (StatusBadge) ---- */
 .status {
@@ -57,43 +32,20 @@
   background: currentColor;
 }
 
-.statusGreen { --tone: #2b7a0b; --tone-bg: var(--st-green-bg); --tone-line: #b8eb8f; }
-.statusBlue { --tone: var(--st-blue-dark); --tone-bg: var(--st-blue-bg); --tone-line: #84d8ff; }
-.statusRed { --tone: var(--st-red-dark); --tone-bg: var(--st-red-bg); --tone-line: #ffc1c1; }
+/* -ink text shades: AA contrast on the tinted backgrounds */
+.statusGreen { --tone: var(--st-green-ink); --tone-bg: var(--st-green-bg); --tone-line: var(--st-green-line); }
+.statusBlue { --tone: var(--st-blue-ink); --tone-bg: var(--st-blue-bg); --tone-line: var(--st-blue-line-strong); }
+.statusRed { --tone: var(--st-red-ink); --tone-bg: var(--st-red-bg); --tone-line: var(--st-red-line); }
+.statusOrange { --tone: var(--st-orange-ink); --tone-bg: var(--st-orange-bg); --tone-line: var(--st-orange-line); }
 .statusGray { --tone: var(--st-ink-soft); --tone-bg: var(--st-bg); --tone-line: var(--st-line); }
 
-.statusBlue .statusDot {
+.pulsing .statusDot {
   animation: pulse 1.2s ease-in-out infinite;
 }
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
-}
-
-/* Legacy badge tints (kept for callers combining them with the global .badge) */
-.badgeRed {
-  background: var(--st-red-bg);
-  color: var(--st-red-dark);
-}
-
-.badgeAmber {
-  background: var(--st-orange-bg);
-  color: #b25e00;
-}
-
-/* ---- Skeletons (same shimmer as ui.skel) ---- */
-.skeleton {
-  display: block;
-  border-radius: 10px;
-  background: linear-gradient(90deg, #ececec 25%, #f5f5f5 37%, #ececec 63%);
-  background-size: 400% 100%;
-  animation: skeletonShimmer 1.4s ease infinite;
-}
-
-@keyframes skeletonShimmer {
-  0% { background-position: 100% 50%; }
-  100% { background-position: 0 50%; }
 }
 
 /* ---- Error / not-found / empty state (PageState) ---- */
@@ -172,31 +124,9 @@
   to { opacity: 1; transform: none; }
 }
 
-/* ---- Misc helpers used by the lesson pages ---- */
-.sectionHeader {
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
-}
-
-.muted {
-  color: var(--st-ink-soft);
-}
-
-.inlineAlert {
-  align-items: flex-start;
-  overflow-wrap: anywhere;
-}
-
-.alertWarning {
-  background: var(--st-orange-bg);
-  color: #b25e00;
-  border: 2px solid #ffd49a;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .skeleton,
   .state,
-  .statusBlue .statusDot {
+  .pulsing .statusDot {
     animation: none;
   }
 }

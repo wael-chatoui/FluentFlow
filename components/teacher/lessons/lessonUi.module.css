@@ -9,23 +9,23 @@
 .blueGhost:not(:disabled) {
   --btn-bg: var(--st-surface);
   --btn-edge: var(--st-line);
-  --btn-fg: var(--st-blue-dark);
+  --btn-fg: var(--st-blue-ink);
 }
 
 .redGhost:not(:disabled) {
   --btn-bg: var(--st-surface);
   --btn-edge: var(--st-line);
-  --btn-fg: var(--st-red-dark);
+  --btn-fg: var(--st-red-ink);
 }
 
 .redGhost:not(:disabled):hover {
   --btn-bg: var(--st-red-bg);
-  --btn-edge: #ffc1c1;
+  --btn-edge: var(--st-red-line);
 }
 
 .blueGhost:not(:disabled):hover {
   --btn-bg: var(--st-blue-bg);
-  --btn-edge: #b3e5fc;
+  --btn-edge: var(--st-blue-line);
 }
 
 /* ui.small is 40px: bump to a 44px tap target (doubled class beats ui.small) */
@@ -89,10 +89,10 @@
   flex: 1 1 auto;
 }
 
-.info { --alert-bg: var(--st-blue-bg); --alert-edge: #b3e5fc; --alert-fg: #0b6a99; }
-.success { --alert-bg: var(--st-green-bg); --alert-edge: #b8e994; --alert-fg: #3a7d05; }
-.warning { --alert-bg: var(--st-orange-bg); --alert-edge: #ffd59e; --alert-fg: #a35a00; }
-.error { --alert-bg: var(--st-red-bg); --alert-edge: #ffc1c1; --alert-fg: #c01f1f; }
+.info { --alert-bg: var(--st-blue-bg); --alert-edge: var(--st-blue-line); --alert-fg: var(--st-blue-ink); }
+.success { --alert-bg: var(--st-green-bg); --alert-edge: var(--st-green-line); --alert-fg: var(--st-green-ink); }
+.warning { --alert-bg: var(--st-orange-bg); --alert-edge: var(--st-orange-line); --alert-fg: var(--st-orange-ink); }
+.error { --alert-bg: var(--st-red-bg); --alert-edge: var(--st-red-line); --alert-fg: var(--st-red-ink); }
 
 /* ---- Form fields ---- */
 .label {
@@ -109,7 +109,7 @@
   font-weight: 700;
   text-transform: none;
   letter-spacing: 0;
-  color: #afafaf;
+  color: var(--st-ink-soft);
 }
 
 .input,
@@ -134,9 +134,10 @@
   transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
 }
 
+/* ≥ 4.5:1 on white and on the tinted invalid state (the placeholder may be the only visible hint) */
 .input::placeholder,
 .textarea::placeholder {
-  color: #afafaf;
+  color: var(--st-placeholder, #6f6f6f);
   font-weight: 600;
 }
 
@@ -197,7 +198,7 @@
   margin: 0.45rem 0 0;
   font-size: 0.88rem;
   font-weight: 800;
-  color: var(--st-red-dark);
+  color: var(--st-red-ink);
 }
 
 .hint {
@@ -213,7 +214,7 @@
   padding: 0;
   border: none;
   background: none;
-  color: var(--st-blue-dark);
+  color: var(--st-blue-ink);
   font: inherit;
   font-weight: 900;
   text-decoration: underline;
@@ -221,7 +222,7 @@
 }
 
 .linkButton:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -302,7 +303,7 @@
 }
 
 .back:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
 }
 

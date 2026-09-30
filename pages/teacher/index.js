@@ -1,15 +1,18 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import { useAuth } from '@/components/AuthProvider'
 import TeacherShell from '@/components/teacher/TeacherShell'
 import StudentCard, { StudentCardSkeleton } from '@/components/teacher/StudentCard'
 import PageState from '@/components/teacher/PageState'
+import AttentionPanel from '@/components/teacher/dashboard/AttentionPanel'
+import InviteDialog from '@/components/teacher/dashboard/InviteDialog'
+import { InactiveStudents, RecentActivity } from '@/components/teacher/dashboard/OverviewLists'
 import StatTiles, { StatTilesSkeleton } from '@/components/teacher/dashboard/StatTiles'
 import StudentSearch from '@/components/teacher/dashboard/StudentSearch'
-import { api } from '@/utils/apiClient'
-import { isAbortError, parseLocalDate, studentDisplayName } from '@/components/teacher/format'
-import { useMountedRef } from '@/components/teacher/hooks'
+import { parseLocalDate, studentDisplayName } from '@/components/teacher/format'
+import { useApiResource } from '@/components/teacher/hooks'
 import ui from '@/components/ui/ui.module.css'
 import styles from '@/components/teacher/Dashboard.module.css'
 
@@ -34,33 +37,24 @@ function firstName(name) {
 }
 
 export default function TeacherDashboard() {
+  const router = useRouter()
   const { user } = useAuth()
-  const mounted = useMountedRef()
-  const controllerRef = useRef(null)
-  const [students, setStudents] = useState(null)
-  const [error, setError] = useState(null)
+  const studentsRes = useApiResource('/api/teacher/students', { errorMessage: 'Impossible de charger les élèves.' })
+  const overviewRes = useApiResource('/api/teacher/overview', { errorMessage: 'Impossible de charger le suivi.' })
   const [query, setQuery] = useState('')
+  const [inviteOpen, setInviteOpen] = useState(false)
 
-  const load = useCallback(async () => {
-    controllerRef.current?.abort()
-    const controller = new AbortController()
-    controllerRef.current = controller
-    setError(null)
-    setStudents(null)
-    try {
-      const data = await api('/api/teacher/students', { signal: controller.signal })
-      if (!mounted.current || controller.signal.aborted) return
-      setStudents(Array.isArray(data.students) ? [...data.students].sort(byRecentLesson) : [])
-    } catch (err) {
-      if (isAbortError(err) || !mounted.current) return
-      setError(err.message || 'Impossible de charger les élèves.')
-    }
-  }, [mounted])
-
+  // /teacher?invite=1 (e.g. from the empty student picker) opens the invitation dialog
   useEffect(() => {
-    load()
-    return () => controllerRef.current?.abort()
-  }, [load])
+    if (!router.isReady || router.query.invite !== '1') return
+    setInviteOpen(true)
+    router.replace('/teacher', undefined, { shallow: true })
+  }, [router])
+
+  const students = useMemo(
+    () => (Array.isArray(studentsRes.data?.students) ? [...studentsRes.data.students].sort(byRecentLesson) : null),
+    [studentsRes.data]
+  )
 
   const stats = useMemo(() => {
     if (!students) return null
@@ -83,9 +77,12 @@ export default function TeacherDashboard() {
     return students.filter((s) => normalize(`${s.full_name || ''} ${s.email || ''}`).includes(q))
   }, [students, query])
 
-  const loading = !students && !error
+  // Background refresh after an invitation / approval (keeps the grid and the search)
+  const refreshStudents = () => studentsRes.refresh().catch(() => {})
+  const loading = studentsRes.loading
   const first = firstName(user?.user_metadata?.full_name || user?.user_metadata?.name)
   const hasStudents = Boolean(students?.length)
+  const overview = overviewRes.data
 
   return (
     <TeacherShell wide>
@@ -100,78 +97,123 @@ export default function TeacherDashboard() {
           </h1>
           <p className={styles.tagline}>Prêt à préparer la prochaine leçon ?</p>
         </div>
-        <Link href="/teacher/lessons/new" className={`${ui.btn} ${ui.green} ${styles.cta}`}>
-          <span aria-hidden="true">✨</span> Nouvelle leçon
-        </Link>
+        <div className={styles.ctas}>
+          <button type="button" className={`${ui.btn} ${ui.ghost} ${styles.cta}`} onClick={() => setInviteOpen(true)}>
+            <span aria-hidden="true">✉️</span> Inviter un élève
+          </button>
+          <Link href="/teacher/lessons/new" className={`${ui.btn} ${ui.green} ${styles.cta}`}>
+            <span aria-hidden="true">✨</span> Nouvelle leçon
+          </Link>
+        </div>
       </header>
 
-      {error ? (
-        <PageState role="alert" icon="😕" title="Impossible de charger tes élèves" text={error} onRetry={load} />
-      ) : (
-        <div className={styles.content}>
-          {loading ? <StatTilesSkeleton /> : <StatTiles stats={stats} />}
+      <div className={styles.content}>
+        <AttentionPanel
+          overview={overview}
+          loading={overviewRes.loading}
+          error={overviewRes.error}
+          onRetry={overviewRes.reload}
+          onUpdate={(updater) => overviewRes.setData((o) => (o ? updater(o) : o))}
+          onRefresh={() => overviewRes.refresh().catch(() => {})}
+          onStudentsChanged={refreshStudents}
+        />
 
-          <section aria-labelledby="students-title" aria-busy={loading}>
-            <div className={styles.sectionHead}>
-              <div className={styles.titleRow}>
-                <h2 id="students-title" className={`${ui.sectionTitle} ${styles.sectionTitle}`}>
-                  Mes élèves
-                </h2>
-                {!loading && hasStudents && (
-                  <span className={styles.count} role="status" aria-live="polite">
-                    {query
-                      ? `${filtered.length} résultat${filtered.length > 1 ? 's' : ''}`
-                      : `${students.length} élève${students.length > 1 ? 's' : ''}`}
-                  </span>
-                )}
+        <div className={styles.columns}>
+          <InactiveStudents items={overviewRes.error ? null : overview?.inactive || []} loading={overviewRes.loading} />
+          <RecentActivity items={overviewRes.error ? null : overview?.activity || []} loading={overviewRes.loading} />
+        </div>
+
+        {studentsRes.error ? (
+          <PageState
+            role="alert"
+            icon="😕"
+            title="Impossible de charger tes élèves"
+            text={studentsRes.error}
+            onRetry={studentsRes.reload}
+          />
+        ) : (
+          <>
+            {loading ? <StatTilesSkeleton /> : <StatTiles stats={stats} />}
+
+            <section aria-labelledby="students-title" aria-busy={loading}>
+              <div className={styles.sectionHead}>
+                <div className={styles.titleRow}>
+                  <h2 id="students-title" className={`${ui.sectionTitle} ${styles.sectionTitle}`}>
+                    Mes élèves
+                  </h2>
+                  {!loading && hasStudents && (
+                    <span className={styles.count} role="status" aria-live="polite">
+                      {query
+                        ? `${filtered.length} résultat${filtered.length > 1 ? 's' : ''}`
+                        : `${students.length} élève${students.length > 1 ? 's' : ''}`}
+                    </span>
+                  )}
+                </div>
+                {!loading && hasStudents && <StudentSearch value={query} onChange={setQuery} />}
               </div>
-              {!loading && hasStudents && <StudentSearch value={query} onChange={setQuery} />}
-            </div>
 
-            {loading ? (
-              <>
-                <span className="sr-only" role="status">Chargement des élèves…</span>
-                <ul className={styles.grid} aria-hidden="true">
-                  {[0, 1, 2, 3, 4, 5].map((i) => (
-                    <li key={i}>
-                      <StudentCardSkeleton />
+              {loading ? (
+                <>
+                  <span className="sr-only" role="status">Chargement des élèves…</span>
+                  <ul className={styles.grid} aria-hidden="true">
+                    {[0, 1, 2, 3, 4, 5].map((i) => (
+                      <li key={i}>
+                        <StudentCardSkeleton />
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : !hasStudents ? (
+                <PageState
+                  icon="👋"
+                  tone="yellow"
+                  headingLevel={3}
+                  title="Aucun élève pour l’instant"
+                  text="Invite ton premier élève : tu recevras un lien à lui envoyer dans le chat Preply."
+                  action={
+                    <button type="button" className={`${ui.btn} ${ui.green}`} onClick={() => setInviteOpen(true)}>
+                      <span aria-hidden="true">✉️</span> Inviter un élève
+                    </button>
+                  }
+                />
+              ) : filtered.length === 0 ? (
+                <PageState
+                  icon="🔎"
+                  tone="purple"
+                  headingLevel={3}
+                  title="Aucun élève trouvé"
+                  text={`Aucun nom ni e-mail ne correspond à « ${query.trim()} ».`}
+                  action={
+                    <button type="button" className={`${ui.btn} ${ui.ghost}`} onClick={() => setQuery('')}>
+                      Effacer la recherche
+                    </button>
+                  }
+                />
+              ) : (
+                <ul className={styles.grid}>
+                  {filtered.map((student, i) => (
+                    <li key={student.id}>
+                      <StudentCard student={student} index={i} />
                     </li>
                   ))}
                 </ul>
-              </>
-            ) : !hasStudents ? (
-              <PageState
-                icon="👋"
-                tone="yellow"
-                headingLevel={3}
-                title="Aucun élève pour l’instant"
-                text="Tes élèves apparaîtront ici dès qu’ils se seront connectés au site."
-              />
-            ) : filtered.length === 0 ? (
-              <PageState
-                icon="🔎"
-                tone="purple"
-                headingLevel={3}
-                title="Aucun élève trouvé"
-                text={`Aucun nom ni e-mail ne correspond à «\u00a0${query.trim()}\u00a0».`}
-                action={
-                  <button type="button" className={`${ui.btn} ${ui.ghost}`} onClick={() => setQuery('')}>
-                    Effacer la recherche
-                  </button>
-                }
-              />
-            ) : (
-              <ul className={styles.grid}>
-                {filtered.map((student, i) => (
-                  <li key={student.id}>
-                    <StudentCard student={student} index={i} />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
-        </div>
-      )}
+              )}
+            </section>
+          </>
+        )}
+      </div>
+
+      <InviteDialog
+        open={inviteOpen}
+        onClose={() => setInviteOpen(false)}
+        onInvited={refreshStudents}
+        pending={overview?.pending || []}
+        onApproved={(request) => {
+          overviewRes.setData((o) => (o ? { ...o, pending: (o.pending || []).filter((p) => p.id !== request.id) } : o))
+          refreshStudents()
+        }}
+        onEmailExists={() => overviewRes.refresh().catch(() => {})}
+      />
     </TeacherShell>
   )
 }

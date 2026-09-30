@@ -104,6 +104,40 @@
   overflow-wrap: anywhere;
 }
 
+.editMeta {
+  flex: none;
+}
+
+/* ---- Inline title + date editor ---- */
+.metaForm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.9rem;
+  border-radius: var(--st-radius);
+  background: var(--st-surface);
+  border: 2px solid rgba(0, 0, 0, 0.06);
+}
+
+.metaFields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.metaDate,
+.metaTitle {
+  min-width: 0;
+}
+
+.metaActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
 /* ---- Meta pills ---- */
 .metaRow {
   display: flex;
@@ -151,9 +185,27 @@
 }
 
 .studentLink:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
 }
+
+/* Visibility for the student (hidden = draft) */
+.visibility {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 32px;
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  border: 2px solid var(--vis-edge);
+  background: var(--vis-bg);
+  color: var(--vis-fg);
+  font-size: 0.85rem;
+  font-weight: 900;
+}
+
+.visibilityOn { --vis-bg: var(--st-green-bg); --vis-edge: var(--st-green-line); --vis-fg: var(--st-green-ink); }
+.visibilityOff { --vis-bg: var(--st-orange-bg); --vis-edge: var(--st-orange-line); --vis-fg: var(--st-orange-ink); }
 
 /* ---- Actions ---- */
 .actions {
@@ -165,6 +217,12 @@
 .actionBtn {
   flex: 1 1 140px;
   min-height: 48px;
+}
+
+.secondaryActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .drive {
@@ -181,7 +239,7 @@
   gap: 1rem;
   padding: 1.25rem;
   background: var(--st-red-bg);
-  border: 2px solid #ffc1c1;
+  border: 2px solid var(--st-red-line);
   border-bottom-width: 5px;
   border-bottom-color: var(--st-red);
   border-radius: var(--st-radius-lg);
@@ -195,7 +253,7 @@
   height: 52px;
   border-radius: 16px;
   background: var(--st-surface);
-  border: 2px solid #ffc1c1;
+  border: 2px solid var(--st-red-line);
   border-bottom-width: 4px;
   font-size: 1.7rem;
   line-height: 1;
@@ -214,7 +272,7 @@
   margin: 0;
   font-size: 1.2rem;
   font-weight: 900;
-  color: var(--st-red-dark);
+  color: var(--st-red-ink);
 }
 
 .failedError {
@@ -235,7 +293,10 @@
   color: var(--st-ink-soft);
 }
 
-.failedBtn {
+.failedActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   margin-top: 0.25rem;
 }
 
@@ -256,7 +317,7 @@
 }
 
 .panel:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 4px;
 }
 
@@ -265,17 +326,18 @@
   padding: 0.75rem 0.9rem;
   border-radius: var(--st-radius);
   background: var(--st-green-bg);
-  border: 2px solid #b8e994;
-  color: #3a7d05;
+  border: 2px solid var(--st-green-line);
+  color: var(--st-green-ink);
   font-size: 0.9rem;
   font-weight: 700;
   line-height: 1.45;
 }
 
-.muted {
+.previewNote {
   margin: 0;
+  font-size: 0.88rem;
+  font-weight: 700;
   color: var(--st-ink-soft);
-  font-weight: 600;
 }
 
 @media (max-width: 380px) {
@@ -288,8 +350,12 @@
     gap: 0.75rem;
   }
 
-  .failedBtn {
-    width: 100%;
+  .failedActions > * {
+    flex: 1 1 100%;
+  }
+
+  .editMetaLabel {
+    display: none;
   }
 }
 
@@ -315,6 +381,10 @@
 
   .actionBtn {
     flex: none;
+  }
+
+  .metaFields {
+    grid-template-columns: 200px minmax(0, 1fr);
   }
 
   .failed {

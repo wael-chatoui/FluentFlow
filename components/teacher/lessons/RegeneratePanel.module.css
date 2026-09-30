@@ -1,0 +1,95 @@
+/* « Modifier les sources et régénérer » editor on the teacher lesson page. */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 1.25rem;
+  background: var(--st-surface);
+  border: 2px solid var(--st-blue);
+  border-bottom-width: 5px;
+  border-bottom-color: var(--st-blue-dark);
+  border-radius: var(--st-radius-lg);
+  scroll-margin-top: 80px;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 900;
+  color: var(--st-ink);
+  scroll-margin-top: 90px;
+}
+
+.title:focus {
+  outline: none;
+}
+
+.title:focus-visible {
+  outline: 3px solid var(--st-focus);
+  outline-offset: 4px;
+  border-radius: 6px;
+}
+
+.intro {
+  margin: 0;
+  font-size: 0.93rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--st-ink-soft);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.fieldset {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.fieldset:disabled {
+  opacity: 0.7;
+}
+
+.document {
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--st-radius);
+  background: var(--st-blue-bg);
+  font-size: 0.93rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.documentNote {
+  display: block;
+  margin-top: 0.25rem;
+  font-weight: 600;
+  color: var(--st-ink-soft);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+@media (max-width: 479px) {
+  .panel {
+    padding: 1rem;
+  }
+
+  .action {
+    flex: 1 1 auto;
+  }
+}

@@ -1,0 +1,13 @@
+/* Exercise preview layer: covers the lesson page (the player inside is fixed full-screen too,
+   the loading screen is not) */
+.layer {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  overflow-y: auto;
+  background: var(--st-bg);
+}
+
+.layer:focus {
+  outline: none;
+}

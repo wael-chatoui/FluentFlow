@@ -12,7 +12,7 @@
   overflow: hidden;
 }
 
-.blue { --src-bg: var(--st-blue-bg); --src-edge: #b3e5fc; }
+.blue { --src-bg: var(--st-blue-bg); --src-edge: var(--st-blue-line); }
 .pink { --src-bg: var(--st-pink-bg); --src-edge: #ffc2e1; }
 
 .summary {
@@ -36,7 +36,7 @@
 }
 
 .summary:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: -3px;
   border-radius: 14px;
 }
@@ -111,7 +111,36 @@
   padding: 0.9rem 1rem;
   font-size: 0.92rem;
   font-weight: 600;
-  color: #afafaf;
+  color: var(--st-ink-soft);
+}
+
+/* ---- Generation options ---- */
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0.75rem 0.9rem;
+  border: 2px solid var(--st-line);
+  border-radius: var(--st-radius);
+  background: var(--st-surface);
+}
+
+.options dt {
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--st-ink-soft);
+}
+
+.options dd {
+  margin: 0.1rem 0 0;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--st-ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .aiModel {
@@ -120,7 +149,7 @@
   padding: 0.3rem 0.75rem;
   border-radius: 999px;
   background: var(--st-purple-bg);
-  color: var(--st-purple-dark);
+  color: var(--st-ink);
   font-size: 0.8rem;
   font-weight: 800;
   overflow-wrap: anywhere;

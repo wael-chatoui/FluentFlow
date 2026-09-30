@@ -58,10 +58,10 @@ export default function StudentPicker({
       <p className={styles.none}>
         <span aria-hidden="true">👋 </span>
         Aucun élève pour l&apos;instant.{' '}
-        <Link href="/teacher" className={styles.noneLink}>
-          Ajoute un élève
+        <Link href="/teacher?invite=1" className={styles.noneLink}>
+          Invite ton premier élève
         </Link>{' '}
-        avant de créer une leçon.
+        : il apparaîtra ici dès que son compte sera créé.
       </p>
     )
   }
