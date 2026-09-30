@@ -29,7 +29,7 @@
   border-bottom-width: 4px;
   border-radius: var(--st-radius);
   background: var(--st-surface);
-  color: var(--st-orange-dark);
+  color: var(--st-orange-ink);
   font: inherit;
   font-size: 1.6rem;
   font-weight: 900;
@@ -41,7 +41,7 @@
 
 .stepBtn:hover:not(:disabled) {
   background: var(--st-orange-bg);
-  border-color: #ffd59e;
+  border-color: var(--st-orange-line);
 }
 
 .stepBtn:active:not(:disabled) {
@@ -50,12 +50,12 @@
 }
 
 .stepBtn:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
 }
 
 .stepBtn:disabled {
-  color: #cfcfcf;
+  color: var(--st-disabled-fg);
   cursor: not-allowed;
 }
 
@@ -112,7 +112,7 @@ input.countInput {
 }
 
 .chip:focus-visible {
-  outline: 3px solid var(--st-blue);
+  outline: 3px solid var(--st-focus);
   outline-offset: 2px;
 }
 
@@ -138,12 +138,12 @@ input.countInput {
   background: var(--st-orange-bg);
   border-color: var(--st-orange);
   border-bottom-color: var(--st-orange-dark);
-  color: #a35a00;
+  color: var(--st-orange-ink);
 }
 
 .chipOn .chipCheck {
-  background: var(--st-orange);
-  color: #fff;
+  background: var(--st-orange-strong);
+  color: var(--st-on-color);
   font-weight: 900;
 }
 
@@ -165,7 +165,7 @@ input.countInput {
 }
 
 .counterOver {
-  color: var(--st-red-dark);
+  color: var(--st-red-ink);
 }
 
 textarea.instructions {

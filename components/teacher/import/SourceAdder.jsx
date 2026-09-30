@@ -1,4 +1,6 @@
 import { useId, useRef, useState } from 'react'
+import { FILE_ACCEPT, MAX_SOURCES } from '@/components/teacher/import/importUtils'
+import { IMPORT_LIMITS, megabytes } from '@/utils/import/limits'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/import/SourceAdder.module.css'
@@ -8,8 +10,8 @@ function hasFiles(e) {
 }
 
 /**
- * Drop zone (also a keyboard-operable button opening the file picker) and a
- * "paste a Google Docs / Drive link" field.
+ * Drop zone for PDF / .txt / .md files (also a keyboard-operable button opening
+ * the file picker) and a "paste a Google Docs / Drive link" field.
  * @param {{ disabled?: boolean, full?: boolean, onFiles: (files: File[]) => void,
  *   onLink: (url: string) => string | null }} props
  *   `onLink` returns a French error message, or null when the link was added.
@@ -96,18 +98,20 @@ export default function SourceAdder({ disabled = false, full = false, onFiles, o
         >
           <span className={styles.zoneIcon} aria-hidden="true">{dragging ? '📥' : '📄'}</span>
           <span className={styles.zoneTitle}>
-            {dragging ? 'Lâche tes PDF ici !' : 'Glisse tes PDF ici'}
+            {dragging ? 'Lâche tes fichiers ici !' : 'Glisse tes PDF ici'}
           </span>
           <span className={styles.zoneOr} aria-hidden="true">ou</span>
           <span className={styles.zoneCta}>Choisir des fichiers</span>
         </button>
         <p id={`${uid}-zone-hint`} className={styles.zoneHint}>
-          {full ? 'Maximum 20 documents par import atteint.' : 'PDF uniquement · 4 Mo max par fichier · 20 documents max'}
+          {full
+            ? `Maximum ${MAX_SOURCES} documents par import atteint.`
+            : `PDF (ou .txt, .md) · ${megabytes(IMPORT_LIMITS.maxFileBytes)} max par fichier · ${MAX_SOURCES} documents max`}
         </p>
         <input
           ref={inputRef}
           type="file"
-          accept="application/pdf"
+          accept={FILE_ACCEPT}
           multiple
           className={styles.fileInput}
           onChange={handleInput}

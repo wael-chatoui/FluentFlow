@@ -1,8 +1,5 @@
 // Error thrown by the document import helpers: a short French message meant for
 // the teacher plus the HTTP status the route should answer with.
-//
-// No `@/` imports in utils/import on purpose: plain node can import these files
-// directly for quick checks.
 
 export class ImportError extends Error {
   constructor(message, status = 400, cause) {

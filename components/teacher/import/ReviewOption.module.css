@@ -1,0 +1,64 @@
+/* « Relire avant de publier » checkbox of the import page. */
+
+.option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.8rem 0.9rem;
+  border: 2px solid var(--st-line);
+  border-radius: var(--st-radius);
+  background: var(--st-surface);
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.on {
+  border-color: var(--st-orange);
+  background: var(--st-orange-bg);
+}
+
+.box {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin: 0.1rem 0 0;
+  accent-color: var(--st-orange-ink);
+  cursor: pointer;
+}
+
+.box:focus-visible {
+  outline: 3px solid var(--st-focus);
+  outline-offset: 2px;
+}
+
+.box:disabled {
+  cursor: not-allowed;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}
+
+.label {
+  display: block;
+  font-size: 1rem;
+  font-weight: 900;
+  line-height: 1.35;
+  color: var(--st-ink);
+  cursor: pointer;
+}
+
+.hint {
+  margin: 0.2rem 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--st-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .option {
+    transition: none;
+  }
+}
