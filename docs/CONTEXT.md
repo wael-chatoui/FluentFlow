@@ -109,8 +109,8 @@ bannissement, suppression), éditeur complet de leçons, explorateur de tables, 
 - **Prod** (depuis le terminal, dossier `webapp/`, déjà relié au projet) : `pnpm db:status` pour
   comparer, `pnpm db:push` pour appliquer (`supabase login` / `pnpm db:link` si la session a expiré).
   Historique réparé le 2026-09-30 (0001–0003 et 0005 avaient été passées à la main) ; 0004 et 0006
-  appliquées le même jour. **0007 (`join_links`) appliquée en local seulement, pas encore en prod** :
-  `pnpm db:push` avant de merger dans `main`.
+  appliquées le même jour ; 0007 (`join_links` + `claim_join_link()`) appliquée le 2026-10-01.
+  Toutes les migrations locales sont en prod.
   Toujours appliquer une migration en prod **avant** de merger dans `main` le code qui en dépend.
 
 ## Git et déploiement
@@ -124,18 +124,11 @@ bannissement, suppression), éditeur complet de leçons, explorateur de tables, 
 ## État actuel (2026-10-01)
 
 - Passe « fiabilité + features » **en prod** (PR #13, `develop` → `main`), découpée en PR par feature
-  #2 à #12 dans `develop`. Build + 429 tests Vitest verts à chaque étape. Migrations 0001–0006 en prod.
-- Branche `feat/pictograms-and-join-links` (en cours, pas encore commitée) : pictogrammes lucide à la
-  place des emojis, et **liens d'invitation sans e-mail** (`/join/<token>`, migration 0007, routes
-  `/api/teacher/join-links`, `/api/join/[token]`). **Migration 0007 pas encore appliquée en prod.**
-  Parcours à tester en local (prof : « Inviter un élève » → lien ; élève : fenêtre privée → lien →
-  Google ou e-mail sur Mailpit → onboarding).
-- Branche `feat/invite-placeholder-students` (2026-10-01, pas encore commitée) : **élève provisoire
-  créé à l'invitation** (0007 modifiée sur place : `join_links.student_id` + `claim_join_link()`),
-  route `POST /api/teacher/students/[id]/join-link`. 0007 rejouée deux fois en local (idempotente) et
-  parcours vérifié en local par script (lien → leçon sur le provisoire → inscription → transfert,
-  approbation, suppression du provisoire). **0007 toujours pas appliquée en prod** : `pnpm db:push`
-  avant de merger dans `main`. Reste à tester dans le navigateur.
+  #2 à #12 dans `develop`. Migrations 0001–0007 en prod.
+- 2026-10-01, en prod : pictogrammes lucide à la place des emojis (#17), **liens d'invitation sans
+  e-mail** (`/join/<token>`, #16) et **élève provisoire créé à l'invitation** (#19 : le prof prépare
+  leçons et exercices avant que l'élève rejoigne ; `claim_join_link()` transfère tout à son compte).
+  Build + 449 tests Vitest verts ; parcours d'invitation vérifié par script sur la base locale.
 - Pas encore fait : parcours prof et élève complets dans le navigateur (reportés pour économiser des
   tokens) — à faire en local (`pnpm db:start`, compte `prof@local.test`) puis sur la prod.
 - À faire côté Wael : Supabase → URL Configuration (Site URL `https://fluent-flow-mu.vercel.app`,
