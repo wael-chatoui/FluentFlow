@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react'
-import { CircleCheck, Hand, Link2, Mail, TriangleAlert, X } from 'lucide-react'
+import Link from 'next/link'
+import { CircleCheck, Hand, Link2, Mail, TriangleAlert, UserRound, X } from 'lucide-react'
 import { api } from '@/utils/apiClient'
 import Icon from '@/components/ui/Icon'
 import Modal from '@/components/teacher/Modal'
@@ -206,9 +207,10 @@ function JoinLinkList({ items, error, revoking, revokeError, revoke }) {
 }
 
 /**
- * « Inviter un élève ». Default: « Lien d'invitation (sans e-mail) », a one-time join link
- * (POST /api/teacher/join-links) + a message to paste in the Preply chat, with the list of
- * recent links (state, « Annuler »). Secondary: « Par e-mail », creates the account for a
+ * « Inviter un élève ». Default: « Lien d'invitation (sans e-mail) »: the first name creates
+ * the student's provisional account and a one-time join link (POST /api/teacher/join-links)
+ * + a message to paste in the Preply chat, « Ouvrir sa fiche » to prepare lessons right
+ * away, and the list of recent links (state, « Annuler »). Secondary: « Par e-mail », creates the account for a
  * known address and shows its single-use link, or lets Supabase email the invitation.
  * An address that already asked for access (pending account, listed in « À traiter ») is
  * accepted from here instead.
@@ -225,6 +227,7 @@ export default function InviteDialog({ open, onClose, onInvited, pending = [], o
   const [label, setLabel] = useState('')
   const [linkBusy, setLinkBusy] = useState(false)
   const [linkError, setLinkError] = useState(null)
+  const [labelTried, setLabelTried] = useState(false)
   const [joinLink, setJoinLink] = useState(null) // { link, message, joinLink }
   const links = useJoinLinks(open)
   const [values, setValues] = useState(EMPTY)
@@ -244,6 +247,7 @@ export default function InviteDialog({ open, onClose, onInvited, pending = [], o
 
   const reset = () => {
     setLabel('')
+    setLabelTried(false)
     setLinkError(null)
     setJoinLink(null)
     setValues(EMPTY)
@@ -275,18 +279,25 @@ export default function InviteDialog({ open, onClose, onInvited, pending = [], o
     setMode(next)
   }
 
-  // « Lien d'invitation » : no email address needed, single use, 14 days
+  // « Lien d'invitation » : no email address needed, single use, 14 days. Creates the
+  // student's (provisional) account right away: lessons can be prepared before they join.
+  const labelError = label.trim() ? null : "Indique le prénom de l'élève."
   const createLink = async (e) => {
     e.preventDefault()
     if (locked) return
+    setLabelTried(true)
+    if (labelError) {
+      document.getElementById(`${uid}-label`)?.focus()
+      return
+    }
     setLinkBusy(true)
     setLinkError(null)
     try {
-      const body = label.trim() ? { label: label.trim() } : {}
-      const res = await api('/api/teacher/join-links', { method: 'POST', body })
+      const res = await api('/api/teacher/join-links', { method: 'POST', body: { label: label.trim() } })
       if (!mounted.current) return
       setJoinLink(res)
       links.refresh()
+      if (res.studentId) onInvited({ id: res.studentId, full_name: res.joinLink?.label || label.trim(), placeholder: true })
     } catch (err) {
       if (!isAbortError(err) && mounted.current) setLinkError(err?.message || "La création du lien a échoué.")
     } finally {
@@ -364,6 +375,12 @@ export default function InviteDialog({ open, onClose, onInvited, pending = [], o
             Preply. Il se connecte avec Google ou son e-mail, remplit son profil et arrive dans son espace. Valable une
             fois, jusqu&apos;au {formatLongDate(joinLink.joinLink?.expires_at)}.
           </p>
+          {joinLink.studentId && (
+            <p className={styles.lead}>
+              Sa fiche est déjà créée (invitation en attente) : tu peux importer ses leçons et créer ses exercices dès
+              maintenant, tout passera sur son compte quand il rejoindra.
+            </p>
+          )}
           <div className={styles.share}>
             <CopyField
               label="Lien d'invitation"
@@ -378,6 +395,11 @@ export default function InviteDialog({ open, onClose, onInvited, pending = [], o
             <button type="button" className={`${ui.btn} ${bits.blueGhost}`} onClick={inviteAnother}>
               Créer un autre lien
             </button>
+            {joinLink.studentId && (
+              <Link href={`/teacher/students/${joinLink.studentId}`} className={`${ui.btn} ${bits.blueGhost}`}>
+                <Icon icon={UserRound} size={18} /> Ouvrir sa fiche
+              </Link>
+            )}
             <button ref={doneRef} type="button" className={`${ui.btn} ${ui.green}`} onClick={close}>
               Terminé
             </button>
@@ -388,26 +410,33 @@ export default function InviteDialog({ open, onClose, onInvited, pending = [], o
           <ModeSwitch mode={mode} onChange={switchMode} disabled={locked} />
           <p className={styles.lead}>
             Pas besoin de son adresse e-mail : crée un lien, colle-le dans le chat Preply, l&apos;élève crée son compte en
-            suivant les étapes.
+            suivant les étapes. Sa fiche est créée tout de suite, pour préparer ses leçons sans attendre.
           </p>
           <fieldset className={styles.fieldset} disabled={locked}>
             <legend className="sr-only">Lien d&apos;invitation</legend>
             <div>
               <label htmlFor={`${uid}-label`} className={bits.label}>
-                Prénom de l&apos;élève <span className={bits.optional}>(facultatif)</span>
+                Prénom de l&apos;élève
               </label>
               <input
                 id={`${uid}-label`}
-                className={bits.input}
+                className={`${bits.input} ${labelTried && labelError ? bits.invalid : ''}`}
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
                 placeholder="Ex. : Anxhela"
                 autoComplete="off"
                 maxLength={60}
-                aria-describedby={`${uid}-label-hint`}
+                required
+                aria-invalid={(labelTried && Boolean(labelError)) || undefined}
+                aria-describedby={labelTried && labelError ? `${uid}-label-error ${uid}-label-hint` : `${uid}-label-hint`}
               />
+              {labelTried && labelError && (
+                <p id={`${uid}-label-error`} className={bits.fieldError}>
+                  <Icon icon={TriangleAlert} size={16} /> {labelError}
+                </p>
+              )}
               <p id={`${uid}-label-hint`} className={bits.hint}>
-                Utilisé dans le message d&apos;accueil et comme nom de son profil.
+                Nom de sa fiche (modifiable) et du message d&apos;accueil.
               </p>
             </div>
           </fieldset>

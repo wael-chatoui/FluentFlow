@@ -86,7 +86,7 @@ export default function StudentPicker({
         {students.map((s) => (
           <option key={s.id} value={s.id}>
             {studentDisplayName(s)}
-            {s.full_name?.trim() ? ` (${s.email})` : ''}
+            {s.placeholder ? ' (invitation en attente)' : s.full_name?.trim() && s.email ? ` (${s.email})` : ''}
           </option>
         ))}
       </select>

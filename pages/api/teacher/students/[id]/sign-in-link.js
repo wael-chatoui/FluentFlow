@@ -1,8 +1,9 @@
 // POST /api/teacher/students/[id]/sign-in-link → { link }
 // One-time sign-in link for an existing, approved student account (lost access,
 // expired invitation). Nothing is emailed: the teacher sends it through the Preply chat.
-// Never for a teacher or admin account (404), and recorded in the audit log.
-import { allowMethods, isBanned, requireTeacher } from '@/utils/auth/server'
+// Never for a teacher or admin account (404) nor a placeholder student (400: it has no real
+// address; « Nouveau lien d'invitation » instead), and recorded in the audit log.
+import { allowMethods, isBanned, isPlaceholder, requireTeacher } from '@/utils/auth/server'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { fail, handleError } from '@/utils/api/errors'
 import { allowSameOrigin, isUuid } from '@/utils/api/validate'
@@ -24,6 +25,7 @@ export default async function handler(req, res) {
     const admin = createAdminClient()
     const user = await getAuthUser(admin, id)
     if (!isStudentUser(user)) return res.status(404).json({ error: NOT_FOUND })
+    if (isPlaceholder(user)) fail('Cet élève n’a pas encore rejoint : envoie-lui un nouveau lien d’invitation depuis sa fiche.')
     if (isPendingUser(user)) fail('Ce compte attend ton approbation : approuve-le avant de lui envoyer un lien.')
     if (isBanned(user)) fail('Ce compte est suspendu : réactive-le depuis le back office avant de lui envoyer un lien.')
     if (!user.email) fail('Ce compte n’a pas d’adresse e-mail.')

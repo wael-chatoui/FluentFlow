@@ -2,8 +2,8 @@
 // One-time sign-in link for an existing account (invitation lost or expired, lost
 // access), to send yourself (e.g. through the Preply chat). Nothing is emailed.
 // Refused for your own account and for other administrators (no admin impersonation),
-// for suspended accounts and for accounts waiting for approval.
-import { allowMethods, isAdmin, isApproved, isBanned, normalizeUuid, requireAdmin } from '@/utils/auth/server'
+// for suspended accounts, accounts waiting for approval and placeholder students.
+import { allowMethods, isAdmin, isApproved, isBanned, isPlaceholder, normalizeUuid, requireAdmin } from '@/utils/auth/server'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { fail, handleError } from '@/utils/api/errors'
 import { isUuid } from '@/utils/api/validate'
@@ -28,6 +28,7 @@ export default async function handler(req, res) {
     const user = await getAuthUser(admin, id)
     if (!user) return res.status(404).json({ error: NOT_FOUND })
     if (isAdmin(user)) fail('Pas de lien de connexion pour un compte administrateur : il se connecte lui-même depuis la page de connexion.')
+    if (isPlaceholder(user)) fail('Compte provisoire (invitation en attente) : il n’a pas de vraie adresse. Crée un nouveau lien d’invitation depuis la fiche de l’élève.')
     if (!isApproved(user)) fail('Ce compte attend ton approbation : approuve-le avant de lui envoyer un lien.')
     if (isBanned(user)) fail('Ce compte est banni : débannis-le avant de lui envoyer un lien.')
     if (!user.email) fail('Ce compte n’a pas d’adresse e-mail.')

@@ -9,9 +9,10 @@
 // failed = first generation failed; stale = 'generating' for more than 5 min;
 // drafts = generated but hidden from the student; regenFailed = a regeneration failed
 // (the previous version is still published). inactive = approved students whose last
-// lesson is more than 14 days old (or who have none and joined more than 7 days ago).
+// lesson is more than 14 days old (or who have none and joined more than 7 days ago);
+// never placeholder students (join link not used yet).
 // activity = practice sessions of the last 7 days (20 newest).
-import { allowMethods, isBanned, requireTeacher } from '@/utils/auth/server'
+import { allowMethods, isBanned, isPlaceholder, requireTeacher } from '@/utils/auth/server'
 import { createAdminClient } from '@/utils/supabase/admin'
 import { handleError } from '@/utils/api/errors'
 import { STALE_GENERATION_MS } from '@/utils/lesson/schema'
@@ -117,7 +118,7 @@ export default async function handler(req, res) {
         })
         continue
       }
-      if (!profile) continue
+      if (!profile || isPlaceholder(user)) continue
       const last = stats.get(user.id)?.last_lesson_date || null
       const days = daysSince(last || profile.created_at || user.created_at, now)
       if (last ? days > INACTIVE_AFTER_DAYS : days > NEW_STUDENT_GRACE_DAYS) {
