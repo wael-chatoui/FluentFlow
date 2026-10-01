@@ -35,7 +35,7 @@ export default function StudentCard({ student, index = 0 }) {
               {name}
             </Link>
           </h3>
-          {hasName && <div className={styles.email}>{student.email}</div>}
+          {hasName && student.email && !student.placeholder && <div className={styles.email}>{student.email}</div>}
         </div>
         <span className={styles.chevron} aria-hidden="true">
           <Icon icon={ChevronRight} size={26} strokeWidth={3} />

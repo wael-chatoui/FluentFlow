@@ -55,7 +55,16 @@ const COLUMNS = [
       </span>
     ),
   },
-  { key: 'email', label: 'E-mail', render: (r) => <span style={{ overflowWrap: 'anywhere' }}>{r.email || '—'}</span> },
+  {
+    key: 'email',
+    label: 'E-mail',
+    render: (r) =>
+      r.placeholder ? (
+        <StatusPill tone="yellow">Invitation en attente</StatusPill>
+      ) : (
+        <span style={{ overflowWrap: 'anywhere' }}>{r.email || '—'}</span>
+      ),
+  },
   { key: 'role', label: 'Rôle', render: (r) => <UserRolePills user={r} /> },
   {
     key: 'level',

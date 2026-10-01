@@ -1,7 +1,8 @@
 // Student lookups for teacher routes. A "student" is an auth user without the teacher
 // role and without the admin flag (both live in app_metadata); "pending" = self sign-up
-// waiting for approval.
-import { getRole, isAdmin, isApproved } from '@/utils/auth/server'
+// waiting for approval; "placeholder" = created with a join link, the student has not joined
+// yet (it is approved, so lessons can be prepared for it: utils/api/placeholders.js).
+import { getRole, isAdmin, isApproved, isPlaceholder } from '@/utils/auth/server'
 
 const AUTH_PAGE = 1000
 const MAX_AUTH_PAGES = 20
@@ -53,10 +54,11 @@ export const isStudentUser = (user) => Boolean(user) && getRole(user) === 'stude
 /** Self sign-up account waiting for the teacher's approval. */
 export const isPendingUser = (user) => isStudentUser(user) && !isApproved(user)
 
-/** Account fields shown to the teacher: { approved, last_sign_in_at, email_confirmed }. */
+/** Account fields shown to the teacher: { approved, placeholder, last_sign_in_at, email_confirmed }. */
 export function accountFields(user) {
   return {
     approved: isApproved(user),
+    placeholder: isPlaceholder(user),
     last_sign_in_at: user?.last_sign_in_at || null,
     email_confirmed: Boolean(user?.email_confirmed_at || user?.confirmed_at),
   }
