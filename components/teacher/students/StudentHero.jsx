@@ -48,8 +48,8 @@ export default function StudentHero({ student, newLessonHref }) {
         <span className={styles.avatar} aria-hidden="true">{initialsOf(name)}</span>
         <div className={styles.text}>
           <h1 id="student-name" className={styles.name}>{name}</h1>
-          <p className={`${styles.email} ${hasName ? '' : styles.emailMissing}`}>
-            {hasName ? student.email : 'Nom non renseigné'}
+          <p className={`${styles.email} ${hasName && !student.placeholder ? '' : styles.emailMissing}`}>
+            {student.placeholder ? 'Pas encore inscrit' : hasName ? student.email : 'Nom non renseigné'}
           </p>
         </div>
       </div>

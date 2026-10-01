@@ -1,14 +1,18 @@
 // Join links: one-time invitation links that need no email address (migration 0007).
 //
-// The teacher creates a link (optional first name as a label) and pastes it in the
-// Preply chat. The student opens /join/<token>, signs in with Google or a magic link
-// (account creation allowed: the account starts pending, like any self sign-up), then
-// the page claims the link: the account is approved and the link is spent.
+// The teacher gives the student's first name: a placeholder student account is created
+// right away (utils/api/placeholders.js), so lessons and exercises can be prepared before
+// the student joins. The teacher pastes the link in the Preply chat. The student opens
+// /join/<token>, signs in with Google or a magic link (account creation allowed: the
+// account starts pending, like any self sign-up), then the page claims the link: the SQL
+// function claim_join_link() moves everything the placeholder owns to the real account in
+// one transaction, the account is approved and the placeholder deleted.
 // Only the SHA-256 of the token is stored, so the table never holds a usable link.
 import { createHash, randomBytes } from 'node:crypto'
 import { HttpError } from '@/utils/api/errors'
 import { approveUser } from '@/utils/api/invites'
 import { getRole, isAdmin, isApproved } from '@/utils/auth/server'
+import { createPlaceholderStudent, deletePlaceholder, isPlaceholder } from '@/utils/api/placeholders'
 
 export const JOIN_LINK_TTL_DAYS = 14
 export const JOIN_LABEL_MAX = 60
@@ -62,25 +66,58 @@ export function joinMessage({ label, link, teacherName = 'Wael' }) {
   ].join('\n')
 }
 
+/** First name of the teacher, for the message (default 'Wael'). */
+export async function teacherFirstName(admin, userId) {
+  const { data } = await admin.from('profiles').select('full_name').eq('id', userId).maybeSingle()
+  return (data?.full_name || '').trim().split(/\s+/)[0] || 'Wael'
+}
+
 /**
- * Creates a link. Returns the token (shown once) with the stored row.
- * @param {{ label?: string|null, createdBy: string, origin: string, now?: number }} input
- * @returns {Promise<{ token: string, link: string, row: { id: string, label: string|null, expires_at: string } }>}
+ * Creates a link for a placeholder student: a new one named `label`, or `studentId` (an
+ * existing placeholder, e.g. « Nouveau lien d'invitation »). Returns the token (shown
+ * once) with the stored row.
+ * @param {{ label: string, studentId?: string|null, createdBy: string, origin: string, now?: number }} input
+ * @returns {Promise<{ token: string, link: string, studentId: string,
+ *   row: { id: string, label: string|null, student_id: string, expires_at: string } }>}
  */
-export async function createJoinLink(admin, { label = null, createdBy, origin, now = Date.now() }) {
+export async function createJoinLink(admin, { label, studentId = null, createdBy, origin, now = Date.now() }) {
+  const name = String(label || '').trim()
+  if (!name) throw new HttpError(400, 'Indique le prénom de l’élève.')
+  const created = studentId ? null : await createPlaceholderStudent(admin, name)
+  const placeholderId = studentId || created.id
+
   const token = generateToken()
   const { data, error } = await admin
     .from('join_links')
     .insert({
       token_hash: hashToken(token),
-      label: label || null,
+      label: name,
+      student_id: placeholderId,
       created_by: createdBy || null,
       expires_at: new Date(now + JOIN_LINK_TTL_DAYS * DAY_MS).toISOString(),
     })
-    .select('id, label, created_at, expires_at')
+    .select('id, label, student_id, created_at, expires_at')
     .single()
+  if (error) {
+    // Never leave an orphan placeholder made by this call
+    if (created) await admin.auth.admin.deleteUser(created.id).catch(() => {})
+    throw error
+  }
+  return { token, link: joinUrl(origin, token), studentId: placeholderId, row: data }
+}
+
+/** Revokes the unused links of a placeholder, but `exceptId`. Returns the revoked ids. */
+export async function revokeLinksOf(admin, studentId, { exceptId = null, now = Date.now() } = {}) {
+  let query = admin
+    .from('join_links')
+    .update({ revoked_at: new Date(now).toISOString() })
+    .eq('student_id', studentId)
+    .is('used_at', null)
+    .is('revoked_at', null)
+  if (exceptId) query = query.neq('id', exceptId)
+  const { data, error } = await query.select('id')
   if (error) throw error
-  return { token, link: joinUrl(origin, token), row: data }
+  return (data || []).map((r) => r.id)
 }
 
 /** The row for a token (any state), or null. */
@@ -88,7 +125,7 @@ export async function findJoinLink(admin, token) {
   if (!isTokenShaped(token)) return null
   const { data, error } = await admin
     .from('join_links')
-    .select('id, label, created_by, created_at, expires_at, used_at, used_by, revoked_at')
+    .select('id, label, student_id, created_by, created_at, expires_at, used_at, used_by, revoked_at')
     .eq('token_hash', hashToken(token))
     .maybeSingle()
   if (error) throw error
@@ -135,64 +172,41 @@ async function nameFromLabel(admin, user, label) {
 }
 
 /**
- * Spends the link for `user` and approves the account (role stays student).
- * Atomic: two browsers claiming the same link at once cannot both win. Idempotent for
- * the user who already claimed it. Teachers and admins are refused (409 not_student).
+ * Spends the link for `user`: claim_join_link() moves what the placeholder owns to `user`
+ * in one transaction (row lock: two browsers claiming the same link at once cannot both
+ * win), then the account is approved (role stays student) and the placeholder deleted.
+ * Idempotent for the user who already claimed it (a failed approval or deletion is
+ * retried). Links without a placeholder (created before it) only approve and name the
+ * account. Teachers, admins and placeholders are refused (409 not_student).
  * @param {import('@supabase/supabase-js').User} user  fresh from requireUser()
- * @returns {Promise<{ link: object, alreadyClaimed: boolean }>}
+ * @returns {Promise<{ link: { id: string, label: string|null }, alreadyClaimed: boolean,
+ *   placeholderId: string|null, lessons: number }>}
  */
-export async function claimJoinLink(admin, token, user, now = Date.now()) {
-  if (getRole(user) === 'teacher' || isAdmin(user)) throw claimError('not_student')
-  const link = await findJoinLink(admin, token)
-  if (!link) throw claimError('unknown')
+export async function claimJoinLink(admin, token, user) {
+  if (getRole(user) === 'teacher' || isAdmin(user) || isPlaceholder(user)) throw claimError('not_student')
+  if (!isTokenShaped(token)) throw claimError('unknown')
 
-  const approve = async () => {
-    if (!isApproved(user)) await approveUser(admin, user)
-  }
-
-  // Same user again (reload, second tab): make sure the account is approved, nothing else
-  if (link.used_by && link.used_by === user.id) {
-    await approve()
-    return { link, alreadyClaimed: true }
-  }
-
-  const status = joinLinkStatus(link, now)
-  if (status !== 'active') throw claimError(status)
-
-  const usedAt = new Date(now).toISOString()
-  const { data: claimed, error } = await admin
-    .from('join_links')
-    .update({ used_at: usedAt, used_by: user.id })
-    .eq('id', link.id)
-    .is('used_at', null)
-    .is('revoked_at', null)
-    .gt('expires_at', usedAt)
-    .select('id')
+  const { data, error } = await admin.rpc('claim_join_link', { p_token_hash: hashToken(token), p_user: user.id })
   if (error) throw error
-  if (!claimed?.length) {
-    // Lost a race (or revoked meanwhile): tell which
-    const fresh = await findJoinLink(admin, token)
-    if (fresh?.used_by === user.id) {
-      await approve()
-      return { link: fresh, alreadyClaimed: true }
-    }
-    if (!fresh) throw claimError('unknown')
-    const freshStatus = joinLinkStatus(fresh, now)
-    throw claimError(freshStatus === 'active' ? 'used' : freshStatus)
-  }
+  if (!data?.ok) throw claimError(CLAIM_ERRORS[data?.reason] ? data.reason : 'unknown')
 
-  try {
-    await approve()
-  } catch (err) {
-    // Give the link back: the student can try again
-    await admin
-      .from('join_links')
-      .update({ used_at: null, used_by: null })
-      .eq('id', link.id)
-      .eq('used_by', user.id)
-      .then(() => {}, () => {})
-    throw err
+  // The link is spent for this user: on failure, a retry by the same user ends the job
+  if (!isApproved(user)) await approveUser(admin, user)
+  const placeholderId = data.placeholder_id || null
+  if (placeholderId) {
+    try {
+      await deletePlaceholder(admin, placeholderId)
+    } catch (err) {
+      // Empty by now: the teacher can delete it from the back office
+      console.error('[join-links] placeholder delete:', err)
+    }
+  } else if (!data.already_claimed) {
+    await nameFromLabel(admin, user, data.label)
   }
-  await nameFromLabel(admin, user, link.label)
-  return { link: { ...link, used_at: usedAt, used_by: user.id }, alreadyClaimed: false }
+  return {
+    link: { id: data.link_id, label: data.label || null },
+    alreadyClaimed: Boolean(data.already_claimed),
+    placeholderId,
+    lessons: Number(data.lessons) || 0,
+  }
 }

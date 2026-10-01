@@ -23,6 +23,14 @@ export function isApproved(user) {
   return getRole(user) === 'teacher' || user?.app_metadata?.approved !== false
 }
 
+/**
+ * Placeholder student created with a join link (migration 0007): the teacher prepares
+ * lessons for it until the student joins. It has a fake address and never signs in.
+ */
+export function isPlaceholder(user) {
+  return user?.app_metadata?.placeholder === true
+}
+
 /** True while a back-office ban is active (the access token may still be valid). */
 export function isBanned(user) {
   const until = user?.banned_until
@@ -103,6 +111,11 @@ export async function requireUser(req, res, { allowPending = false, lang = 'en' 
     return null
   }
   if (error || !data?.user) {
+    res.status(401).json({ error: message('unauthorized') })
+    return null
+  }
+  // Never signs in (fake address); a session for it would be a bug: refuse it
+  if (isPlaceholder(data.user)) {
     res.status(401).json({ error: message('unauthorized') })
     return null
   }

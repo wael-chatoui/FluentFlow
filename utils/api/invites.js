@@ -6,6 +6,7 @@
 // through the Preply chat, or let Supabase email it (sendEmail).
 import { HttpError, fail } from '@/utils/api/errors'
 import { findAuthUserByEmail } from '@/utils/api/students'
+import { isPlaceholderEmail } from '@/utils/api/placeholders'
 
 const HOST_RE = /^[a-z0-9.-]+(:\d{1,5})?$/i
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -49,10 +50,10 @@ export function confirmLink(origin, hashedToken, type) {
   return `${origin}/auth/confirm?token_hash=${encodeURIComponent(hashedToken)}&type=${encodeURIComponent(type)}`
 }
 
-/** Lower-cased, validated email (French message). */
+/** Lower-cased, validated email (French message). Never a placeholder student's address. */
 export function parseEmail(value) {
   const email = typeof value === 'string' ? value.trim().toLowerCase() : ''
-  if (!email || email.length > 254 || !EMAIL_RE.test(email)) fail('Adresse e-mail invalide.')
+  if (!email || email.length > 254 || !EMAIL_RE.test(email) || isPlaceholderEmail(email)) fail('Adresse e-mail invalide.')
   return email
 }
 
@@ -150,6 +151,8 @@ export async function inviteUser(admin, { email, fullName = '', role = 'student'
  * or an invitation that expired). Nothing is emailed.
  */
 export async function createSignInLink(admin, email, origin) {
+  // A placeholder student never signs in (its address is fake)
+  if (isPlaceholderEmail(email)) fail('Pas de lien de connexion pour un compte provisoire : crée un nouveau lien d’invitation.')
   const { data, error } = await admin.auth.admin.generateLink({
     type: 'magiclink',
     email,

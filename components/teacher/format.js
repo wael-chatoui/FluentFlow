@@ -1,7 +1,7 @@
 // Small formatting helpers shared by the teacher pages (French UI).
 // Pure functions only (no React, no browser globals): unit-tested in tests/teacherFormat.test.js.
 import { MAX_CANVA, MAX_TRANSCRIPT } from '@/utils/ai/options'
-import { CircleCheck, Hourglass, Mail } from 'lucide-react'
+import { CircleCheck, Hourglass, Link2, Mail } from 'lucide-react'
 
 export const LEVEL_LABELS = {
   A1: 'A1 — Débutant',
@@ -118,16 +118,19 @@ export function levelBadgeText(level) {
 }
 
 /**
- * Where a student's account stands, for the status pills:
- * 'invited' (never signed in), 'profile' (signed in, onboarding not finished), 'active'.
+ * Where a student's account stands, for the status pills: 'placeholder' (created with a
+ * join link, the student has not joined yet), 'invited' (never signed in), 'profile'
+ * (signed in, onboarding not finished), 'active'.
  * `last_sign_in_at` is only trusted when the API sends the field.
  */
 export function accountState(student) {
+  if (student?.placeholder) return 'placeholder'
   if (student && 'last_sign_in_at' in student && !student.last_sign_in_at) return 'invited'
   return student?.onboarded_at ? 'active' : 'profile'
 }
 
 export const ACCOUNT_STATE_LABELS = {
+  placeholder: { icon: Link2, label: 'Invitation en attente' },
   invited: { icon: Mail, label: 'Invitation en attente' },
   profile: { icon: Hourglass, label: 'Profil à compléter' },
   active: { icon: CircleCheck, label: 'Inscrit' },

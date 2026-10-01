@@ -155,15 +155,37 @@ export default async function handler(req, res) {
    only sees `/pending` until the teacher approves it (`…/approve`) or refuses it (`…/reject`, which
    deletes it). The email link of `/login` never creates an account (`shouldCreateUser: false`).
 4. **Join link** (no email address needed, migration 0007, `utils/api/joinLinks.js`): the teacher
-   creates `<origin>/join/<token>` (`POST /api/teacher/join-links`, optional first name as `label`) and
-   pastes it (or the ready-made English message) in the Preply chat. Token: 32 random bytes in
-   base64url; only its SHA-256 (hex) is stored in `join_links`. Single use, expires after 14 days,
-   revocable. On `/join/<token>` the student signs in with Google or an email link **with account
-   creation allowed** (`shouldCreateUser: true`): the new account starts pending like any self
-   sign-up, then the page calls `POST /api/join/[token]/claim`, which spends the link (conditional
-   update `used_at is null and revoked_at is null and expires_at > now`) and approves the account
-   (`approveUser`, role unchanged; teachers and admins refused), and gives the profile the label as
-   `full_name` when it has none. Re-claiming by the same user is a no-op.
+   gives the student's first name (`POST /api/teacher/join-links`, `label` required), which creates a
+   **placeholder student** right away (`utils/api/placeholders.js`): an auth user created with
+   `admin.createUser({ email: 'invite-<24 hex>@placeholder.invalid', email_confirm: true,
+   app_metadata: { role: 'student', approved: true, placeholder: true }, user_metadata: { full_name } })`,
+   its profile with `full_name = label` and `email = null` (the fake address is never shown). It is an
+   ordinary approved student for every teacher route (`isStudentUser`, `isExistingStudent`, lists),
+   so the teacher can open `/teacher/students/<id>`, import lessons, create lessons and exercises,
+   fill notes and « Contexte pour l'IA » before the student joins. A placeholder **never signs in**:
+   `requireUser` answers 401 for it, sign-in links (teacher and admin) and email invitations
+   (`parseEmail`, `createSignInLink`) refuse its address, and it is left out of « élèves inactifs ».
+   The teacher pastes `<origin>/join/<token>` (or the ready-made English message) in the Preply chat.
+   Token: 32 random bytes in base64url; only its SHA-256 (hex) is stored in `join_links`. Single use,
+   expires after 14 days, revocable; « Nouveau lien d'invitation » on the student page
+   (`POST /api/teacher/students/[id]/join-link`) makes a new link for the same placeholder and revokes
+   its other unused links. On `/join/<token>` (welcome step greets the placeholder's first name) the
+   student signs in with Google or an email link **with account creation allowed**
+   (`shouldCreateUser: true`): the new account starts pending like any self sign-up, then the page
+   calls `POST /api/join/[token]/claim` → SQL `claim_join_link(token_hash, user)` (security definer,
+   `service_role` only), **one transaction**: locks the link row (`for update`), refuses teacher /
+   admin / placeholder users and used / revoked / expired links, moves `lessons`, `lesson_plans`,
+   `practice_sessions`, `review_attempts`, `ai_generations` from the placeholder to the user (a
+   colliding `client_key` / `client_run_id` is cleared), moves `student_notes` (or merges `notes` /
+   `ai_context` into the user's row), copies `full_name`, `level`, `goals`, `interests`,
+   `drive_folder_url` from the placeholder's profile only where the user's is empty, revokes the
+   placeholder's other unused links and marks the link used. Then the API approves the user
+   (`approveUser`, role unchanged) and deletes the placeholder auth user (`deletePlaceholder`: only
+   when `app_metadata.placeholder` is true; its leftovers cascade, `join_links.student_id` → null).
+   The onboarding is prefilled from `/api/me` (the copied name). Re-claiming by the same user is
+   idempotent (moves anything left, re-approves, deletes the placeholder again). Links without
+   `student_id` (created before placeholders) only approve the account and give the profile the label
+   as `full_name` when it has none.
 5. **New sign-in link** (lost access, expired invitation): `createSignInLink()` →
    `generateLink({ type: 'magiclink' })` → `<origin>/auth/confirm?token_hash=…&type=magiclink`.
    Nothing is emailed. Links are never written to the audit log.
@@ -376,9 +398,14 @@ teacher-area actions carry `via: 'teacher'`), `created_at`. Index `(created_at d
 **`join_links`** (0007) — one-time invitation links without email: `id`, `token_hash` text unique not
 null (hex SHA-256 of the token; the token itself is never stored), `label` text (student's first name,
 ≤ 60), `created_by` (→ `auth.users` on delete set null), `created_at`, `expires_at` not null (+14 days),
-`used_at`, `used_by` (→ `auth.users` on delete set null), `revoked_at`. Index `(created_at desc)`. RLS on,
-no policy, revoked from `anon`/`authenticated`, granted to `service_role`. Status (computed):
-`used` > `revoked` > `expired` > `active`.
+`used_at`, `used_by` (→ `auth.users` on delete set null), `revoked_at`, `student_id` (→ `auth.users` on
+delete set null: the placeholder student made with the link; null for older links and once the
+placeholder is deleted after the claim). Indexes `(created_at desc)`, `(student_id) where student_id is
+not null`. RLS on, no policy, revoked from `anon`/`authenticated`, granted to `service_role`. Status
+(computed): `used` > `revoked` > `expired` > `active`. Function `claim_join_link(p_token_hash text,
+p_user uuid) returns jsonb` (security definer, execute granted to `service_role` only) →
+`{ ok: true, already_claimed, link_id, label, placeholder_id, lessons }` or `{ ok: false, reason:
+'unknown'|'used'|'revoked'|'expired'|'not_student' }` (§2 lifecycle 4).
 
 **`ai_generations`** (0006) — AI ledger, one row per generation attempt, success or failure: `id`,
 `kind` (`'lesson'` or `'plan'`), `lesson_id` (→ `lessons` on delete set null), `student_id`
@@ -421,7 +448,7 @@ no policy, revoked from `anon`/`authenticated`, granted to `service_role`. Statu
 | `0004_backoffice.sql` | `lessons.ai_usage`, `admin_audit_log` (its admin promotion uses a placeholder email: use the script) |
 | `0005_lesson_import.sql` | `source_kind`, `source_name`, `source_text`, `generation_options` |
 | `0006_publishing_access_and_tools.sql` | `hidden`, `client_key`, `ai_context`, `client_run_id`, indexes, `lesson_plans`, `ai_generations` (+ `cost_usd`), pending trigger, lock-down, `service_role` grants |
-| `0007_join_links.sql` | `join_links` (join links without email), RLS, `service_role` grants. **Not yet applied in production.** |
+| `0007_join_links.sql` | `join_links` (join links without email, `student_id` = placeholder student), RLS, `service_role` grants, `claim_join_link()` (moves the placeholder's data to the real account). **Not yet applied in production.** |
 
 ---
 
@@ -700,15 +727,19 @@ Types used below:
 
 **`GET /api/join/[token]`** — `pages/api/join/[token]/index.js` · **public** (no sign-in),
 `Cache-Control: private, no-store`, `Referrer-Policy: no-referrer`.
-- → `{ valid: true, label: string|null, teacherName }` or
+- → `{ valid: true, label: string|null, teacherName }` (`label` = first word of the placeholder's
+  current `full_name`, else the link's label) or
   `{ valid: false, reason: 'unknown'|'used'|'expired'|'revoked', teacherName }` (teacher name = first
   word of the creator's `full_name`, default `Wael`). A malformed token is `unknown`.
 
 **`POST /api/join/[token]/claim`** — `pages/api/join/[token]/claim.js` · `requireUser` with
 `allowPending: true` (English errors).
-- → `{ ok: true, alreadyClaimed: boolean }` — spends the link and approves the account (§2 lifecycle 4);
-  the browser then refreshes its session. Audit `join_link.claim` (first claim only).
-- 404 `unknown`; 410 `used` | `expired` | `revoked`; 409 `not_student` (teacher or admin account).
+- → `{ ok: true, alreadyClaimed: boolean }` — spends the link, moves what the teacher prepared for the
+  placeholder to the account (`claim_join_link`), approves it and deletes the placeholder (§2
+  lifecycle 4); the browser then refreshes its session. Audit `join_link.claim` (first claim only,
+  details `placeholder_id`, `lessons` moved).
+- 404 `unknown`; 410 `used` | `expired` | `revoked`; 409 `not_student` (teacher, admin or placeholder
+  account).
 
 **`POST /api/onboarding/complete`** — `pages/api/onboarding/complete.js` · students (teachers 403
 `Onboarding is for students only.`; pending → 403 `pending`).
@@ -805,15 +836,16 @@ else answers 404.
   (newest date first); `regenFailed` = published lessons with an error, i.e. a failed regeneration
   (newest first).
 - `inactive`: approved, non-suspended students with a profile whose last lesson is more than 14 days
-  old, or who have none and joined more than 7 days ago; most days first.
+  old, or who have none and joined more than 7 days ago; most days first. Never placeholder students.
 - `activity`: practice sessions of the last 7 days (20 newest).
 - `pending`: self sign-ups waiting for approval (not suspended), newest first; `provider` = `google`,
   `email`…
 
 **`GET /api/teacher/students`** — `pages/api/teacher/students/index.js`
 - → `{ students: [{ id, email, full_name, level, onboarded_at, created_at, lesson_count, last_lesson_date,
-  approved, last_sign_in_at, email_confirmed }] }` — approved student accounts with a profile, newest
-  first (pending accounts are in `overview.pending`; admins never appear).
+  approved, placeholder, last_sign_in_at, email_confirmed }] }` — approved student accounts with a
+  profile, newest first (pending accounts are in `overview.pending`; admins never appear). Placeholder
+  students (join link not used yet) are included with `placeholder: true` and `email: null`.
 
 **`POST /api/teacher/students/invite`** — `pages/api/teacher/students/invite.js`
 - Body `{ email, fullName? (≤ 120), sendEmail?: boolean = false }`.
@@ -826,7 +858,7 @@ else answers 404.
 
 **`GET /api/teacher/students/[id]`** — `pages/api/teacher/students/[id]/index.js`
 - → `{ student: { id, email, full_name, level, goals, interests, drive_folder_url, onboarded_at, created_at,
-  approved, last_sign_in_at, email_confirmed }, notes: string, ai_context: string,
+  approved, placeholder, last_sign_in_at, email_confirmed }, notes: string, ai_context: string,
   lessons: [{ id, title, lesson_date, status, stale, error, hidden, source_kind, exercise_count, created_at,
   updated_at, best_score, best_total, attempts }] }`.
 - Every lesson (drafts and failures included), newest first; progress counts current-version runs
@@ -852,21 +884,30 @@ else answers 404.
 **`POST /api/teacher/students/[id]/sign-in-link`** — `…/sign-in-link.js`
 - → `{ link }` — one-time `magiclink` to `/auth/confirm`, not emailed (§2). Audit `user.sign_in_link`
   (without the link).
-- 400: pending account (approve it first), suspended account, no email; 404 for anything but a
-  student account.
+- 400: placeholder student (« Nouveau lien d'invitation » instead), pending account (approve it
+  first), suspended account, no email; 404 for anything but a student account.
+
+**`POST /api/teacher/students/[id]/join-link`** — `…/join-link.js`
+- « Nouveau lien d'invitation » for a placeholder student. → **201** `{ link, message, joinLink: { id,
+  label, student_id, expires_at } }` — new link for the same placeholder (label = its current
+  `full_name`); its other unused links are revoked. Audit `join_link.create` (details `student_id`,
+  `revoked`, without the link).
+- 404 `Élève introuvable.` for anything but a placeholder student.
 
 **`POST /api/teacher/join-links`** — `pages/api/teacher/join-links/index.js`
-- Body `{ label? (≤ 60) }`.
-- → **201** `{ link, message, joinLink: { id, label, expires_at } }` — `link` =
+- Body `{ label (required, ≤ 60) }` (400 `Indique le prénom de l’élève.`).
+- → **201** `{ link, message, studentId, joinLink: { id, label, student_id, expires_at } }` — creates
+  the placeholder student `studentId` (§2 lifecycle 4) then the link; `link` =
   `<appOrigin>/join/<token>` (only in this answer), `message` = ready-to-paste English message.
-  Audit `join_link.create` (without the link).
+  Audit `join_link.create` (details `student_id`, without the link).
 
 **`GET /api/teacher/join-links`** — same file
 - → `{ joinLinks: [{ id, label, created_at, expires_at, used_at, revoked_at,
-  status: 'active'|'used'|'expired'|'revoked', used_by: { id, name, email }|null }] }` — 20 most recent.
+  status: 'active'|'used'|'expired'|'revoked', student_id, used_by: { id, name, email }|null }] }` — 20 most recent.
 
 **`DELETE /api/teacher/join-links/[id]`** — `pages/api/teacher/join-links/[id].js`
-- → `{ joinLink: { id, revoked_at } }`; revoking twice is a no-op. Audit `join_link.revoke`.
+- → `{ joinLink: { id, revoked_at } }`; revoking twice is a no-op. Audit `join_link.revoke`. The
+  placeholder student stays (its lessons too): « Nouveau lien d'invitation » on its page.
 - 400 when already used; 404 `Lien introuvable.`.
 
 **`GET /api/teacher/students/[id]/plans`** — `…/plans.js`
@@ -1018,8 +1059,9 @@ escaped; `*` matches exactly one character (PostgREST cannot match it literally)
   `created_at`, `last_sign_in_at`; default `created_at` descending, other columns ascending), `dir`
   (`asc`, `desc`), `page`, `perPage`.
 - → `{ users: [AdminUserItem], total, page, perPage }` with `AdminUserItem = { id, email, full_name, role,
-  is_admin, level, onboarded_at, created_at, last_sign_in_at, banned, approved, email_confirmed,
-  invite_pending, lesson_count, session_count }`. Empty values sort last in both directions.
+  is_admin, placeholder, level, onboarded_at, created_at, last_sign_in_at, banned, approved,
+  email_confirmed, invite_pending, lesson_count, session_count }` (`email` is `''` for a placeholder
+  student, shown as « Invitation en attente »). Empty values sort last in both directions.
 - 400 on an unknown `role`, `sort` or `dir`.
 
 **`POST /api/admin/users`** — same file
@@ -1057,8 +1099,8 @@ escaped; `*` matches exactly one character (PostgREST cannot match it literally)
 **`POST /api/admin/users/[id]/sign-in-link`** — `…/sign-in-link.js`
 - Body `{}`. → `{ link }` (one-time `magiclink`, not emailed). Audit `user.sign_in_link` (without the
   link).
-- 400: your own account (use `/login`), another admin (no impersonation), a pending or suspended
-  account, no email; 404.
+- 400: your own account (use `/login`), another admin (no impersonation), a placeholder student, a
+  pending or suspended account, no email; 404.
 
 **`GET /api/admin/lessons`** — `pages/api/admin/lessons/index.js`
 - Query `q` (title, or the student's name or email: up to 100 matching students), `status`

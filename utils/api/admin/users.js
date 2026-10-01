@@ -1,7 +1,7 @@
 // Auth users for the back office: listing every account (Auth admin API), merging
 // with profiles, the documented user shapes, sorting and the privilege safety rules.
 import { fail } from '@/utils/api/errors'
-import { getRole, isAdmin, isApproved, isBanned, normalizeUuid } from '@/utils/auth/server'
+import { getRole, isAdmin, isApproved, isBanned, isPlaceholder, normalizeUuid } from '@/utils/auth/server'
 
 const AUTH_PAGE = 1000
 export const MAX_USERS = 10_000
@@ -92,13 +92,16 @@ export function authSummary(user) {
 }
 
 /**
- * List item: { id, email, full_name, role, is_admin, level, onboarded_at, created_at,
+ * List item: { id, email, full_name, role, is_admin, placeholder, level, onboarded_at, created_at,
  * last_sign_in_at, banned, approved, email_confirmed, invite_pending, lesson_count, session_count }
+ * placeholder: student created with a join link, not joined yet (email '': its address is fake).
  */
 export function userListItem(user, profile, counts = {}) {
+  const placeholder = isPlaceholder(user)
   return {
     id: user.id,
-    email: user.email || profile?.email || '',
+    email: placeholder ? '' : user.email || profile?.email || '',
+    placeholder,
     full_name: nameOf(user, profile),
     role: getRole(user),
     is_admin: isAdmin(user),
