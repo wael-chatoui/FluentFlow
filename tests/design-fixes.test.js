@@ -205,3 +205,47 @@ describe('useUnsavedGuard registry: install and cleanup', () => {
     expect(win.confirm).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('Icon and Shell tab rendering', () => {
+  it('renders standard Lucide icons', async () => {
+    const React = (await import('react')).default
+    const { default: ReactDOMServer } = await import('react-dom/server')
+    const { RotateCcw } = await import('lucide-react')
+    const { default: Icon } = await import('@/components/ui/Icon')
+
+    const html = ReactDOMServer.renderToStaticMarkup(React.createElement(Icon, { icon: RotateCcw, size: 20 }))
+    expect(html).toContain('svg')
+  })
+
+  it('renders tab icons wrapped with badge components without throwing', async () => {
+    const React = (await import('react')).default
+    const { default: ReactDOMServer } = await import('react-dom/server')
+    const { RotateCcw } = await import('lucide-react')
+    const { default: Icon } = await import('@/components/ui/Icon')
+
+    function ReviewIcon(props) {
+      return React.createElement(
+        'span',
+        { className: 'iconWrap' },
+        React.createElement(Icon, { icon: RotateCcw, ...props }),
+        React.createElement('span', { className: 'badge' }, '5')
+      )
+    }
+
+    const html = ReactDOMServer.renderToStaticMarkup(React.createElement(Icon, { icon: ReviewIcon, size: 20 }))
+    expect(html).toContain('svg')
+    expect(html).toContain('badge')
+    expect(html).toContain('5')
+  })
+
+  it('safely tolerates already-instantiated elements passed to Icon', async () => {
+    const React = (await import('react')).default
+    const { default: ReactDOMServer } = await import('react-dom/server')
+    const { default: Icon } = await import('@/components/ui/Icon')
+
+    const element = React.createElement('span', { className: 'custom-element' }, 'fallback')
+    const html = ReactDOMServer.renderToStaticMarkup(React.createElement(Icon, { icon: element, size: 20 }))
+    expect(html).toContain('custom-element')
+    expect(html).toContain('fallback')
+  })
+})
