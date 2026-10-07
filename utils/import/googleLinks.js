@@ -9,7 +9,8 @@ export const LINK_MESSAGES = {
     'Lien invalide : colle un lien Google Docs (https://docs.google.com/document/d/…) ou Google Drive (https://drive.google.com/file/d/…).',
   host: 'Seuls les liens Google Docs (docs.google.com) ou Google Drive (drive.google.com) sont acceptés.',
   unsupported: 'Seuls les Google Docs et les PDF sont pris en charge (pas Sheets, Slides ni Forms).',
-  folder: 'Les dossiers Drive ne sont pas pris en charge : ajoute les fichiers un par un.',
+  folderNotPublic:
+    'Impossible d’accéder à ce dossier Drive : il doit être partagé en « Tous les utilisateurs disposant du lien » (Partager → Accès général).',
   page: 'Ce lien ouvre une page de Google Drive, pas un document : ouvre le document puis copie son lien (Partager → Copier le lien).',
   published:
     'Les liens « Publié sur le Web » ne sont pas pris en charge : utilise le lien de partage du document (Partager → Copier le lien).',
@@ -23,13 +24,14 @@ const DOC_PATH_RE = /^\/document(?:\/u\/\d+)?\/d\/([^/]+)(?:\/.*)?$/
 const DOC_PUBLISHED_RE = /^\/document(?:\/u\/\d+)?\/d\/e\//
 const DOC_HOME_RE = /^\/document(?:\/u\/\d+)?\/?$/
 const FILE_PATH_RE = /^\/file(?:\/u\/\d+)?\/d\/([^/]+)(?:\/.*)?$/
+const FOLDER_PATH_RE = /^\/drive(?:\/u\/\d+)?\/folders\/([^/?]+)(?:\/.*)?$/
+const FOLDER_VIEW_RE = /^\/(?:folderview|embeddedfolderview)\/?$/
 const OPEN_PATH_RE = /^(?:\/u\/\d+)?\/(?:open|uc)\/?$/
 // Google files that are not Docs (Sheets, Slides, Forms, Drawings…)
 const OTHER_DOCS_RE = /^\/(?:spreadsheets|presentation|forms|drawings)(?:\/|$)/
-const DRIVE_FOLDER_RE = /^\/(?:drive(?:\/u\/\d+)?\/folders\/|folderview\/?$)/
 const DRIVE_PAGE_RE = /^\/drive(?:\/|$)/
 
-const LABELS = { doc: 'Google Doc', drive: 'Fichier Google Drive' }
+const LABELS = { doc: 'Google Doc', drive: 'Fichier Google Drive', folder: 'Dossier Google Drive' }
 
 function toUrl(value) {
   // Pasted from a chat: may be wrapped in <…>, quotes or guillemets
@@ -65,8 +67,10 @@ function locate(url) {
   if (url.hostname === 'drive.google.com') {
     const file = FILE_PATH_RE.exec(path)
     if (file) return { kind: 'drive', id: file[1] }
+    const folder = FOLDER_PATH_RE.exec(path)
+    if (folder) return { kind: 'folder', id: folder[1] }
+    if (FOLDER_VIEW_RE.test(path) && queryId) return { kind: 'folder', id: queryId }
     if (OPEN_PATH_RE.test(path) && queryId) return { kind: 'drive', id: queryId }
-    if (DRIVE_FOLDER_RE.test(path)) return { error: 'folder' }
     if (DRIVE_PAGE_RE.test(path)) return { error: 'page' }
     return { error: 'invalid' }
   }
@@ -77,7 +81,7 @@ function locate(url) {
 /**
  * Parses a pasted Google Docs / Drive link.
  * @param {unknown} input
- * @returns {{ kind: 'doc'|'drive', id: string, resourceKey: string|null, url: string,
+ * @returns {{ kind: 'doc'|'drive'|'folder', id: string, resourceKey: string|null, url: string,
  *   dedupeKey: string, label: string } | { error: string }}
  *   `url` is a canonical https link rebuilt from the id; `error` is a French message.
  */
@@ -97,7 +101,12 @@ export function parseGoogleLink(input) {
   const key = url.searchParams.get('resourcekey')
   // Files shared before Google's 2021 security update need their resource key
   const resourceKey = key && RESOURCE_KEY_RE.test(key) ? key : null
-  const base = kind === 'doc' ? `https://docs.google.com/document/d/${id}/edit` : `https://drive.google.com/file/d/${id}/view`
+  const base =
+    kind === 'doc'
+      ? `https://docs.google.com/document/d/${id}/edit`
+      : kind === 'folder'
+      ? `https://drive.google.com/drive/folders/${id}`
+      : `https://drive.google.com/file/d/${id}/view`
   return {
     kind,
     id,
@@ -107,3 +116,47 @@ export function parseGoogleLink(input) {
     label: LABELS[kind],
   }
 }
+
+const URL_SCAN_RE = /(?:https?:\/\/|(?:docs|drive)\.google\.com\/)[^\s<>"'«»,;]+/gi
+
+/**
+ * Extracts all Google Docs / Drive / Folder links from a pasted text block
+ * (supports single URL, multiple URLs separated by newlines/spaces, or embedded in text).
+ * @param {string} input
+ * @returns {{ links: Array<object>, folders: Array<object>, duplicates: number, errors: string[] }}
+ */
+export function extractGoogleLinks(input) {
+  const text = typeof input === 'string' ? input.trim() : ''
+  if (!text) return { links: [], folders: [], duplicates: 0, errors: [LINK_MESSAGES.empty] }
+
+  // 1. Scan for URLs using regex
+  const rawMatches = text.match(URL_SCAN_RE) || []
+  const candidates = rawMatches.length ? rawMatches : text.split(/[\r\n,;]+/).map((s) => s.trim()).filter(Boolean)
+
+  const links = []
+  const folders = []
+  const errors = []
+  const seen = new Set()
+  let duplicates = 0
+
+  candidates.forEach((cand) => {
+    const parsed = parseGoogleLink(cand)
+    if (parsed.error) {
+      if (!errors.includes(parsed.error)) errors.push(parsed.error)
+      return
+    }
+    if (seen.has(parsed.dedupeKey)) {
+      duplicates += 1
+      return
+    }
+    seen.add(parsed.dedupeKey)
+    if (parsed.kind === 'folder') {
+      folders.push(parsed)
+    } else {
+      links.push(parsed)
+    }
+  })
+
+  return { links, folders, duplicates, errors }
+}
+

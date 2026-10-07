@@ -505,6 +505,47 @@
   opacity: 0.9;
 }
 
+.fbReportBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--st-line);
+  background: var(--st-surface);
+  color: var(--st-ink-soft);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.fbReportBtn:hover {
+  background: var(--st-bg);
+  color: var(--st-ink);
+  border-color: var(--st-red, #ef4444);
+}
+
+.reportToast {
+  position: absolute;
+  top: 4.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: var(--st-ink);
+  color: var(--st-surface);
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: pop 0.2s ease-out;
+}
+
 .continue_good { --btn-bg: var(--st-green-strong); --btn-edge: var(--st-green-strong-dark); --btn-fg: var(--st-on-color); }
 .continue_bad { --btn-bg: var(--st-red-strong); --btn-edge: var(--st-red-strong-dark); --btn-fg: var(--st-on-color); }
 .continue_warn { --btn-bg: var(--st-orange-strong); --btn-edge: var(--st-orange-strong-dark); --btn-fg: var(--st-on-color); }

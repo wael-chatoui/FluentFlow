@@ -110,6 +110,10 @@ export default async function handler(req, res) {
 | `AI_DEMO` | server | `1` = demo mode even with a key; ignored in production |
 | `AI_PRICE_INPUT_PER_M`, `AI_PRICE_OUTPUT_PER_M` | server | USD per million tokens, to estimate calls without a provider-reported cost; defaults 0.05 / 0.40 |
 | `BACKOFFICE_HOSTS` | server (proxy, invites) | optional, comma-separated hosts on which everything stays under `/admin`; default `backoffice.localhost`. Production has no dedicated host. |
+| `RESEND_API_KEY` | server only | optional Resend API key for transactional emails. Empty → demo mode (logs to console). |
+| `EMAIL_FROM` | server only | default sender for transactional emails, default `FluentFlow <onboarding@resend.dev>`. |
+
+Teacher notifications (e.g. reported exercises) are addressed dynamically to the teacher who invited the student, or to all active accounts with `app_metadata.role = 'teacher'`.
 
 `NODE_ENV` is also read (demo mode, `/dev/preview`, cookie `secure` flag); Next.js and Vercel set it.
 
@@ -413,9 +417,16 @@ p_user uuid) returns jsonb` (security definer, execute granted to `service_role`
 `completion_tokens`, `duration_ms`, `cost_usd` numeric (cost reported by OpenRouter; null = unknown),
 `created_at`. Index `(created_at desc)`.
 
+**`subscriptions`** (0008) — Stripe / Mollie subscription tracking: `id`, `user_id` (→ `auth.users` on
+delete cascade), `provider` ('stripe' | 'mollie'), `customer_id`, `subscription_id`, `plan`, `status`
+('active', 'trialing', 'past_due', 'canceled', 'incomplete'), `amount_cents`, `currency`,
+`current_period_start`, `current_period_end`, `cancel_at_period_end`, `created_at`, `updated_at`.
+Index `(user_id)`, `(status)`, `(created_at desc)`. RLS on, granted to `service_role`. Optional table
+(tolerated if not yet migrated).
+
 ### Functions and triggers
 
-- `touch_updated_at()`: `before update` on `profiles`, `student_notes`, `lessons`.
+- `touch_updated_at()`: `before update` on `profiles`, `student_notes`, `lessons`, `subscriptions`.
 - `handle_new_user_role()` (`before insert on auth.users`): sets `role: 'student'` unless the role is
   `student` or `teacher`; since 0006 also `approved: false` when the flag is absent (self sign-ups
   start pending; `inviteUser` and the bootstrap script set `approved: true` right after creation).
@@ -433,10 +444,10 @@ p_user uuid) returns jsonb` (security definer, execute granted to `service_role`
   `usage, select` on all sequences; `execute` on all functions. **A new migration must grant its new
   tables to `service_role`.**
 - Deleting an auth user cascades to the profile, notes, lessons (and their sessions and reviews),
-  practice sessions, review attempts and plans; audit and ledger rows stay with null references.
-- The code tolerates missing optional 0006 tables (`lesson_plans`, `ai_generations`): plans are
-  returned with `id: null`, ledger writes are skipped, stats fall back to `lessons.ai_usage`, the table
-  explorer lists them as unavailable.
+  practice sessions, review attempts, plans and subscriptions; audit and ledger rows stay with null references.
+- The code tolerates missing optional tables (`lesson_plans`, `ai_generations`, `subscriptions`): plans are
+  returned with `id: null`, ledger writes are skipped, subscriptions return empty/defaults, stats fall back
+  to `lessons.ai_usage`, the table explorer lists them as unavailable.
 
 ### Migrations
 
@@ -449,6 +460,7 @@ p_user uuid) returns jsonb` (security definer, execute granted to `service_role`
 | `0005_lesson_import.sql` | `source_kind`, `source_name`, `source_text`, `generation_options` |
 | `0006_publishing_access_and_tools.sql` | `hidden`, `client_key`, `ai_context`, `client_run_id`, indexes, `lesson_plans`, `ai_generations` (+ `cost_usd`), pending trigger, lock-down, `service_role` grants |
 | `0007_join_links.sql` | `join_links` (join links without email, `student_id` = placeholder student), RLS, `service_role` grants, `claim_join_link()` (moves the placeholder's data to the real account). **Not yet applied in production.** |
+| `0008_subscriptions.sql` | `subscriptions` (Stripe / Mollie subscriptions, recurring billing, MRR, status, period dates), RLS, `service_role` grants. Optional. |
 
 ---
 
@@ -800,6 +812,13 @@ user and go through `visibleLessons()`.
   between the check and the insert (the run is deleted). A retry of a run stored before an update
   still gets its stored result; one stored after it is deleted and gets the 409.
 
+**`POST /api/student/lessons/[id]/exercises/[exerciseId]/report`** — `pages/api/student/lessons/[id]/exercises/[exerciseId]/report.js`
+- Body `{ reason?: string, note?: string }` (reason ≤ 120, note ≤ 600).
+- → `{ success: true, disabled: true }`. Sets `disabled: true` and attaches `reported: { at, reason, note, student_id }`
+  to the exercise in `lessons.exercises`, which temporarily removes it from student practice runs.
+  Sends an alert email in the background to the tutor (Wael).
+- 400 on malformed ids or too long inputs; 404 if lesson is not visible/owned or exercise is not found.
+
 **`GET /api/student/review`** — `pages/api/student/review.js`
 - → `{ total, exercises: [{ ...exercise, id: '<lessonId>:<exerciseId>', lessonId, lessonTitle, lesson_date, version }] }`.
 - Current mistakes (§4), newest lessons first, at most 20 per round; `total` = every current mistake.
@@ -953,7 +972,8 @@ else answers 404.
 **`PATCH /api/teacher/lessons/[id]`** — same file · body ≤ 1 MB
 - Body: any of
   - `title` (non-empty, ≤ 120), `lessonDate`, `driveUrl` (https Drive / Docs; `''` or null clears);
-  - `hidden: boolean` — « Publier pour l'élève » / « Retirer de l'espace élève »;
+  - `hidden: boolean` — « Publier pour l'élève » / « Retirer de l'espace élève » (un-hiding triggers an email notification to the student);
+  - `notifyStudent: boolean` — manually triggers the email notification to the student;
   - `dismissError: true` — clears the error of a failed regeneration on a published lesson (it
     leaves « À traiter »);
   - `removeExerciseIds: string[]` (≤ 100 ids of ≤ 40 characters) — the other exercises keep their
@@ -1014,10 +1034,19 @@ else answers 404.
   `drive.usercontent.google.com`, `*.googleusercontent.com`; `accounts.google.com` = not public).
   Drive files: PDF, or `.txt` / `.md` (served as text, or as `application/octet-stream` with that
   extension). A Drive link to a native Google Doc falls back to the Docs export.
-- 400 (French): invalid link, other host, Drive folder, Drive page, « Publié sur le Web » link,
+- 400 (French): invalid link, other host, Drive page, « Publié sur le Web » link,
   Sheets / Slides / Forms, not shared publicly (« Tous les utilisateurs disposant du lien »), not
   found, too large, unsupported Drive file type (Word: open it in Docs or export a PDF), unexpected
   redirect; 502: Google timeout, unreachable or failing.
+
+**`POST /api/teacher/import/folder`** — `pages/api/teacher/import/folder.js` · `maxDuration: 60`
+- Body `{ url, studentId? }`: a public Google Drive folder link (`drive.google.com/drive/folders/<id>`,
+  `/folderview?id=`, `/embeddedfolderview?id=`).
+- → `{ folderId, folderName, files: [{ id, name, kind: 'doc'|'drive', url, dedupeKey, existingLesson? }] }`.
+- Fetches the public folder view (embeddedfolderview or modern Drive web view), extracts supported files
+  (Google Docs, PDFs, .txt/.md), ignores unsupported types (images, videos, sheets, subfolders).
+  If `studentId` is supplied, annotates any file whose name matches an existing lesson's `source_name` in DB.
+- 400 (French): invalid link, not shared publicly, not found, empty folder; 502: Google timeout / unreachable.
 
 ### Back office
 
@@ -1209,13 +1238,16 @@ Navigation « Élèves », « Nouvelle leçon », « Importer »; account menu �
 | `/teacher/lessons/import` | batch import, below |
 
 **Import page**: pick a student (`?student=`), add PDFs (sent to `extract`), `.txt` / `.md` files
-(read in the browser) and Google links (`resolve`); at most 20 documents, one lesson each, with an
+(read in the browser), Google links (`resolve`), multiple URLs pasted together or an entire public Google
+Drive folder (`POST /api/teacher/import/folder`); at most 20 documents, one lesson each, with an
 editable title and date. The date is detected from the file name, the Doc title or the first lines
 (future dates refused, « Appliquer cette date à toutes les lignes »); the title is derived from the
 file name (`Rebecca_L07_Vouloir-Vocab.pdf` → « Leçon 7 — Vouloir vocab »; generic names leave it to
-the AI); a warning shows when the student already has a lesson on that date. Options are set once;
-« Relire avant de publier » sends `publish: false`. The queue runs 2 documents at a time, oldest lesson
-first: `POST /api/teacher/lessons/import` with each row's `clientKey`, then polling `?light=1` every
+the AI). Duplicate checks run at import time: duplicates within the folder or pasted selection are
+automatically skipped, and documents already present in the database for that student (matched by
+`source_name` or date) are flagged with an orange « Déjà en base » pill and warning notice. Options
+are set once; « Relire avant de publier » sends `publish: false`. The queue runs 2 documents at a time,
+oldest lesson first: `POST /api/teacher/lessons/import` with each row's `clientKey`, then polling `?light=1` every
 4 s; network and server errors are retried twice automatically; the queue pauses when the same error
 happens twice in a row; « Réessayer les N échecs ». The queue is saved in sessionStorage (never the
 text or the files) and restored after a reload; leaving is guarded while documents are not sent yet.
@@ -1365,6 +1397,7 @@ Nothing here is trusted by the server; storage access is wrapped in try/catch ev
 | localStorage | `teacher.lastStudent` | last student picked in the new-lesson form |
 | localStorage | `teacher.reviewBeforePublish` | `'1'` / `'0'`, « Relire avant de publier » (new lesson and import) |
 | localStorage | `preply:sound` | `'on'` / `'off'`, sound effects, synced across tabs |
+| localStorage | `pl:bookmark_prompt_dismissed` | `'1'`, Bookmark dialog dismissed on student dashboard |
 | sessionStorage | `preply:practice:<resumeKey>` | practice run to resume (§8) |
 | sessionStorage | `teacher.import.queue` | import queue (version 1, 24 h max; no text, no files; ids validated on restore) |
 | sessionStorage | `onboarding-draft:v1:<userId>` | onboarding answers and step |

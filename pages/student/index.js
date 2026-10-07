@@ -7,6 +7,7 @@ import useMe from '@/components/student/useMe'
 import useLessons from '@/components/student/useLessons'
 import UpNextCard, { UpNextSkeleton } from '@/components/student/home/UpNextCard'
 import ProgressCard, { ProgressSkeleton } from '@/components/student/home/ProgressCard'
+import BookmarkPromptDialog from '@/components/student/home/BookmarkPromptDialog'
 import { computeUpNext } from '@/components/student/home/upNext'
 import LessonCard, { LessonCardSkeleton } from '@/components/student/lessons/LessonCard'
 import { ErrorCard } from '@/components/student/lessons/StatusViews'
@@ -191,6 +192,7 @@ export default function StudentHome() {
           </div>
         </div>
       )}
+      <BookmarkPromptDialog />
     </StudentShell>
   )
 }

@@ -143,6 +143,7 @@ export default function StudentPracticePage() {
           key={`${state.lesson.id}:${version}`}
           exercises={state.lesson.exercises}
           title={state.lesson.title || 'Practice'}
+          lessonId={state.lesson.id}
           onComplete={onComplete}
           onRestart={onRestart}
           onExit={onExit}

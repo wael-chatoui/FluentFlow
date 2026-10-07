@@ -23,7 +23,7 @@ async function loadStudent(admin, user) {
     admin.from('student_notes').select('notes, ai_context').eq('student_id', id).maybeSingle(),
     admin
       .from('lessons')
-      .select('id, title, lesson_date, status, error, hidden, source_kind, exercises, generated_at, created_at, updated_at')
+      .select('id, title, lesson_date, status, error, hidden, source_kind, source_name, exercises, generated_at, created_at, updated_at')
       .eq('student_id', id)
       .order('lesson_date', { ascending: false })
       .order('created_at', { ascending: false }),
@@ -55,6 +55,7 @@ async function loadStudent(admin, user) {
       error: l.error,
       hidden: Boolean(l.hidden),
       source_kind: l.source_kind || 'transcript',
+      source_name: l.source_name || null,
       exercise_count: exerciseCount(l.exercises),
       created_at: l.created_at,
       updated_at: l.updated_at,

@@ -1,0 +1,100 @@
+.dialog {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: calc(100% - 2rem);
+  max-width: 420px;
+  padding: 2rem 1.5rem;
+  background: var(--st-surface);
+  border: 2px solid var(--st-line);
+  border-radius: var(--st-radius-lg, 24px);
+  box-shadow: var(--st-shadow-modal, 0 20px 48px rgba(0, 0, 0, 0.18));
+  color: var(--st-ink);
+}
+
+.dialog::backdrop {
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+.iconWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--st-yellow-bg, #fef9c3);
+  color: var(--st-yellow-ink, #854d0e);
+  margin-bottom: 1.25rem;
+  border: 2px solid var(--st-yellow-line, #fef08a);
+}
+
+.title {
+  margin: 0 0 0.5rem;
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: var(--st-ink);
+}
+
+.desc {
+  margin: 0 0 1.25rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--st-ink-soft);
+}
+
+.kbdBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: var(--st-bg);
+  border: 1px solid var(--st-line);
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--st-ink);
+}
+
+.kbd {
+  display: inline-block;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.775rem;
+  font-family: inherit;
+  font-weight: 800;
+  background: var(--st-surface);
+  border: 1px solid var(--st-line);
+  border-bottom: 2px solid var(--st-line);
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.btn {
+  width: 100%;
+  padding: 0.85rem;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  background: var(--st-blue-strong, #2563eb);
+  color: var(--st-on-color, #ffffff);
+  border: none;
+  box-shadow: 0 4px 0 var(--st-blue-strong-dark, #1d4ed8);
+  transition: all 0.15s ease;
+}
+
+.btn:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--st-blue-strong-dark, #1d4ed8);
+}

@@ -176,6 +176,29 @@ export const TABLES = {
     search: ['admin_email', 'action', 'entity', 'entity_id'],
     sort: { column: 'created_at', dir: 'desc' },
   },
+  subscriptions: {
+    label: 'Abonnements',
+    optional: true,
+    key: 'id',
+    columns: [
+      col('id', 'uuid'),
+      col('user_id', 'uuid'),
+      col('provider', 'text'),
+      col('customer_id', 'text'),
+      col('subscription_id', 'text'),
+      col('plan', 'text'),
+      col('status', 'text'),
+      col('amount_cents', 'number'),
+      col('currency', 'text'),
+      col('current_period_start', 'date'),
+      col('current_period_end', 'date'),
+      col('cancel_at_period_end', 'boolean'),
+      col('created_at', 'date'),
+      col('updated_at', 'date'),
+    ],
+    search: ['provider', 'customer_id', 'subscription_id', 'plan', 'status'],
+    sort: { column: 'created_at', dir: 'desc' },
+  },
 }
 
 export const TABLE_NAMES = Object.keys(TABLES)

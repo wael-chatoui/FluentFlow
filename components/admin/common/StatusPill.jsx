@@ -28,18 +28,30 @@ export const ROLE_META = {
   invited: { label: 'Invitation en attente', tone: 'gray', icon: Mail },
 }
 
+export const SUBSCRIPTION_STATUS = {
+  active: { label: 'Abonné', tone: 'green' },
+  trialing: { label: 'Essai', tone: 'blue' },
+  past_due: { label: 'Impayé', tone: 'orange' },
+  canceled: { label: 'Résilié', tone: 'gray' },
+  incomplete: { label: 'Incomplet', tone: 'yellow' },
+  none: { label: 'Sans abonnement', tone: 'gray' },
+}
+
 /**
  * Colored pill.
  * - Lesson status: `<StatusPill status="published|generating|failed" />`
  * - Role: `<StatusPill role="student|teacher|admin|banned" />`
+ * - Subscription: `<StatusPill subscription="active|trialing|past_due|canceled|none" />`
  * - Custom: `<StatusPill tone="green|blue|red|purple|orange|yellow|gray">Texte</StatusPill>`
- * @param {{ status?: string, role?: string, tone?: string, dot?: boolean, children?: React.ReactNode, title?: string }} props
+ * @param {{ status?: string, role?: string, subscription?: string, tone?: string, dot?: boolean, children?: React.ReactNode, title?: string }} props
  */
-export default function StatusPill({ status, role, tone, dot, children, title }) {
+export default function StatusPill({ status, role, subscription, tone, dot, children, title }) {
   let meta
   if (status !== undefined) {
     meta = LESSON_STATUS[status] || { label: status || 'Inconnu', tone: 'gray' }
     meta = { ...meta, dot: dot ?? true }
+  } else if (subscription !== undefined) {
+    meta = SUBSCRIPTION_STATUS[subscription] || { label: subscription || 'Sans abonnement', tone: 'gray' }
   } else if (role !== undefined) {
     meta = ROLE_META[role] || { label: role || 'Inconnu', tone: 'gray' }
   } else {

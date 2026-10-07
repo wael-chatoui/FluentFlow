@@ -116,6 +116,7 @@ Production et Preview) :
 | `NEXT_PUBLIC_SITE_URL` | obligatoire : `https://fluent-flow-mu.vercel.app` (jamais localhost) |
 | `AI_API_KEY` | obligatoire, serveur uniquement |
 | `AI_BASE_URL`, `AI_MODEL`, `AI_TIMEOUT_MS`, `AI_MAX_TOKENS`, `AI_PRICE_*` | optionnelles (défauts ci-dessus) |
+| `RESEND_API_KEY`, `EMAIL_FROM` | optionnelles (emails transactionnels : alertes prof, notifications élève ; console en démo) |
 | `BACKOFFICE_HOSTS` | optionnelle (sous-domaine dédié au back office, voir plus bas) |
 
 `SUPABASE_SERVICE_ROLE_KEY` et `AI_API_KEY` ne doivent **jamais** être préfixées `NEXT_PUBLIC_`.

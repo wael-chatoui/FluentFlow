@@ -188,6 +188,16 @@ function LessonScreen({ id, initialTab, duplicate }) {
     }
   }
 
+  const notifyStudent = async () => {
+    setActionError(null)
+    try {
+      await patch({ notifyStudent: true })
+      if (mounted.current) setNotice("E-mail de notification envoyé à l’élève.")
+    } catch (err) {
+      if (!isAbortError(err) && mounted.current) setActionError(err.message || "L’envoi de l’e-mail a échoué.")
+    }
+  }
+
   const handleDelete = async () => {
     if (deleting) return
     removal.undo()
@@ -294,6 +304,7 @@ function LessonScreen({ id, initialTab, duplicate }) {
           onRegenerate={openSourcesEditor}
           onDelete={() => setConfirm('delete')}
           onDriveSave={(url) => patch({ driveUrl: url })}
+          onNotifyStudent={notifyStudent}
         />
 
         {notice && (

@@ -16,6 +16,7 @@ import {
   formatDateTime,
   formatNumber,
   formatRelative,
+  formatUsd,
   initialsOf,
   isAbortError,
 } from '@/components/admin/common/format'
@@ -67,6 +68,16 @@ const COLUMNS = [
   },
   { key: 'role', label: 'Rôle', render: (r) => <UserRolePills user={r} /> },
   {
+    key: 'subscription_status',
+    label: 'Abonnement',
+    render: (r) =>
+      r.role === 'teacher' ? (
+        <span className={s.muted}>—</span>
+      ) : (
+        <StatusPill subscription={r.subscription_status || 'none'} />
+      ),
+  },
+  {
     key: 'level',
     label: 'Niveau',
     align: 'center',
@@ -91,6 +102,17 @@ const COLUMNS = [
   },
   { key: 'lesson_count', label: 'Leçons', align: 'right', render: (r) => <span className={s.num}>{formatNumber(r.lesson_count || 0)}</span> },
   { key: 'session_count', label: 'Sessions', align: 'right', render: (r) => <span className={s.num}>{formatNumber(r.session_count || 0)}</span> },
+  {
+    key: 'ai_cost_usd',
+    label: 'Coût IA',
+    align: 'right',
+    render: (r) =>
+      r.ai_cost_usd !== null && r.ai_cost_usd !== undefined ? (
+        <span className={s.mono}>{formatUsd(r.ai_cost_usd)}</span>
+      ) : (
+        <span className={s.muted}>—</span>
+      ),
+  },
   {
     key: 'created_at',
     label: 'Inscrit le',
