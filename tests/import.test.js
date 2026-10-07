@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { detectLessonDate, findDate, titleFromName } from '@/utils/import/detect'
-import { LINK_MESSAGES, parseGoogleLink } from '@/utils/import/googleLinks'
-import { buildFetchUrl, isAllowedHost, MESSAGES, resolveGoogleLink } from '@/utils/import/google'
+import { extractGoogleLinks, LINK_MESSAGES, parseGoogleLink } from '@/utils/import/googleLinks'
+import { buildFetchUrl, isAllowedHost, MESSAGES, parseFolderHtml, resolveGoogleFolder, resolveGoogleLink } from '@/utils/import/google'
 import { cleanImportedText, prepareImportText, sanitizeSourceName } from '@/utils/import/text'
 import { IMPORT_LIMITS } from '@/utils/import/limits'
 import { canRetry, dateError, isReady, newRow, sourceNameFor } from '@/components/teacher/import/rows'
@@ -147,15 +147,42 @@ describe('parseGoogleLink', () => {
     })
   })
 
+  it('accepts Google Drive folder links', () => {
+    expect(parseGoogleLink(`https://drive.google.com/drive/folders/${DOC_ID}`)).toMatchObject({
+      kind: 'folder',
+      id: DOC_ID,
+      url: `https://drive.google.com/drive/folders/${DOC_ID}`,
+      dedupeKey: `google:${DOC_ID}`,
+      label: 'Dossier Google Drive',
+    })
+    expect(parseGoogleLink(`https://drive.google.com/drive/u/0/folders/${DOC_ID}?usp=sharing`)).toMatchObject({
+      kind: 'folder',
+      id: DOC_ID,
+    })
+  })
+
   it('explains what is not supported', () => {
     expect(parseGoogleLink('')).toEqual({ error: LINK_MESSAGES.empty })
     expect(parseGoogleLink(`https://docs.google.com/document/d/e/${DOC_ID}/pub`)).toEqual({ error: LINK_MESSAGES.published })
     expect(parseGoogleLink(`https://docs.google.com/spreadsheets/d/${DOC_ID}/edit`)).toEqual({ error: LINK_MESSAGES.unsupported })
-    expect(parseGoogleLink(`https://drive.google.com/drive/folders/${DOC_ID}`)).toEqual({ error: LINK_MESSAGES.folder })
     expect(parseGoogleLink('https://drive.google.com/drive/my-drive')).toEqual({ error: LINK_MESSAGES.page })
     expect(parseGoogleLink('https://docs.google.com/document/u/0/')).toEqual({ error: LINK_MESSAGES.page })
     expect(parseGoogleLink(`https://evil.example.com/document/d/${DOC_ID}`)).toEqual({ error: LINK_MESSAGES.host })
     expect(parseGoogleLink(`https://docs.google.com.evil.com/document/d/${DOC_ID}`)).toEqual({ error: LINK_MESSAGES.host })
+  })
+
+  it('extracts multiple links and folders from multiline or mixed text', () => {
+    const text = `
+      https://docs.google.com/document/d/${DOC_ID}/edit
+      Autre document : https://drive.google.com/file/d/1111111111111111111111111111111111/view
+      Et le dossier : https://drive.google.com/drive/folders/2222222222222222222222222222222222
+      Doublon : https://docs.google.com/document/d/${DOC_ID}/edit
+    `
+    const res = extractGoogleLinks(text)
+    expect(res.links).toHaveLength(2)
+    expect(res.folders).toHaveLength(1)
+    expect(res.duplicates).toBe(1)
+    expect(res.errors).toHaveLength(0)
   })
 
   it('rejects malformed links', () => {
@@ -299,6 +326,54 @@ describe('resolveGoogleLink', () => {
   it('keeps the Drive error when the Docs export fails too', async () => {
     const fetchImpl = vi.fn(async () => fakeResponse(404))
     await expect(resolveGoogleLink(`https://drive.google.com/file/d/${DOC_ID}/view`, { fetchImpl })).rejects.toThrow(MESSAGES.notFound)
+  })
+})
+
+describe('parseFolderHtml / resolveGoogleFolder', () => {
+  it('parses embeddedfolderview HTML with docs and pdfs', () => {
+    const html = `
+      <!DOCTYPE html><html><head><title>Cours Preply - Google Drive</title></head><body>
+        <div class="flip-entry" id="entry-1">
+          <a href="https://docs.google.com/document/d/1111111111111111111111111111111111/edit" title="Leçon 1 - Présentation">Leçon 1 - Présentation</a>
+        </div>
+        <div class="flip-entry" id="entry-2">
+          <a href="https://drive.google.com/file/d/2222222222222222222222222222222222/view" title="Bilan_2025-03-12.pdf">Bilan_2025-03-12.pdf</a>
+        </div>
+        <div class="flip-entry" id="entry-3">
+          <a href="https://drive.google.com/file/d/3333333333333333333333333333333333/view" title="photo.jpg">photo.jpg</a>
+        </div>
+      </body></html>
+    `
+    const res = parseFolderHtml(html, DOC_ID)
+    expect(res.folderName).toBe('Cours Preply')
+    expect(res.files).toHaveLength(2) // photo.jpg is ignored
+    expect(res.files[0]).toMatchObject({ id: '1111111111111111111111111111111111', kind: 'doc', name: 'Leçon 1 - Présentation' })
+    expect(res.files[1]).toMatchObject({ id: '2222222222222222222222222222222222', kind: 'drive', name: 'Bilan_2025-03-12.pdf' })
+  })
+
+  it('rejects private folders', () => {
+    const html = `<html><head><title>Google Drive – Sign in</title></head><body>accounts.google.com/ServiceLogin</body></html>`
+    expect(() => parseFolderHtml(html, DOC_ID)).toThrow(MESSAGES.folderNotPublic)
+  })
+
+  it('rejects empty folders without compatible files', () => {
+    const html = `<html><head><title>Dossier vide</title></head><body><div>Pas de fichiers</div></body></html>`
+    expect(() => parseFolderHtml(html, DOC_ID)).toThrow(MESSAGES.folderEmpty)
+  })
+
+  it('resolves a folder using fetchImpl', async () => {
+    const html = `
+      <html><head><title>Bilans</title></head><body>
+        <div class="flip-entry">
+          <a href="/file/d/1111111111111111111111111111111111/view" title="Lesson1.pdf">Lesson1.pdf</a>
+        </div>
+      </body></html>
+    `
+    const fetchImpl = vi.fn(async () => fakeResponse(200, { headers: { 'content-type': 'text/html' }, body: html }))
+    const res = await resolveGoogleFolder(`https://drive.google.com/drive/folders/${DOC_ID}`, { fetchImpl })
+    expect(res.folderName).toBe('Bilans')
+    expect(res.files).toHaveLength(1)
+    expect(res.files[0]).toMatchObject({ id: '1111111111111111111111111111111111', name: 'Lesson1.pdf' })
   })
 })
 

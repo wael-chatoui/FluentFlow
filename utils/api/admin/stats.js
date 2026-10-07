@@ -91,14 +91,17 @@ const spendItem = (prompt, completion, cost) => ({ prompt: tokens(prompt), compl
  * AI spend from the ai_generations ledger (migration 0006): one row per generation
  * attempt (lessons and tutor plans), failures included, so this is the real spend.
  * @param {{ kind: string, ok: boolean, prompt_tokens: number|null, completion_tokens: number|null,
- *           duration_ms: number|null, cost_usd?: number|string|null }[]} rows
+ *           duration_ms: number|null, cost_usd?: number|string|null, created_at?: string }[]} rows
  *   cost_usd = real cost reported by OpenRouter (missing column or null → estimated from the tokens)
+ * @param {object} env
+ * @param {{ since?: string }} options
  */
-export function aiLedgerSummary(rows, env = process.env) {
+export function aiLedgerSummary(rows, env = process.env, options = {}) {
   let failures = 0
   let durationSum = 0
   let durationCount = 0
   const byKind = {}
+  const rows30d = options.since ? rows.filter((r) => r.created_at && r.created_at >= options.since) : []
   for (const r of rows) {
     if (!r.ok) failures += 1
     if (Number(r.duration_ms) > 0) {
@@ -108,14 +111,27 @@ export function aiLedgerSummary(rows, env = process.env) {
     const kind = r.kind || 'lesson'
     byKind[kind] = (byKind[kind] || 0) + 1
   }
+
+  const fullSpend = spend(rows.map((r) => spendItem(r.prompt_tokens, r.completion_tokens, r.cost_usd)), env)
+  const spend30d = options.since
+    ? spend(rows30d.map((r) => spendItem(r.prompt_tokens, r.completion_tokens, r.cost_usd)), env)
+    : null
+
+  const lessonRows = rows.filter((r) => (r.kind || 'lesson') === 'lesson')
+  const lessonSpend = spend(lessonRows.map((r) => spendItem(r.prompt_tokens, r.completion_tokens, r.cost_usd)), env)
+  const avgCostPerLesson = lessonRows.length > 0 ? usd(lessonSpend.cost_usd / lessonRows.length) : null
+
   return {
     source: 'ledger',
     calls: rows.length,
+    calls_30d: options.since ? rows30d.length : null,
     failures,
     failure_rate: rows.length ? Math.round((failures / rows.length) * 100) : null,
     avg_duration_ms: durationCount ? Math.round(durationSum / durationCount) : null,
     by_kind: byKind,
-    ...spend(rows.map((r) => spendItem(r.prompt_tokens, r.completion_tokens, r.cost_usd)), env),
+    cost_30d_usd: spend30d ? spend30d.cost_usd : null,
+    avg_cost_per_lesson_usd: avgCostPerLesson,
+    ...fullSpend,
   }
 }
 
@@ -127,13 +143,60 @@ export function aiLedgerSummary(rows, env = process.env) {
  */
 export function aiUsageSummary(usages, env = process.env) {
   const items = usages.filter((u) => u && typeof u === 'object').map((u) => spendItem(u.prompt_tokens, u.completion_tokens, u.cost))
+  const fullSpend = spend(items, env)
+  const avgCost = items.length > 0 ? usd(fullSpend.cost_usd / items.length) : null
   return {
     source: 'lessons',
     calls: items.length,
+    calls_30d: null,
     failures: null,
     failure_rate: null,
     avg_duration_ms: null,
     by_kind: { lesson: items.length },
-    ...spend(items, env),
+    cost_30d_usd: null,
+    avg_cost_per_lesson_usd: avgCost,
+    ...fullSpend,
+  }
+}
+
+/**
+ * Recurring revenue & margin summary from subscriptions (Stripe / Mollie) and AI spend.
+ * @param {Array<{ status: string, amount_cents?: number, plan?: string, provider?: string, user_id?: string }>} subscriptions
+ * @param {number} aiCostUsd
+ * @param {number} studentsCount
+ */
+export function financeSummary(subscriptions = [], aiCostUsd = 0, studentsCount = 0) {
+  const activeSubs = (subscriptions || []).filter((s) => s && (s.status === 'active' || s.status === 'trialing'))
+  const uniqueSubscribers = new Set(activeSubs.map((s) => s.user_id).filter(Boolean)).size
+
+  let mrrCents = 0
+  const byProvider = {}
+  for (const s of activeSubs) {
+    const provider = s.provider || 'stripe'
+    byProvider[provider] = (byProvider[provider] || 0) + 1
+
+    const amount = Number(s.amount_cents) || 0
+    if (s.plan === 'yearly') {
+      mrrCents += amount / 12
+    } else {
+      mrrCents += amount
+    }
+  }
+
+  const mrrEur = Math.round(mrrCents) / 100
+  // Approximate USD to EUR conversion at 0.92 for gross margin estimation
+  const aiCostEur = Math.round((Number(aiCostUsd) || 0) * 0.92 * 100) / 100
+  const grossMarginEur = Math.round((mrrEur - aiCostEur) * 100) / 100
+  const subscribersRate = studentsCount > 0 ? Math.round((uniqueSubscribers / studentsCount) * 100) : 0
+  const arpuEur = uniqueSubscribers > 0 ? Math.round((mrrEur / uniqueSubscribers) * 100) / 100 : 0
+
+  return {
+    mrr_eur: mrrEur,
+    active_subscribers: uniqueSubscribers,
+    subscribers_rate: subscribersRate,
+    gross_margin_eur: grossMarginEur,
+    ai_cost_eur: aiCostEur,
+    arpu_eur: arpuEur,
+    providers: byProvider,
   }
 }

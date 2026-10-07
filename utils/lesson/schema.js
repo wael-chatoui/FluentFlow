@@ -304,7 +304,10 @@ export function normalizeExercisesForEdit(raw, { reservedIds = [], stored = [] }
       const normalized = normalizeOne(e, { shuffleChoices: false })
       if (!normalized) return null
       const id = typeof e.id === 'string' ? e.id.trim() : ''
-      return { id: EDIT_ID_RE.test(id) ? id : '', exercise: normalized }
+      const extra = {}
+      if (e?.disabled) extra.disabled = true
+      if (e?.reported && typeof e.reported === 'object') extra.reported = e.reported
+      return { id: EDIT_ID_RE.test(id) ? id : '', exercise: { ...normalized, ...extra } }
     })
     .filter(Boolean)
     .slice(0, MAX_EXERCISES)

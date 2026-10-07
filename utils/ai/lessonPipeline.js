@@ -8,6 +8,7 @@ import { AiError, aiConfig, isDemoMode } from '@/utils/ai/client'
 import { generateLesson } from '@/utils/ai/generateLesson'
 import { recordGeneration } from '@/utils/ai/ledger'
 import { runInBackground } from '@/utils/api/background'
+import { sendStudentNewLessonEmail } from '@/utils/email/send'
 
 const GENERIC_ERROR = 'La génération a échoué. Réessaie dans un instant.'
 const SAVE_ERROR = "La leçon générée n'a pas pu être enregistrée. Relance la génération."
@@ -123,6 +124,25 @@ async function writeFailure(admin, lesson, message) {
   }
 }
 
+async function notifyStudentIfPossible(admin, studentId, lessonId, lessonTitle) {
+  try {
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('email, full_name')
+      .eq('id', studentId)
+      .maybeSingle()
+    if (!profile?.email) return
+    await sendStudentNewLessonEmail({
+      studentEmail: profile.email,
+      studentName: profile.full_name,
+      lessonTitle,
+      lessonId,
+    })
+  } catch (err) {
+    console.error('[ai] failed to notify student of new lesson:', err)
+  }
+}
+
 /**
  * Runs the AI on a lesson row that is already in status 'generating' and stores the
  * result. Imported lessons (source_kind 'import') are generated from source_text.
@@ -173,6 +193,9 @@ export async function runLessonGeneration(admin, lesson, { title = null, options
       }
       const written = await writeWhileGenerating(admin, lesson.id, update)
       result = { id: lesson.id, status: written ? 'published' : 'skipped', error: null }
+      if (written && !lesson.hidden) {
+        notifyStudentIfPossible(admin, lesson.student_id, lesson.id, update.title)
+      }
     } catch {
       // The result could not be stored (size, constraint, outage): record a failure instead
       result = await writeFailure(admin, lesson, SAVE_ERROR)

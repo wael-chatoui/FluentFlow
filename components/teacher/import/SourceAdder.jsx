@@ -25,7 +25,8 @@ export default function SourceAdder({ disabled = false, full = false, onFiles, o
   const [dragging, setDragging] = useState(false)
   const [link, setLink] = useState('')
   const [linkError, setLinkError] = useState(null)
-  const off = disabled || full
+  const [resolving, setResolving] = useState(false)
+  const off = disabled || full || resolving
 
   const openPicker = () => {
     if (off) return
@@ -67,16 +68,32 @@ export default function SourceAdder({ disabled = false, full = false, onFiles, o
     if (files.length) onFiles(files)
   }
 
-  const handleLinkSubmit = (e) => {
+  const handleLinkSubmit = async (e) => {
     e.preventDefault()
     if (off) return
-    const error = onLink(link)
-    if (error) {
-      setLinkError(error)
-      return
+    const trimmed = link.trim()
+    if (!trimmed) return
+    try {
+      setResolving(true)
+      const error = await onLink(trimmed)
+      if (error) {
+        setLinkError(error)
+      } else {
+        setLink('')
+        setLinkError(null)
+      }
+    } catch (err) {
+      setLinkError(err?.message || "Impossible d'ajouter ces documents.")
+    } finally {
+      setResolving(false)
     }
-    setLink('')
-    setLinkError(null)
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey || (!e.shiftKey && !link.includes('\n')))) {
+      e.preventDefault()
+      handleLinkSubmit(e)
+    }
   }
 
   const linkId = `${uid}-link`
@@ -126,23 +143,23 @@ export default function SourceAdder({ disabled = false, full = false, onFiles, o
 
       <form className={styles.linkForm} onSubmit={handleLinkSubmit} noValidate>
         <label htmlFor={linkId} className={bits.label}>
-          Coller un lien Google Docs / Drive
+          Coller un ou plusieurs liens Google Docs, Drive ou dossier Drive
         </label>
         <div className={styles.linkRow}>
-          <input
+          <textarea
             id={linkId}
-            type="url"
-            inputMode="url"
+            rows={2}
             autoComplete="off"
             autoCapitalize="off"
             spellCheck={false}
             className={`${bits.input} ${styles.linkInput} ${linkError ? bits.invalid : ''}`}
-            placeholder="https://docs.google.com/document/d/…"
+            placeholder="Colle des liens Google Docs / Drive (un par ligne) ou le lien d'un dossier Drive…"
             value={link}
             onChange={(e) => {
               setLink(e.target.value)
               if (linkError) setLinkError(null)
             }}
+            onKeyDown={handleKeyDown}
             disabled={off}
             aria-invalid={Boolean(linkError) || undefined}
             aria-describedby={linkError ? linkErrorId : `${uid}-link-hint`}
@@ -152,7 +169,15 @@ export default function SourceAdder({ disabled = false, full = false, onFiles, o
             className={`${ui.btn} ${ui.blue} ${styles.linkButton}`}
             disabled={off || !link.trim()}
           >
-            <Icon icon={LinkIcon} size={18} /> Ajouter
+            {resolving ? (
+              <>
+                <span className={bits.spinner} aria-hidden="true" /> Analyse…
+              </>
+            ) : (
+              <>
+                <Icon icon={LinkIcon} size={18} /> Ajouter
+              </>
+            )}
           </button>
         </div>
         {linkError ? (
@@ -161,7 +186,8 @@ export default function SourceAdder({ disabled = false, full = false, onFiles, o
           </p>
         ) : (
           <p id={`${uid}-link-hint`} className={bits.hint}>
-            Le document doit être partagé en « Tous les utilisateurs disposant du lien ».
+            Les documents ou dossiers doivent être partagés en « Tous les utilisateurs disposant du lien ». Tu peux
+            coller plusieurs liens à la fois (un par ligne).
           </p>
         )}
       </form>

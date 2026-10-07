@@ -118,6 +118,18 @@ export function formatUsd(n) {
   }).format(v)
 }
 
+/** 42.50 → '42,50 €' (EUR, 2 decimals). */
+export function formatEur(n) {
+  if (n === null || n === undefined || Number.isNaN(Number(n))) return '—'
+  const v = Number(n)
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'EUR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(v)
+}
+
 /** 87.456 → '87 %' (value already 0–100). */
 export function formatPercent(n, digits = 0) {
   if (n === null || n === undefined || Number.isNaN(Number(n))) return '—'

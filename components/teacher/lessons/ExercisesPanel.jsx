@@ -80,6 +80,39 @@ export default function ExercisesPanel({ lesson, exercises, disabled, resultsCou
     }
   }
 
+  const sendList = async (newList) => {
+    setSaving(true)
+    setSaveError(null)
+    try {
+      const res = await api(`/api/teacher/lessons/${lesson.id}`, {
+        method: 'PATCH',
+        body: {
+          exercises: newList,
+          expectedUpdatedAt: lesson.updated_at,
+        },
+      })
+      if (!mounted.current) return
+      setSaving(false)
+      if (res?.lesson) onSaved(res.lesson)
+    } catch (err) {
+      if (isAbortError(err) || !mounted.current) return
+      setSaving(false)
+      setConflict(err?.code === 'conflict')
+      setSaveError(saveErrorMessage(err))
+    }
+  }
+
+  const reactivate = (id) => {
+    const updated = exercises.map((e) => {
+      if (e.id === id) {
+        const { disabled: _dis, reported: _rep, ...rest } = e
+        return rest
+      }
+      return e
+    })
+    sendList(updated)
+  }
+
   // The removed card disappears: keep the keyboard focus on a neighbour
   const remove = (id) => {
     const index = exercises.findIndex((e) => e.id === id)
@@ -89,8 +122,10 @@ export default function ExercisesPanel({ lesson, exercises, disabled, resultsCou
   }
 
   const save = (edited) => {
-    if (resultsCount > 0) setToConfirm(edited)
-    else send(edited)
+    // Editing an exercise clears any deactivated/reported state
+    const { disabled: _d, reported: _r, ...cleaned } = edited
+    if (resultsCount > 0) setToConfirm(cleaned)
+    else send(cleaned)
   }
 
   return (
@@ -120,6 +155,7 @@ export default function ExercisesPanel({ lesson, exercises, disabled, resultsCou
         exercises={exercises}
         onRemove={remove}
         onEdit={startEdit}
+        onReactivate={reactivate}
         editingId={editingId}
         disabled={disabled || saving}
         renderEditor={(exercise) => (

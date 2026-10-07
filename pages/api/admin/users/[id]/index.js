@@ -62,11 +62,49 @@ async function loadUser(admin, user) {
     for (const l of data || []) titles.set(l.id, l.title)
   }
 
+  let subscription = null
+  try {
+    const { data: subData } = await admin
+      .from('subscriptions')
+      .select('id, provider, customer_id, subscription_id, plan, status, amount_cents, currency, current_period_start, current_period_end, cancel_at_period_end, created_at')
+      .eq('user_id', id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    subscription = subData || null
+  } catch {}
+
+  let aiSummary = { total_cost_usd: 0, calls: 0, total_tokens: 0 }
+  try {
+    const { data: aiData } = await admin
+      .from('ai_generations')
+      .select('cost_usd, prompt_tokens, completion_tokens')
+      .eq('student_id', id)
+    if (aiData && aiData.length) {
+      let cost = 0
+      let totalTokens = 0
+      for (const g of aiData) {
+        const p = Number(g.prompt_tokens) || 0
+        const c = Number(g.completion_tokens) || 0
+        totalTokens += p + c
+        if (g.cost_usd !== null && g.cost_usd !== undefined) cost += Number(g.cost_usd)
+        else cost += (p * 0.05 + c * 0.4) / 1e6
+      }
+      aiSummary = {
+        total_cost_usd: Math.round(cost * 1_000_000) / 1_000_000,
+        calls: aiData.length,
+        total_tokens: totalTokens,
+      }
+    }
+  } catch {}
+
   return {
     user: authSummary(user),
     profile: profile.data || null,
     notes: notes.data?.notes || '',
     ai_context: notes.data?.ai_context || '',
+    subscription,
+    ai_summary: aiSummary,
     lessons: lessons.map((l) => ({
       id: l.id,
       title: l.title,

@@ -4,6 +4,7 @@ import { useAuth } from '@/components/AuthProvider'
 import Shell from '@/components/ui/Shell'
 import useMe from '@/components/student/useMe'
 import useLessons from '@/components/student/useLessons'
+import Icon from '@/components/ui/Icon'
 import { plural } from '@/components/lesson/format'
 import styles from '@/components/student/StudentShell.module.css'
 
@@ -21,25 +22,29 @@ const BADGE_MAX_AGE = 3 * 60 * 1000
 // Mistakes to fix, as a badge on the Review tab icon (the count is read in the label)
 function withReviewBadge(tabs, count) {
   if (!count) return tabs
-  return tabs.map((tab) =>
-    tab.href === '/student/review'
-      ? {
-          ...tab,
-          icon: (
-            <span className={styles.iconWrap}>
-              {tab.icon}
-              <span className={styles.badge}>{count > 99 ? '99+' : count}</span>
-            </span>
-          ),
-          label: (
-            <>
-              {tab.label}
-              <span className="sr-only"> ({plural(count, 'mistake')} to fix)</span>
-            </>
-          ),
-        }
-      : tab
-  )
+  const badgeText = count > 99 ? '99+' : String(count)
+  return tabs.map((tab) => {
+    if (tab.href !== '/student/review') return tab
+    const BaseIcon = tab.icon
+    function ReviewIcon(props) {
+      return (
+        <span className={styles.iconWrap}>
+          <Icon icon={BaseIcon} {...props} />
+          <span className={styles.badge}>{badgeText}</span>
+        </span>
+      )
+    }
+    return {
+      ...tab,
+      icon: ReviewIcon,
+      label: (
+        <>
+          {tab.label}
+          <span className="sr-only"> ({plural(count, 'mistake')} to fix)</span>
+        </>
+      ),
+    }
+  })
 }
 
 /**
