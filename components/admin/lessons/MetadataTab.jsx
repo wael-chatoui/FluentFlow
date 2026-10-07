@@ -1,6 +1,6 @@
 import { useId } from 'react'
 import { safeDriveUrl } from '@/utils/lesson/schema'
-import { cx, formatDateTime } from '@/components/admin/common/format'
+import { cx, formatDateTime, formatNumber, formatUsd } from '@/components/admin/common/format'
 import { Field, TextField } from '@/components/admin/lessons/fields'
 import StudentSelect from '@/components/admin/lessons/StudentSelect'
 import { LESSON_STATUS_LABELS } from '@/components/admin/lessons/constants'
@@ -150,6 +150,43 @@ export default function MetadataTab({ draft, lesson, onChange, errors, onCopy, h
             <dt>Générée</dt>
             <dd>{formatDateTime(lesson.generated_at)}</dd>
           </div>
+          {lesson.ai_model && (
+            <div>
+              <dt>Modèle IA</dt>
+              <dd>
+                <span className={admin.mono}>{lesson.ai_model}</span>
+              </dd>
+            </div>
+          )}
+          {lesson.ai_usage && (
+            <>
+              <div>
+                <dt>Jetons IA</dt>
+                <dd>
+                  {formatNumber((Number(lesson.ai_usage.prompt_tokens) || 0) + (Number(lesson.ai_usage.completion_tokens) || 0))} tokens{' '}
+                  <span className={admin.muted}>
+                    ({formatNumber(lesson.ai_usage.prompt_tokens || 0)} entrée, {formatNumber(lesson.ai_usage.completion_tokens || 0)} sortie)
+                  </span>
+                </dd>
+              </div>
+              <div>
+                <dt>Coût IA</dt>
+                <dd>
+                  <span className={admin.mono}>
+                    {formatUsd(
+                      lesson.ai_usage.cost ??
+                        ((Number(lesson.ai_usage.prompt_tokens) || 0) * 0.05 + (Number(lesson.ai_usage.completion_tokens) || 0) * 0.4) / 1e6
+                    )}
+                  </span>
+                  {lesson.ai_usage.cost !== undefined && lesson.ai_usage.cost !== null ? (
+                    <span className={admin.muted}> (facturé par OpenRouter)</span>
+                  ) : (
+                    <span className={admin.muted}> (estimé)</span>
+                  )}
+                </dd>
+              </div>
+            </>
+          )}
         </dl>
         {lesson.error && (
           <div className={cx(admin.alert, styles.mTop)}>

@@ -47,7 +47,7 @@ function RowProgress({ startedAt }) {
   )
 }
 
-function pillFor(row, issue, dateError) {
+function pillFor(row, issue, dateError, existing) {
   if (row.run === 'sending') return { tone: styles.pillPurple, text: 'Envoi…' }
   if (row.run === 'generating') return { tone: styles.pillPurple, text: 'Génération…' }
   if (row.run === 'queued') return { tone: styles.pillGrey, text: 'En attente' }
@@ -57,6 +57,9 @@ function pillFor(row, issue, dateError) {
       : { tone: styles.pillGreen, icon: CircleCheck, text: 'Publiée' }
   }
   if (row.run === 'failed') return { tone: styles.pillRed, icon: CircleX, text: 'Échec' }
+  if (existing?.matchKind === 'source' || row.dbDuplicate) {
+    return { tone: styles.pillOrange, icon: TriangleAlert, text: 'Déjà en base' }
+  }
   if (issue?.tone === 'loading') return { tone: styles.pillBlue, text: 'Extraction…' }
   if (issue?.tone === 'error') return { tone: styles.pillRed, text: 'Erreur' }
   if (issue?.tone === 'warning' || dateError) return { tone: styles.pillOrange, text: 'À vérifier' }
@@ -107,7 +110,7 @@ export default function SourceRow({
 }) {
   const uid = useId()
   const issue = row.lessonId ? null : sourceIssue(row)
-  const pill = pillFor(row, issue, dateError)
+  const pill = pillFor(row, issue, dateError, existing)
   const inRun = row.run === 'queued' || row.run === 'sending' || row.run === 'generating'
   // Once the lesson exists on the server its text / title / date are stored there
   const locked = busy || inRun || Boolean(row.lessonId)
@@ -320,9 +323,11 @@ export default function SourceRow({
       {existing && !row.lessonId && !locked && (
         <p className={styles.existing}>
           <Icon icon={TriangleAlert} size={15} className={styles.noteIcon} />{' '}
-          {`Une leçon du ${formatLessonDate(row.lessonDate)} existe déjà pour cet élève${
-            existing.title ? ` (« ${existing.title} »)` : ''
-          } : vérifie que ce document n'est pas déjà importé.`}
+          {existing.matchKind === 'source'
+            ? `Ce document a déjà été importé pour cet élève (leçon « ${existing.title} » du ${formatLessonDate(existing.lesson_date)}).`
+            : `Une leçon du ${formatLessonDate(row.lessonDate)} existe déjà pour cet élève${
+                existing.title ? ` (« ${existing.title} »)` : ''
+              } : vérifie que ce document n'est pas déjà importé.`}
         </p>
       )}
 

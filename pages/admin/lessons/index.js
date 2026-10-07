@@ -8,7 +8,7 @@ import FilterChips from '@/components/admin/common/FilterChips'
 import { LessonStatusPills } from '@/components/admin/common/StatusPill'
 import { ToastViewport } from '@/components/admin/common/Toast'
 import useAdminQuery from '@/components/admin/common/useAdminQuery'
-import { cx, formatDate, formatNumber, formatRelative, formatDateTime, isValidId } from '@/components/admin/common/format'
+import { cx, formatDate, formatNumber, formatRelative, formatDateTime, formatUsd, isValidId } from '@/components/admin/common/format'
 import useUrlQuery, { toPage, toQueryString } from '@/components/admin/tables/useUrlQuery'
 import { LESSON_STATUS_FILTERS, lessonTitle } from '@/components/admin/lessons/constants'
 import { isStaleGeneration } from '@/utils/lesson/schema'
@@ -60,6 +60,17 @@ const COLUMNS = [
     key: 'ai_model',
     label: 'Modèle IA',
     render: (row) => (row.ai_model ? <span className={admin.mono}>{row.ai_model}</span> : <span className={admin.muted}>—</span>),
+  },
+  {
+    key: 'ai_cost_usd',
+    label: 'Coût IA',
+    align: 'right',
+    render: (row) =>
+      row.ai_cost_usd !== null && row.ai_cost_usd !== undefined ? (
+        <span className={admin.mono}>{formatUsd(row.ai_cost_usd)}</span>
+      ) : (
+        <span className={admin.muted}>—</span>
+      ),
   },
   {
     key: 'created_at',

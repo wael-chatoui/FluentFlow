@@ -34,6 +34,8 @@ import {
 import { exercisesResetProgress } from '@/utils/api/admin/lessonEdit'
 import { isSameVersion, lessonVersion } from '@/utils/api/studentLessons'
 import { MAX_EXERCISES, invalidEditedExercises, isStaleGeneration, normalizeExercisesForEdit } from '@/utils/lesson/schema'
+import { runInBackground } from '@/utils/api/background'
+import { sendStudentNewLessonEmail } from '@/utils/email/send'
 
 export const config = { api: { bodyParser: { sizeLimit: '1mb' } } }
 
@@ -154,6 +156,7 @@ function parsePatch(body) {
   )
   const hidden = optionalBoolean(body.hidden, 'Le champ « masquée » est invalide.')
   const dismissError = optionalBoolean(body.dismissError, 'Le champ « ignorer l’erreur » est invalide.') === true || undefined
+  const notifyStudent = optionalBoolean(body.notifyStudent, 'Le champ « notifier l’élève » est invalide.') === true || undefined
 
   let removeIds
   if (body.removeExerciseIds !== undefined) {
@@ -174,10 +177,10 @@ function parsePatch(body) {
 
   const version = parseVersion(body.version)
 
-  if ([title, body.lessonDate, driveUrl, hidden, removeIds, exercises, dismissError].every((v) => v === undefined)) {
+  if ([title, body.lessonDate, driveUrl, hidden, removeIds, exercises, dismissError, notifyStudent].every((v) => v === undefined)) {
     fail('Aucune modification à enregistrer.')
   }
-  return { title, lessonDate: body.lessonDate, driveUrl, hidden, removeIds, exercises, dismissError, expectedUpdatedAt, version }
+  return { title, lessonDate: body.lessonDate, driveUrl, hidden, removeIds, exercises, dismissError, notifyStudent, expectedUpdatedAt, version }
 }
 
 function buildUpdate(lesson, patch) {
@@ -224,13 +227,59 @@ async function patchLesson(admin, id, patch) {
     }
 
     const update = buildUpdate(lesson, patch)
-    if (!Object.keys(update).length) return // e.g. dismissError on a lesson without a regeneration error
+    if (!Object.keys(update).length) {
+      if (patch.notifyStudent) {
+        runInBackground(async () => {
+          try {
+            const { data: profile } = await admin
+              .from('profiles')
+              .select('email, full_name')
+              .eq('id', lesson.student_id)
+              .maybeSingle()
+            if (profile?.email) {
+              await sendStudentNewLessonEmail({
+                studentEmail: profile.email,
+                studentName: profile.full_name,
+                lessonTitle: lesson.title,
+                lessonId: id,
+              })
+            }
+          } catch (err) {
+            console.error('[email] failed to notify student of lesson publish:', err)
+          }
+        }, `notify student lesson ${id}`)
+      }
+      return
+    }
 
     let query = admin.from('lessons').update(update).eq('id', id)
     if (touchesExercises || patch.expectedUpdatedAt !== undefined) query = query.eq('updated_at', lesson.updated_at)
     const { data, error } = await query.select('id')
     if (error) throw error
-    if (data.length) return
+    if (data.length) {
+      if ((patch.hidden === false && lesson.hidden === true) || patch.notifyStudent) {
+        runInBackground(async () => {
+          try {
+            const { data: profile } = await admin
+              .from('profiles')
+              .select('email, full_name')
+              .eq('id', lesson.student_id)
+              .maybeSingle()
+            if (profile?.email) {
+              await sendStudentNewLessonEmail({
+                studentEmail: profile.email,
+                studentName: profile.full_name,
+                lessonTitle: update.title || lesson.title,
+                lessonId: id,
+              })
+            }
+          } catch (err) {
+            console.error('[email] failed to notify student of lesson publish:', err)
+          }
+        }, `notify student on publish lesson ${id}`)
+      }
+      return
+    }
     // Changed (or deleted) between the read and the write: only a pure removal may be re-applied
     if (!patch.removeIds || patch.expectedUpdatedAt !== undefined) break
   }

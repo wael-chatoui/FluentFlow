@@ -29,7 +29,9 @@ import {
 import styles from '@/components/practice/PracticePlayer.module.css'
 import { playSound } from '@/utils/sound'
 import SoundToggle from '@/components/SoundToggle'
-import { BookOpen, Check, Eye, HistoryIcon, ListChecks, RefreshCw, RotateCcw, X } from 'lucide-react'
+import ReportExerciseDialog from '@/components/practice/ReportExerciseDialog'
+import { api } from '@/utils/apiClient'
+import { BookOpen, Check, Eye, Flag, HistoryIcon, ListChecks, RefreshCw, RotateCcw, X } from 'lucide-react'
 import Icon from '@/components/ui/Icon'
 
 /*
@@ -122,7 +124,7 @@ function PreviewBanner() {
   )
 }
 
-function PracticeRun({ exercises, title, onComplete, onExit, onRestart, onPlayAgain, resumeKey, preview, labels }) {
+function PracticeRun({ exercises, title, lessonId, onComplete, onExit, onRestart, onPlayAgain, resumeKey, preview, labels }) {
   // Snapshot for the whole run: a parent re-render must not reset anything
   const [boot] = useState(() => bootRun(exercises, resumeKey, preview))
   const [state, dispatch] = useReducer(runReducer, boot.state)
@@ -131,6 +133,9 @@ function PracticeRun({ exercises, title, onComplete, onExit, onRestart, onPlayAg
   const [confirming, setConfirming] = useState(null) // null | 'progress' | 'unsaved' | 'restart'
   const confirmedRef = useRef(null) // choice made in the dialog, applied once it has closed
   const [live, setLive] = useState('')
+  const [reporting, setReporting] = useState(false)
+  const [submittingReport, setSubmittingReport] = useState(false)
+  const [reportToast, setReportToast] = useState('')
   const speech = useFrenchSpeech() // listen buttons; `supported` = a French voice is available
 
   const stateRef = useRef(state)
@@ -164,6 +169,40 @@ function PracticeRun({ exercises, title, onComplete, onExit, onRestart, onPlayAg
   const scoreFinal = isScoreFinal(state)
   const done = doneCount(state)
   const playing = state.phase === 'play' && !outdated
+
+  const activeLessonId = current?.lessonId || lessonId
+  const activeExerciseId = current?.id ? (current.id.includes(':') ? current.id.split(':')[1] : current.id) : null
+  const canReport = Boolean(!preview && playing && current && activeLessonId && activeExerciseId)
+
+  const handleReport = useCallback(
+    async ({ reason, note }) => {
+      if (!activeLessonId || !activeExerciseId || submittingReport) return
+      setSubmittingReport(true)
+      try {
+        await api(`/api/student/lessons/${activeLessonId}/exercises/${activeExerciseId}/report`, {
+          method: 'POST',
+          body: { reason, note },
+        })
+        if (!mountedRef.current) return
+        setReporting(false)
+        setSubmittingReport(false)
+        dispatch({ type: 'report_exercise', exerciseId: current.id })
+        setReportToast('Exercise reported & deactivated.')
+        setTimeout(() => {
+          if (mountedRef.current) setReportToast('')
+        }, 3500)
+      } catch (err) {
+        if (!mountedRef.current) return
+        setSubmittingReport(false)
+        setReporting(false)
+        setReportToast(err?.message || 'Failed to report exercise.')
+        setTimeout(() => {
+          if (mountedRef.current) setReportToast('')
+        }, 3500)
+      }
+    },
+    [activeLessonId, activeExerciseId, submittingReport, current]
+  )
 
   // ---- saving (once per run, as soon as the score is final) ----
   const runSave = useCallback(() => {
@@ -427,6 +466,17 @@ function PracticeRun({ exercises, title, onComplete, onExit, onRestart, onPlayAg
           <div className={styles.progressFill} style={{ transform: `scaleX(${items.length ? progressValue / items.length : 0})` }} />
         </div>
         <SoundToggle className={styles.soundBtn} />
+        {canReport && (
+          <button
+            type="button"
+            className={styles.soundBtn}
+            onClick={() => setReporting(true)}
+            aria-label="Report an issue with this exercise"
+            title="Report issue"
+          >
+            <Icon icon={Flag} size={18} />
+          </button>
+        )}
       </div>
 
       <div className={styles.body}>
@@ -595,7 +645,14 @@ function PracticeRun({ exercises, title, onComplete, onExit, onRestart, onPlayAg
       </div>
 
       {feedback && current && playing && (
-        <FeedbackSheet ref={continueRef} exercise={current} feedback={feedback} onContinue={next} speech={speech} />
+        <FeedbackSheet
+          ref={continueRef}
+          exercise={current}
+          feedback={feedback}
+          onContinue={next}
+          speech={speech}
+          onReport={canReport ? () => setReporting(true) : null}
+        />
       )}
 
       <div className="sr-only" aria-live="polite">
@@ -619,6 +676,22 @@ function PracticeRun({ exercises, title, onComplete, onExit, onRestart, onPlayAg
             setConfirming(null)
           }}
         />
+      )}
+
+      {reporting && current && (
+        <ReportExerciseDialog
+          exercise={current}
+          submitting={submittingReport}
+          onClose={() => setReporting(false)}
+          onSubmit={handleReport}
+        />
+      )}
+
+      {reportToast && (
+        <div className={styles.reportToast} role="status">
+          <Icon icon={Check} size={16} />
+          <span>{reportToast}</span>
+        </div>
       )}
     </section>
   )
@@ -660,6 +733,7 @@ function EmptyPlayer({ preview, exitLabel, onExit }) {
 export default function PracticePlayer({
   exercises,
   title,
+  lessonId,
   onComplete,
   onExit,
   onRestart,
@@ -693,6 +767,7 @@ export default function PracticePlayer({
       key={`${run}:${resumeKey || ''}`}
       exercises={items}
       title={typeof title === 'string' ? title.trim() : ''}
+      lessonId={lessonId}
       onComplete={onComplete}
       onExit={onExit}
       onRestart={onRestart}

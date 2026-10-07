@@ -10,7 +10,7 @@ import { useMountedRef } from '@/components/teacher/hooks'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/LessonPage.module.css'
-import { CircleAlert, Eye, EyeOff, FileText, ListChecks, Pencil, Play, RefreshCw, Send, Trash2, User } from 'lucide-react'
+import { CircleAlert, Eye, EyeOff, FileText, ListChecks, Mail, Pencil, Play, RefreshCw, Send, Trash2, User } from 'lucide-react'
 import Icon from '@/components/ui/Icon'
 
 const TITLE_MAX = 120
@@ -135,6 +135,7 @@ const LessonHeader = forwardRef(function LessonHeader(
     onRegenerate,
     onDelete,
     onDriveSave,
+    onNotifyStudent,
   },
   testRef
 ) {
@@ -253,6 +254,16 @@ const LessonHeader = forwardRef(function LessonHeader(
 
       <div className={`${styles.secondaryActions} no-print`}>
         {visible && studentUrl && <CopyButton text={studentUrl} label="Copier le lien élève" srLabel="(page de la leçon pour l'élève)" />}
+        {visible && onNotifyStudent && (
+          <button
+            type="button"
+            className={`${ui.btn} ${ui.small} ${bits.tap} ${bits.blueGhost}`}
+            onClick={onNotifyStudent}
+            title="Envoyer un e-mail à l'élève pour le prévenir que sa leçon est prête"
+          >
+            <Icon icon={Mail} size={16} /> Prévenir par e-mail
+          </button>
+        )}
         {visible && (
           <button
             type="button"

@@ -17,19 +17,22 @@ import {
   cx,
   formatDate,
   formatDateTime,
+  formatEur,
   formatNumber,
   formatRelative,
   formatScore,
+  formatUsd,
   initialsOf,
   isAbortError,
   isValidId,
+  plural,
 } from '@/components/admin/common/format'
 import { api } from '@/utils/apiClient'
 import { LEVELS, safeDriveUrl } from '@/utils/lesson/schema'
 import ui from '@/components/ui/ui.module.css'
 import s from '@/components/admin/common/admin.module.css'
 import u from '@/components/admin/common/users.module.css'
-import { ArrowLeft, ArrowRight, Ban, BookOpen, Check, CircleAlert, CircleCheck, CircleHelp, Dumbbell, ExternalLink, Folder, GraduationCap, Heart, Hourglass, IdCard, KeyRound, LinkIcon, Lock, LockOpen, Presentation, RefreshCw, RotateCcw, Settings, ShieldCheck, Sparkles, Target, Trash2, TriangleAlert, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Ban, BookOpen, Check, CircleAlert, CircleCheck, CircleHelp, CreditCard, Dumbbell, ExternalLink, Folder, GraduationCap, Heart, Hourglass, IdCard, KeyRound, LinkIcon, Lock, LockOpen, Presentation, RefreshCw, RotateCcw, Settings, ShieldCheck, Sparkles, Target, Trash2, TriangleAlert, X } from 'lucide-react'
 import Icon from '@/components/ui/Icon'
 
 const PROVIDER_LABELS = { email: 'E-mail', google: 'Google', apple: 'Apple', github: 'GitHub', azure: 'Microsoft' }
@@ -753,6 +756,66 @@ const REVIEW_COLUMNS = [
   },
 ]
 
+function SubscriptionAndAiSection({ user, subscription, aiSummary }) {
+  const uid = useId()
+  const isStudent = user.role === 'student'
+  if (!isStudent) return null
+
+  const sub = subscription || null
+  const ai = aiSummary || { total_cost_usd: 0, calls: 0, total_tokens: 0 }
+
+  return (
+    <section className={s.section} aria-labelledby={`${uid}-title`}>
+      <div className={s.sectionHead}>
+        <h2 id={`${uid}-title`} className={s.sectionTitle}>
+          <Icon icon={CreditCard} size={20} /> Abonnement & Consommation IA
+        </h2>
+      </div>
+      <div className={u.accountRows}>
+        <div className={u.accountRow}>
+          <div className={u.accountText}>
+            <span className={u.accountTitle}>Statut d&apos;abonnement</span>
+            <p className={s.hint}>
+              {sub
+                ? `Plan ${sub.plan || 'mensuel'} via ${sub.provider || 'Stripe'} (${formatEur((sub.amount_cents || 0) / 100)} / mois)`
+                : 'Aucun abonnement Stripe ou Mollie enregistré pour le moment.'}
+            </p>
+          </div>
+          <div className={u.accountControl}>
+            <StatusPill subscription={sub ? sub.status : 'none'} />
+          </div>
+        </div>
+
+        {sub?.current_period_end && (
+          <div className={u.accountRow}>
+            <div className={u.accountText}>
+              <span className={u.accountTitle}>Période en cours</span>
+              <p className={s.hint}>Fin de période / prochain renouvellement</p>
+            </div>
+            <div className={u.accountControl}>
+              <span className={s.cellStrong}>{formatDate(sub.current_period_end)}</span>
+            </div>
+          </div>
+        )}
+
+        <div className={u.accountRow}>
+          <div className={u.accountText}>
+            <span className={u.accountTitle}>Coût IA cumulé</span>
+            <p className={s.hint}>
+              {plural(ai.calls || 0, 'génération', 'générations')} d&apos;IA pour cet élève ({formatNumber(ai.total_tokens || 0)} tokens)
+            </p>
+          </div>
+          <div className={u.accountControl}>
+            <span className={cx(s.cellStrong, s.mono)} style={{ fontSize: '1.05rem', color: 'var(--st-orange, #ea580c)' }}>
+              <Icon icon={Sparkles} size={15} /> {formatUsd(ai.total_cost_usd || 0)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function ListSection({ icon, title, count, sub, action, children }) {
   const uid = useId()
   return (
@@ -1010,6 +1073,8 @@ export default function AdminUserDetail() {
             onDirtyChange={setProfileDirty}
           />
         </div>
+
+        <SubscriptionAndAiSection user={user} subscription={data.subscription} aiSummary={data.ai_summary} />
 
         <ListSection
           icon={BookOpen}

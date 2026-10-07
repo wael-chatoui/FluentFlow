@@ -41,6 +41,54 @@ async function activityCounts(admin, ids) {
   return { lessons: countBy(lessons, 'student_id'), sessions: countBy(sessions, 'student_id') }
 }
 
+async function userSubscriptions(admin, userIds) {
+  if (!userIds.length) return new Map()
+  try {
+    const { data, error } = await admin
+      .from('subscriptions')
+      .select('user_id, status, plan, provider, amount_cents')
+      .in('user_id', userIds)
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    const map = new Map()
+    for (const s of data || []) {
+      if (!map.has(s.user_id)) map.set(s.user_id, s)
+    }
+    return map
+  } catch {
+    return new Map()
+  }
+}
+
+async function userAiCosts(admin, userIds) {
+  if (!userIds.length) return new Map()
+  const map = new Map()
+  try {
+    const { data, error } = await admin
+      .from('ai_generations')
+      .select('student_id, prompt_tokens, completion_tokens, cost_usd')
+      .in('student_id', userIds)
+    if (error) throw error
+    for (const g of data || []) {
+      const id = g.student_id
+      if (!id) continue
+      let cost = g.cost_usd !== null && g.cost_usd !== undefined ? Number(g.cost_usd) : null
+      if (cost === null) {
+        const p = Number(g.prompt_tokens) || 0
+        const c = Number(g.completion_tokens) || 0
+        cost = (p * 0.05 + c * 0.4) / 1e6
+      }
+      map.set(id, (map.get(id) || 0) + cost)
+    }
+    for (const [id, val] of map.entries()) {
+      map.set(id, Math.round(val * 1_000_000) / 1_000_000)
+    }
+    return map
+  } catch {
+    return map
+  }
+}
+
 async function listUsers(admin, query) {
   const q = queryText(query.q)
   const role = queryEnum(query.role, ['all', ...ROLES, 'admin', 'pending'], 'all', 'Filtre de rôle invalide.')
@@ -65,12 +113,23 @@ async function listUsers(admin, query) {
 
   const current = Math.min(page, lastPage(sorted.length, perPage))
   const pageItems = sorted.slice((current - 1) * perPage, current * perPage)
-  if (!countAll) {
-    const counts = await activityCounts(admin, pageItems.map((u) => u.id))
-    for (const item of pageItems) {
+  const userIds = pageItems.map((u) => u.id)
+
+  const [counts, subsMap, aiCostsMap] = await Promise.all([
+    countAll ? Promise.resolve(null) : activityCounts(admin, userIds),
+    userSubscriptions(admin, userIds),
+    userAiCosts(admin, userIds),
+  ])
+
+  for (const item of pageItems) {
+    if (counts) {
       item.lesson_count = counts.lessons.get(item.id) || 0
       item.session_count = counts.sessions.get(item.id) || 0
     }
+    const sub = subsMap.get(item.id)
+    item.subscription_status = sub ? sub.status : 'none'
+    item.subscription = sub || null
+    item.ai_cost_usd = aiCostsMap.get(item.id) ?? null
   }
   return { users: pageItems, total: sorted.length, page: current, perPage }
 }

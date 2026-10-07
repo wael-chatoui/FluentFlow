@@ -62,7 +62,7 @@
   « Relire avant de publier » ; la génération tourne en arrière-plan, on peut quitter la page.
 - Page leçon : suivi de génération, aperçu élève, publier / retirer, tester les exercices,
   modifier ou supprimer un exercice, résultats, sources, régénérer (sources modifiables).
-- Import de leçons existantes (PDF, Google Docs/Drive) en lot, dates et titres détectés.
+- Import de leçons existantes (PDF, Google Docs/Drive, URLs multiples, dossiers Google Drive) en lot, détection automatique des dates/titres et contrôle des doublons (en base et dans la sélection).
 - Fiche élève : profil, « Notes privées » (jamais envoyées à l'IA) et « Contexte pour l'IA »,
   lien de connexion, **« Préparer le prochain cours »** (plan du tuteur généré par l'IA selon la
   méthode d'`agent.md`, questionnaire devoirs pour un cours d'essai).
@@ -129,6 +129,10 @@ bannissement, suppression), éditeur complet de leçons, explorateur de tables, 
   e-mail** (`/join/<token>`, #16) et **élève provisoire créé à l'invitation** (#19 : le prof prépare
   leçons et exercices avant que l'élève rejoigne ; `claim_join_link()` transfère tout à son compte).
   Build + 449 tests Vitest verts ; parcours d'invitation vérifié par script sur la base locale.
+- 2026-10-06 : **Notification e-mail d'ajout de leçon**, **dialog favoris** sur le tableau de bord élève
+  (`BookmarkPromptDialog`), et **signalement d'exercices par l'élève** avec désactivation temporaire
+  et alerte e-mail au prof (`POST /api/student/lessons/[id]/exercises/[exerciseId]/report`, badge & réactivation côté prof).
+  Tests Vitest : 461 tests verts.
 - Pas encore fait : parcours prof et élève complets dans le navigateur (reportés pour économiser des
   tokens) — à faire en local (`pnpm db:start`, compte `prof@local.test`) puis sur la prod.
 - À faire côté Wael : Supabase → URL Configuration (Site URL `https://fluent-flow-mu.vercel.app`,

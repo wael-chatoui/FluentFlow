@@ -13,6 +13,7 @@ import {
   formatRelative,
   formatShortDay,
   formatDate,
+  formatEur,
   formatUsd,
   initialsOf,
   plural,
@@ -20,7 +21,28 @@ import {
 import ui from '@/components/ui/ui.module.css'
 import s from '@/components/admin/common/admin.module.css'
 import d from '@/components/admin/common/dashboard.module.css'
-import { ArrowRight, BookOpen, CircleAlert, CircleCheck, Dumbbell, GraduationCap, Hourglass, Presentation, RefreshCw, RotateCcw, Send, ShieldCheck, Sparkles, Target, TrendingUp, UserPlus, Users } from 'lucide-react'
+import {
+  ArrowRight,
+  Banknote,
+  BookOpen,
+  CircleAlert,
+  CircleCheck,
+  Coins,
+  CreditCard,
+  Dumbbell,
+  GraduationCap,
+  Hourglass,
+  Presentation,
+  RefreshCw,
+  RotateCcw,
+  Send,
+  ShieldCheck,
+  Sparkles,
+  Target,
+  TrendingUp,
+  UserPlus,
+  Users,
+} from 'lucide-react'
 import Icon from '@/components/ui/Icon'
 
 const SERIES = [
@@ -36,6 +58,48 @@ function pct(part, whole) {
   return Math.round((part / whole) * 100)
 }
 
+function financeTiles(finance) {
+  const f = finance || {}
+  const mrr = f.mrr_eur ?? 0
+  const activeSubs = f.active_subscribers ?? 0
+  const subRate = f.subscribers_rate ?? 0
+  const margin = f.gross_margin_eur ?? 0
+  const arpu = f.arpu_eur ?? 0
+
+  return [
+    {
+      key: 'mrr',
+      icon: CreditCard,
+      label: 'MRR (Abonnements)',
+      value: formatEur(mrr),
+      sub: activeSubs > 0 ? `${plural(activeSubs, 'abonné', 'abonnés')} (${subRate} % des élèves)` : 'Stripe / Mollie',
+      title: `Revenu récurrent mensuel estimé (${activeSubs} abonné(s) actif(s), ARPU : ${formatEur(arpu)}). Prêt pour Stripe ou Mollie.`,
+      tone: mrr > 0 ? d.green : d.blue,
+      href: '/admin/tables/subscriptions',
+    },
+    {
+      key: 'gross_margin',
+      icon: Banknote,
+      label: 'Marge brute estimée',
+      value: formatEur(margin),
+      sub: `MRR (${formatEur(mrr)}) − IA (${formatEur(f.ai_cost_eur ?? 0)})`,
+      title: 'Marge brute mensuelle calculée en soustrayant le coût IA converti en EUR du MRR.',
+      tone: margin > 0 ? d.green : margin < 0 ? d.red : undefined,
+      href: '/admin/tables/subscriptions',
+    },
+    {
+      key: 'subscribers',
+      icon: Coins,
+      label: 'Abonnés actifs',
+      value: formatNumber(activeSubs),
+      sub: subRate > 0 ? `${subRate} % des élèves` : 'Aucun abonnement actif',
+      title: 'Nombre d’élèves avec un abonnement actif ou en période d’essai.',
+      tone: activeSubs > 0 ? d.blue : undefined,
+      href: '/admin/tables/subscriptions',
+    },
+  ]
+}
+
 function aiTiles(ai) {
   const tokens = (Number(ai.prompt_tokens) || 0) + (Number(ai.completion_tokens) || 0)
   const prices =
@@ -43,6 +107,12 @@ function aiTiles(ai) {
       ? `Tarifs : ${formatUsd(ai.price_input_per_m)} / M tokens en entrée, ${formatUsd(ai.price_output_per_m)} / M en sortie. `
       : ''
   const tokenText = `${formatCompact(tokens)} tokens (${formatCompact(ai.prompt_tokens || 0)} entrée + ${formatCompact(ai.completion_tokens || 0)} sortie)`
+  const cost30dText = ai.cost_30d_usd !== null && ai.cost_30d_usd !== undefined ? `30 j : ${formatUsd(ai.cost_30d_usd)} · ` : ''
+  const avgLessonText =
+    ai.avg_cost_per_lesson_usd !== null && ai.avg_cost_per_lesson_usd !== undefined
+      ? `moy. ${formatUsd(ai.avg_cost_per_lesson_usd)}/leçon`
+      : ''
+
   if (ai.source !== 'ledger') {
     return [
       {
@@ -67,10 +137,19 @@ function aiTiles(ai) {
     {
       key: 'ai',
       icon: Sparkles,
-      label: 'Coût IA',
+      label: 'Coût IA total',
       value: formatUsd(ai.cost_usd ?? ai.estimated_cost_usd),
-      sub: `${plural(ai.calls || 0, 'génération', 'générations')} (${formatNumber(kinds.lesson || 0)} leçons, ${formatNumber(kinds.plan || 0)} plans)`,
-      title: `${costNote}Toutes les tentatives, échecs compris. ${tokenText}.`,
+      sub: cost30dText ? `${cost30dText}${avgLessonText}` : `${plural(ai.calls || 0, 'génération', 'générations')}`,
+      title: `${costNote}Toutes les tentatives, échecs compris. ${tokenText}. Coût moyen : ${avgLessonText || '—'}.`,
+      tone: d.orange,
+    },
+    {
+      key: 'ai_30d',
+      icon: Sparkles,
+      label: 'Coût IA (30 j)',
+      value: formatUsd(ai.cost_30d_usd ?? 0),
+      sub: `${plural(ai.calls_30d || 0, 'génération', 'générations')} sur 30 jours`,
+      title: `Dépenses d'IA sur les 30 derniers jours (${formatNumber(ai.calls_30d || 0)} générations).`,
       tone: d.orange,
     },
     {
@@ -155,6 +234,7 @@ function buildTiles(stats) {
       sub: 'Moyenne score / total',
       tone: d.green,
     },
+    ...financeTiles(stats?.finance),
     ...aiTiles(stats?.ai || {}),
   ]
 }
@@ -198,7 +278,7 @@ function Tiles({ stats }) {
 function TilesSkeleton() {
   return (
     <div className={d.tiles} aria-hidden="true">
-      {Array.from({ length: 14 }, (_, i) => (
+      {Array.from({ length: 18 }, (_, i) => (
         <div key={i} className={cx(d.tile, d.tileSkel)}>
           <span className={ui.skel} style={{ width: '60%', height: 12 }} />
           <span className={ui.skel} style={{ width: 56, height: 26 }} />

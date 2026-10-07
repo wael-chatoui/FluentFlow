@@ -57,7 +57,7 @@ export function isLikelyFrench(text) {
 export function playableExercises(exercises) {
   if (!Array.isArray(exercises)) return []
   return exercises.filter((e) => {
-    if (!e || typeof e.id !== 'string' || !EXERCISE_TYPES.includes(e.type)) return false
+    if (!e || typeof e.id !== 'string' || !EXERCISE_TYPES.includes(e.type) || e.disabled) return false
     if (e.type === 'mcq') return Array.isArray(e.choices) && e.choices.length > 0 && Number.isInteger(e.answer)
     if (e.type === 'fill_blank') return Array.isArray(e.answers) && e.answers.length > 0 && typeof e.sentence === 'string'
     return Array.isArray(e.pairs) && e.pairs.length > 1

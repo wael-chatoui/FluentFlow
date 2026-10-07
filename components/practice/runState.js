@@ -112,6 +112,47 @@ export function runReducer(state, action) {
       if (pos >= state.queue.length) return { ...base, phase: 'done', retry: false }
       return { ...base, pos, turn: state.turn + 1, retry: hasFirst(state, state.queue[pos]) }
     }
+    case 'report_exercise': {
+      if (state.phase !== 'play') return state
+      const idToRemove = action.exerciseId
+      if (!idToRemove) return state
+
+      const nextItems = state.items.filter((e) => e.id !== idToRemove)
+      const nextFirst = state.first.filter((a) => a.exerciseId !== idToRemove)
+
+      let occurrencesBefore = 0
+      for (let i = 0; i < state.pos; i++) {
+        if (state.queue[i] === idToRemove) occurrencesBefore++
+      }
+      const nextQueue = state.queue.filter((id) => id !== idToRemove)
+      const nextPos = state.pos - occurrencesBefore
+
+      if (nextPos >= nextQueue.length) {
+        return {
+          ...state,
+          items: nextItems,
+          first: nextFirst,
+          queue: nextQueue,
+          pos: nextQueue.length,
+          phase: 'done',
+          feedback: null,
+          answer: null,
+          retry: false,
+        }
+      }
+
+      return {
+        ...state,
+        items: nextItems,
+        first: nextFirst,
+        queue: nextQueue,
+        pos: nextPos,
+        turn: state.turn + 1,
+        feedback: null,
+        answer: null,
+        retry: hasFirst({ first: nextFirst }, nextQueue[nextPos]),
+      }
+    }
     default:
       return state
   }

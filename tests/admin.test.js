@@ -11,7 +11,8 @@ import {
   sortUserItems,
   userListItem,
 } from '@/utils/api/admin/users'
-import { aiLedgerSummary, aiUsageSummary, dailyCounts, lastDays } from '@/utils/api/admin/stats'
+import { aiLedgerSummary, aiUsageSummary, dailyCounts, financeSummary, lastDays } from '@/utils/api/admin/stats'
+import { formatEur } from '@/components/admin/common/format'
 import { contentProblems, exercisesResetProgress, invalidExercisePositions } from '@/utils/api/admin/lessonEdit'
 import { TABLES, formatRow, parseSort, readTablePage, searchFilter } from '@/utils/api/admin/tables'
 import { normalizeExercisesForEdit } from '@/utils/lesson/schema'
@@ -272,6 +273,41 @@ describe('AI spend', () => {
     expect(counts[29]).toBe(2)
     expect(counts.reduce((a, b) => a + b, 0)).toBe(2)
   })
+
+  it('computes 30-day AI cost and average cost per lesson when since is provided', () => {
+    const env = { AI_PRICE_INPUT_PER_M: '0.1', AI_PRICE_OUTPUT_PER_M: '1' }
+    const rows = [
+      { kind: 'lesson', ok: true, prompt_tokens: 1_000_000, completion_tokens: 0, cost_usd: 0.1, created_at: '2026-09-25T10:00:00Z' },
+      { kind: 'lesson', ok: true, prompt_tokens: 1_000_000, completion_tokens: 0, cost_usd: 0.1, created_at: '2026-08-01T10:00:00Z' },
+    ]
+    const summary = aiLedgerSummary(rows, env, { since: '2026-09-01T00:00:00.000Z' })
+    expect(summary.cost_30d_usd).toBe(0.1)
+    expect(summary.calls_30d).toBe(1)
+    expect(summary.avg_cost_per_lesson_usd).toBe(0.1)
+  })
+
+  it('computes recurring revenue (MRR), margin and subscriber rates with financeSummary', () => {
+    const subs = [
+      { user_id: 'u1', status: 'active', amount_cents: 2900, plan: 'monthly', provider: 'stripe' },
+      { user_id: 'u2', status: 'trialing', amount_cents: 12000, plan: 'yearly', provider: 'mollie' }, // 10 EUR/mo
+      { user_id: 'u3', status: 'canceled', amount_cents: 2900, plan: 'monthly', provider: 'stripe' },
+    ]
+    const finance = financeSummary(subs, 5.0, 10) // 5 USD AI cost, 10 students
+    expect(finance.active_subscribers).toBe(2)
+    expect(finance.subscribers_rate).toBe(20) // 2 / 10 = 20%
+    expect(finance.mrr_eur).toBe(39) // 29 + 10
+    expect(finance.ai_cost_eur).toBe(4.6) // 5.0 * 0.92 = 4.60 EUR
+    expect(finance.gross_margin_eur).toBe(34.4) // 39 - 4.60 = 34.40 EUR
+    expect(finance.arpu_eur).toBe(19.5) // 39 / 2
+    expect(finance.providers).toEqual({ stripe: 1, mollie: 1 })
+  })
+
+  it('formats EUR currency correctly with formatEur', () => {
+    expect(formatEur(29)).toContain('29,00')
+    expect(formatEur(29)).toContain('€')
+    expect(formatEur(0)).toContain('0,00')
+    expect(formatEur(null)).toBe('—')
+  })
 })
 
 describe('strict lesson edits', () => {
@@ -312,9 +348,11 @@ describe('strict lesson edits', () => {
 })
 
 describe('table explorer registry', () => {
-  it('lists the 0006 tables as optional and the new lesson columns', () => {
+  it('lists the 0006 tables and subscriptions as optional and the new lesson columns', () => {
     expect(TABLES.lesson_plans.optional).toBe(true)
     expect(TABLES.ai_generations.optional).toBe(true)
+    expect(TABLES.subscriptions.optional).toBe(true)
+    expect(TABLES.subscriptions.columns.map((c) => c.name)).toContain('amount_cents')
     const lessonColumns = TABLES.lessons.columns.map((c) => c.name)
     expect(lessonColumns).toEqual(expect.arrayContaining(['hidden', 'client_key', 'source_text', 'generation_options']))
     expect(TABLES.student_notes.columns.map((c) => c.name)).toContain('ai_context')

@@ -138,10 +138,16 @@
 
 .linkInput {
   flex: 1;
+  min-height: 52px;
+  max-height: 180px;
+  resize: vertical;
+  line-height: 1.4;
+  padding: 0.65rem 0.85rem;
 }
 
 .linkButton {
   flex: none;
+  align-self: flex-start;
 }
 
 @media (min-width: 480px) {

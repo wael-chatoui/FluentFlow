@@ -6,7 +6,7 @@ import { BLANK } from '@/utils/lesson/schema'
 import ui from '@/components/ui/ui.module.css'
 import bits from '@/components/teacher/lessons/lessonUi.module.css'
 import styles from '@/components/teacher/ExerciseReview.module.css'
-import { ArrowLeftRight, Check, CircleDot, Info, Lightbulb, ListChecks, Pencil, TextCursorInput, Trash2 } from 'lucide-react'
+import { ArrowLeftRight, Check, CircleDot, Flag, Info, Lightbulb, ListChecks, Pencil, TextCursorInput, Trash2 } from 'lucide-react'
 import Icon from '@/components/ui/Icon'
 
 // Type pill color + icon: QCM blue, Trous orange, Association purple
@@ -131,7 +131,7 @@ const BODIES = { mcq: McqBody, fill_blank: FillBlankBody, match: MatchBody }
  * @param {{ exercises: object[], onRemove?: (id: string) => void, onEdit?: (id: string) => void,
  *   editingId?: string | null, renderEditor?: (exercise: object) => React.ReactNode, disabled?: boolean }} props
  */
-export default function ExerciseReview({ exercises, onRemove, onEdit, editingId = null, renderEditor, disabled = false }) {
+export default function ExerciseReview({ exercises, onRemove, onEdit, onReactivate, editingId = null, renderEditor, disabled = false }) {
   const list = Array.isArray(exercises) ? exercises : []
 
   if (list.length === 0) {
@@ -161,8 +161,27 @@ export default function ExerciseReview({ exercises, onRemove, onEdit, editingId 
                 {meta && <Icon icon={meta.icon} size={14} />}
                 {EXERCISE_TYPE_LABELS[exercise.type] || exercise.type}
               </span>
-              {!editing && (onEdit || onRemove) && (
+              {exercise.disabled && (
+                <span className={styles.reportedBadge} title="Exercice désactivé suite à un signalement de l'élève">
+                  <Icon icon={Flag} size={13} />
+                  <span>Désactivé</span>
+                </span>
+              )}
+              {!editing && (onEdit || onRemove || onReactivate) && (
                 <div className={styles.tools}>
+                  {exercise.disabled && onReactivate && (
+                    <button
+                      type="button"
+                      className={`${ui.btn} ${ui.small} ${bits.greenGhost} ${bits.tap} ${styles.tool}`}
+                      onClick={() => onReactivate(exercise.id)}
+                      disabled={locked}
+                      aria-label={`Réactiver l'exercice ${index + 1}`}
+                      title="Réactiver cet exercice pour l'élève"
+                    >
+                      <Icon icon={Check} size={18} />
+                      <span className={styles.toolLabel}>Réactiver</span>
+                    </button>
+                  )}
                   {onEdit && (
                     <button
                       type="button"
@@ -195,6 +214,18 @@ export default function ExerciseReview({ exercises, onRemove, onEdit, editingId 
               renderEditor(exercise)
             ) : (
               <>
+                {exercise.reported && (
+                  <div className={styles.reportBox}>
+                    <p className={styles.reportReason}>
+                      <strong>Signalé par l&apos;élève :</strong> {exercise.reported.reason || 'Problème signalé'}
+                    </p>
+                    {exercise.reported.note && (
+                      <p className={styles.reportNote}>
+                        <strong>Remarque :</strong> « {exercise.reported.note} »
+                      </p>
+                    )}
+                  </div>
+                )}
                 {exercise.prompt && (
                   <p className={styles.prompt}>
                     <RichTextInline text={exercise.prompt} />

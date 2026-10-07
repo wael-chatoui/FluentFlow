@@ -22,6 +22,17 @@ async function matchingStudentIds(admin, q) {
   return (data || []).map((p) => p.id)
 }
 
+function lessonCost(usage) {
+  if (!usage || typeof usage !== 'object') return null
+  if (usage.cost !== undefined && usage.cost !== null) return Number(usage.cost)
+  const p = Number(usage.prompt_tokens) || 0
+  const c = Number(usage.completion_tokens) || 0
+  if (!p && !c) return null
+  const inPrice = Number(process.env.AI_PRICE_INPUT_PER_M) || 0.05
+  const outPrice = Number(process.env.AI_PRICE_OUTPUT_PER_M) || 0.4
+  return Math.round(((p / 1e6) * inPrice + (c / 1e6) * outPrice) * 1_000_000) / 1_000_000
+}
+
 export default async function handler(req, res) {
   if (!allowMethods(req, res, ['GET'])) return
   if (!(await requireAdmin(req, res))) return
@@ -45,7 +56,7 @@ export default async function handler(req, res) {
       (options) => {
         let request = admin
           .from('lessons')
-          .select('id, title, lesson_date, status, hidden, student_id, exercises, ai_model, created_at, updated_at', options)
+          .select('id, title, lesson_date, status, hidden, student_id, exercises, ai_model, ai_usage, created_at, updated_at', options)
         if (search) request = request.or(search)
         if (status) request = request.eq('status', status)
         if (studentId) request = request.eq('student_id', normalizeUuid(studentId))
@@ -73,6 +84,7 @@ export default async function handler(req, res) {
         student_name: names.get(l.student_id) || '',
         exercise_count: exerciseCount(l.exercises),
         ai_model: l.ai_model,
+        ai_cost_usd: lessonCost(l.ai_usage),
         created_at: l.created_at,
         updated_at: l.updated_at,
       })),

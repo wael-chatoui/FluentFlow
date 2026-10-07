@@ -37,10 +37,10 @@ import {
   fileKey,
   fileKind,
   frenchError,
-  parseGoogleLink,
   readTextFile,
   resolveLink,
 } from '@/components/teacher/import/importUtils'
+import { extractGoogleLinks, parseGoogleLink } from '@/utils/import/googleLinks'
 import { detectLessonDate, titleFromName } from '@/utils/import/detect'
 import {
   LEVEL_LABELS,
@@ -98,6 +98,7 @@ export default function ImportLessonsPage() {
   const [announce, setAnnounce] = useState('')
   const extractControllers = useRef(new Map())
   const [lessonsByDate, setLessonsByDate] = useState(null)
+  const [existingLessons, setExistingLessons] = useState(null)
 
   const [options, setOptions] = useState({
     count: String(COUNT_DEFAULT),
@@ -208,15 +209,29 @@ export default function ImportLessonsPage() {
   // importing the same lesson twice
   useEffect(() => {
     setLessonsByDate(null)
+    setExistingLessons(null)
     if (!studentId) return undefined
     const controller = new AbortController()
     api(`/api/teacher/students/${studentId}`, { signal: controller.signal })
       .then((data) => {
-        const map = new Map()
-        ;(Array.isArray(data?.lessons) ? data.lessons : []).forEach((l) => {
-          if (l?.lesson_date && !map.has(l.lesson_date)) map.set(l.lesson_date, { id: l.id, title: l.title || '' })
+        const byDate = new Map()
+        const bySource = new Map()
+        const list = Array.isArray(data?.lessons) ? data.lessons : []
+        list.forEach((l) => {
+          if (l?.lesson_date && !byDate.has(l.lesson_date)) {
+            byDate.set(l.lesson_date, { id: l.id, title: l.title || '', lesson_date: l.lesson_date, source_name: l.source_name || '' })
+          }
+          if (l?.source_name) {
+            const cleanSource = l.source_name.toLowerCase().trim()
+            if (!bySource.has(cleanSource)) {
+              bySource.set(cleanSource, { id: l.id, title: l.title || '', lesson_date: l.lesson_date, source_name: l.source_name })
+            }
+          }
         })
-        if (mounted.current) setLessonsByDate(map)
+        if (mounted.current) {
+          setLessonsByDate(byDate)
+          setExistingLessons({ byDate, bySource, list })
+        }
       })
       .catch(() => {
         // Only a hint: the import works without it
@@ -283,12 +298,15 @@ export default function ImportLessonsPage() {
               // Nothing extracted (scanned PDF…): open the text box so the teacher can paste it
               showText: r.showText || !data.text.trim(),
             }
-            // A Google Doc's title (or the text) may give the date the file name did not
             if (!r.lessonDate) {
               const found = detectLessonDate({ name: sourceName, text: data.text })
               if (found) Object.assign(patch, { lessonDate: found.date, dateFrom: found.from })
             }
             if (r.lessonNumber === null) patch.lessonNumber = titleFromName(sourceName).lessonNumber
+            if (!r.dbDuplicate && existingLessons?.bySource) {
+              const match = existingLessons.bySource.get(sourceName.toLowerCase().trim())
+              if (match) patch.dbDuplicate = match
+            }
             return patch
           })
         })
@@ -339,6 +357,7 @@ export default function ImportLessonsPage() {
       }
       seen.add(key)
       const found = detectLessonDate({ name: file.name })
+      const dbMatch = existingLessons?.bySource?.get(file.name.toLowerCase().trim()) || null
       const base = {
         kind: fileKind(file),
         file,
@@ -348,6 +367,7 @@ export default function ImportLessonsPage() {
         lessonNumber: titleFromName(file.name).lessonNumber,
         lessonDate: found?.date || '',
         dateFrom: found?.from || null,
+        dbDuplicate: dbMatch || null,
       }
       const orphan = orphans.find((o) => o.dedupeKey === key)
       if (orphan) reused.add(key)
@@ -358,21 +378,131 @@ export default function ImportLessonsPage() {
         `Maximum ${MAX_SOURCES} documents par import : ${plural(overflow, 'fichier')} ${overflow > 1 ? "n'ont" : "n'a"} pas été ${overflow > 1 ? 'ajoutés' : 'ajouté'}.`
       )
     }
+    const dbDups = added.filter((r) => r.dbDuplicate).length
+    if (dbDups > 0) {
+      errors.push(
+        `Attention : ${plural(dbDups, 'document')} correspond déjà à une leçon enregistrée en base pour cet élève.`
+      )
+    }
     setRejected(errors)
     if (reused.size) setOrphans((os) => os.filter((o) => !reused.has(o.dedupeKey)))
     // L01, L02… in order
     if (added.length) setRows((rs) => [...rs, ...added.sort(byLessonNumber)])
   }
 
-  const addLink = (raw) => {
+  const addLinks = async (raw) => {
     if (running) return "Attends la fin de l'import."
-    const parsed = parseGoogleLink(raw)
-    if (parsed.error) return parsed.error
+    const extracted = extractGoogleLinks(raw)
+    if (extracted.errors.length && !extracted.links.length && !extracted.folders.length) {
+      return extracted.errors[0]
+    }
+
     const current = rowsRef.current
-    if (current.some((r) => r.dedupeKey === parsed.dedupeKey)) return 'Ce lien est déjà dans la liste.'
-    if (current.length >= MAX_SOURCES) return `Maximum ${MAX_SOURCES} documents par import.`
-    setRejected([])
-    setRows((rs) => [...rs, newRow({ kind: 'link', url: parsed.url, label: parsed.label, dedupeKey: parsed.dedupeKey })])
+    const seen = new Set(current.map((r) => r.dedupeKey))
+    const errors = [...extracted.errors]
+    let internalDups = extracted.duplicates || 0
+    let alreadyInList = 0
+    let overflow = 0
+    const toAdd = []
+
+    // 1. Dossiers Google Drive
+    if (extracted.folders.length) {
+      for (const folder of extracted.folders) {
+        try {
+          const res = await api('/api/teacher/import/folder', {
+            method: 'POST',
+            body: { url: folder.url, studentId: studentId || undefined },
+          })
+          const folderFiles = Array.isArray(res?.files) ? res.files : []
+          folderFiles.forEach((f) => {
+            if (seen.has(f.dedupeKey)) {
+              alreadyInList += 1
+              return
+            }
+            if (current.length + toAdd.length >= MAX_SOURCES) {
+              overflow += 1
+              return
+            }
+            seen.add(f.dedupeKey)
+            const found = detectLessonDate({ name: f.name })
+            const dbMatch =
+              f.existingLesson ||
+              (f.name ? existingLessons?.bySource?.get(f.name.toLowerCase().trim()) : null)
+            const base = {
+              kind: f.kind,
+              url: f.url,
+              label: f.kind === 'doc' ? 'Google Doc' : 'Fichier Google Drive',
+              sourceName: f.name,
+              dedupeKey: f.dedupeKey,
+              lessonNumber: titleFromName(f.name).lessonNumber,
+              lessonDate: found?.date || '',
+              dateFrom: found?.from || null,
+              dbDuplicate: dbMatch || null,
+            }
+            toAdd.push(newRow(base))
+          })
+        } catch (err) {
+          errors.push(frenchError(err, `Impossible de lire le dossier « ${folder.id} ».`))
+        }
+      }
+    }
+
+    // 2. Liens de documents individuels
+    extracted.links.forEach((parsed) => {
+      if (seen.has(parsed.dedupeKey)) {
+        alreadyInList += 1
+        return
+      }
+      if (current.length + toAdd.length >= MAX_SOURCES) {
+        overflow += 1
+        return
+      }
+      seen.add(parsed.dedupeKey)
+      const base = {
+        kind: parsed.kind,
+        url: parsed.url,
+        label: parsed.label,
+        dedupeKey: parsed.dedupeKey,
+      }
+      toAdd.push(newRow(base))
+    })
+
+    if (overflow) {
+      errors.push(
+        `Maximum ${MAX_SOURCES} documents par import : ${plural(overflow, 'document')} ${
+          overflow > 1 ? "n'ont" : "n'a"
+        } pas été ${overflow > 1 ? 'ajoutés' : 'ajouté'}.`
+      )
+    }
+    if (alreadyInList) {
+      errors.push(
+        `${plural(alreadyInList, 'document')} déjà présent dans la liste ${
+          alreadyInList > 1 ? 'ont été ignorés' : 'a été ignoré'
+        }.`
+      )
+    }
+    if (internalDups) {
+      errors.push(
+        `${plural(internalDups, 'lien')} en double dans le texte collé ${
+          internalDups > 1 ? 'ont été ignorés' : 'a été ignoré'
+        }.`
+      )
+    }
+
+    const dbDupsCount = toAdd.filter((r) => r.dbDuplicate).length
+    if (dbDupsCount > 0) {
+      errors.push(
+        `Attention : ${plural(dbDupsCount, 'document')} correspond déjà à une leçon enregistrée en base pour cet élève.`
+      )
+    }
+
+    setRejected(errors)
+    if (toAdd.length) {
+      setRows((rs) => [...rs, ...toAdd.sort(byLessonNumber)])
+      setAnnounce(`${plural(toAdd.length, 'document')} ajouté(s) à la liste.`)
+    } else if (!errors.length) {
+      return 'Aucun nouveau document à ajouter.'
+    }
     return null
   }
 
@@ -667,7 +797,7 @@ export default function ImportLessonsPage() {
                   </span>
                 }
               >
-                <SourceAdder disabled={running} full={rows.length >= MAX_SOURCES} onFiles={addFiles} onLink={addLink} />
+                <SourceAdder disabled={running} full={rows.length >= MAX_SOURCES} onFiles={addFiles} onLink={addLinks} />
 
                 {rejected.length > 0 && (
                   <div className={`${bits.alert} ${bits.warning}`} role="alert">
@@ -707,7 +837,15 @@ export default function ImportLessonsPage() {
                     </div>
                     <ul className={imp.list} aria-label="Documents à importer">
                       {rows.map((row, i) => {
-                        const existing = lessonsByDate?.get(row.lessonDate)
+                        const cleanName = (row.sourceName || row.label || '').toLowerCase().trim()
+                        const existingBySource =
+                          row.dbDuplicate || (cleanName ? existingLessons?.bySource?.get(cleanName) : null)
+                        const existingByDate = lessonsByDate?.get(row.lessonDate)
+                        const existing = existingBySource
+                          ? { ...existingBySource, matchKind: 'source' }
+                          : existingByDate && !createdIds.has(existingByDate.id)
+                          ? { ...existingByDate, matchKind: 'date' }
+                          : null
                         return (
                           <SourceRow
                             key={row.key}
@@ -715,7 +853,7 @@ export default function ImportLessonsPage() {
                             index={i}
                             title={rowTitle(row, selected)}
                             dateError={dateError(row)}
-                            existing={existing && !createdIds.has(existing.id) ? existing : null}
+                            existing={existing}
                             busy={running}
                             newTab={running}
                             retryDisabled={!optionsValid || !studentId}

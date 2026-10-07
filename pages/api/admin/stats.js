@@ -9,7 +9,7 @@ import { handleError } from '@/utils/api/errors'
 import { isMissingColumn } from '@/utils/ai/ledger'
 import { countRows, selectAll, unavailableTable } from '@/utils/api/admin/query'
 import { accessState, byNewest, listAllAuthUsers, nameOf } from '@/utils/api/admin/users'
-import { aiLedgerSummary, aiUsageSummary, dailyCounts, lastDays, successRate } from '@/utils/api/admin/stats'
+import { aiLedgerSummary, aiUsageSummary, dailyCounts, financeSummary, lastDays, successRate } from '@/utils/api/admin/stats'
 
 const RECENT = 5
 const LEDGER_FIELDS = 'kind, ok, prompt_tokens, completion_tokens, duration_ms, created_at'
@@ -26,16 +26,31 @@ async function loadLedger(admin) {
   }
 }
 
-async function loadAi(admin) {
+async function loadAi(admin, since) {
   try {
     const rows = await loadLedger(admin)
-    return { summary: aiLedgerSummary(rows), dates: rows.map((r) => r.created_at) }
+    return { summary: aiLedgerSummary(rows, process.env, { since }), dates: rows.map((r) => r.created_at) }
   } catch (err) {
     const reason = unavailableTable(err)
     if (!reason) throw err
     if (reason === 'forbidden') console.error('[admin] ai_generations not granted to service_role:', err)
     const lessons = await selectAll(() => admin.from('lessons').select('ai_usage').not('ai_usage', 'is', null).order('id'))
     return { summary: aiUsageSummary(lessons.map((l) => l.ai_usage)), dates: null }
+  }
+}
+
+async function loadSubscriptions(admin) {
+  try {
+    return await selectAll(() =>
+      admin
+        .from('subscriptions')
+        .select('id, user_id, provider, status, amount_cents, currency, plan, created_at')
+        .order('id')
+    )
+  } catch (err) {
+    const reason = unavailableTable(err)
+    if (!reason) throw err
+    return []
   }
 }
 
@@ -61,6 +76,7 @@ export default async function handler(req, res) {
       allSessions,
       lessonDates,
       ai,
+      subscriptions,
     ] = await Promise.all([
       listAllAuthUsers(admin),
       selectAll(() => admin.from('profiles').select('id').not('onboarded_at', 'is', null).order('id')),
@@ -77,7 +93,8 @@ export default async function handler(req, res) {
         .limit(RECENT),
       selectAll(() => admin.from('practice_sessions').select('score, total, completed_at').order('id')),
       selectAll(() => admin.from('lessons').select('created_at').gte('created_at', since).order('id')),
-      loadAi(admin),
+      loadAi(admin, since),
+      loadSubscriptions(admin),
     ])
     if (recentLessons.error) throw recentLessons.error
 
@@ -85,6 +102,8 @@ export default async function handler(req, res) {
     const students = users.filter((u) => getRole(u) === 'student')
     const studentIds = new Set(students.map((u) => u.id))
     const onboarded = onboardedProfiles.filter((p) => studentIds.has(p.id)).length
+
+    const finance = financeSummary(subscriptions, ai.summary.cost_usd, students.length)
 
     const newestUsers = [...users].sort(byNewest).slice(0, RECENT)
     const recentRows = recentLessons.data || []
@@ -112,6 +131,7 @@ export default async function handler(req, res) {
         practice_sessions: sessionsCount,
         review_attempts: reviewsCount,
       },
+      finance,
       last30: {
         days,
         signups: dailyCounts(days, users.map((u) => u.created_at)),

@@ -4,7 +4,7 @@ import SpeakButton from '@/components/student/vocabulary/SpeakButton'
 import BlankSentence from '@/components/practice/BlankSentence'
 import { splitBlank, speakable, isLikelyFrench, cx } from '@/components/practice/utils'
 import styles from '@/components/practice/PracticePlayer.module.css'
-import { Check, TriangleAlert, X } from 'lucide-react'
+import { Check, Flag, TriangleAlert, X } from 'lucide-react'
 import Icon from '@/components/ui/Icon'
 
 /** Title text + tone for a graded answer (also used for the aria-live announcement). */
@@ -28,7 +28,7 @@ export function describeFeedback(exercise, feedback) {
  * The ref goes to the Continue button (focused by the player). `onContinue` gets the click
  * event: Continue sits where Check was, so the player ignores the end of a double click.
  */
-const FeedbackSheet = forwardRef(function FeedbackSheet({ exercise, feedback, onContinue, speech }, ref) {
+const FeedbackSheet = forwardRef(function FeedbackSheet({ exercise, feedback, onContinue, speech, onReport }, ref) {
   const titleId = useId()
   const bodyId = useId()
   const { tone, title, answer } = describeFeedback(exercise, feedback)
@@ -83,6 +83,14 @@ const FeedbackSheet = forwardRef(function FeedbackSheet({ exercise, feedback, on
               </p>
             )}
             {tone === 'bad' && <p className={styles.fbNote}>You’ll see this one again at the end.</p>}
+            {onReport && (
+              <div>
+                <button type="button" className={styles.fbReportBtn} onClick={onReport} title="Report an issue with this exercise">
+                  <Icon icon={Flag} size={13} />
+                  <span>Report issue</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
         <button

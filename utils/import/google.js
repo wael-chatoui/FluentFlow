@@ -28,6 +28,9 @@ export const MESSAGES = {
     "Google renvoie ce document vers une adresse inattendue : télécharge-le en PDF puis ajoute le fichier à la place du lien.",
   fileType:
     'Ce type de fichier Drive n’est pas pris en charge (seulement PDF, .txt, .md ou Google Docs). Pour un fichier Word, ouvre-le dans Google Docs (Fichier → Enregistrer au format Google Docs) ou exporte-le en PDF.',
+  folderNotPublic:
+    'Impossible d’accéder à ce dossier Drive : il doit être partagé en « Tous les utilisateurs disposant du lien » (Partager → Accès général).',
+  folderEmpty: 'Aucun document compatible (Google Docs, PDF ou texte) trouvé dans ce dossier Drive.',
 }
 
 const ALLOWED_HOSTS = new Set(['docs.google.com', 'drive.google.com', 'drive.usercontent.google.com'])
@@ -291,3 +294,181 @@ export async function resolveGoogleLink(
     clearTimeout(timer)
   }
 }
+
+function decodeHtmlEntities(str) {
+  if (!str) return ''
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x2F;/gi, '/')
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+    .trim()
+}
+
+const UNSUPPORTED_EXT_RE =
+  /\.(jpe?g|png|gif|webp|svg|bmp|ico|mp3|wav|ogg|m4a|mp4|mov|avi|mkv|webm|zip|tar|gz|rar|7z|xlsx?|csv|pptx?|key|exe|dmg|iso)$/i
+
+/**
+ * Parses public Google Drive folder HTML (embeddedfolderview or modern Drive web view).
+ * @param {string} html
+ * @param {string} folderId
+ * @returns {{ folderId: string, folderName: string, files: Array<{ id: string, name: string, kind: 'doc'|'drive', url: string, dedupeKey: string }> }}
+ * @throws {ImportError}
+ */
+export function parseFolderHtml(html, folderId) {
+  if (!html || typeof html !== 'string') throw new ImportError(MESSAGES.notFound)
+
+  // 1. Check if sign-in is required
+  if (
+    /accounts\.google\.com/i.test(html) ||
+    /ServiceLogin/i.test(html) ||
+    /<title>\s*Google Drive[–\s-]+Sign in\s*<\/title>/i.test(html)
+  ) {
+    throw new ImportError(MESSAGES.folderNotPublic)
+  }
+
+  // 2. Folder title
+  let folderName = ''
+  const titleMatch = /<title>([^<]+?)(?:\s*-\s*Google Drive)?<\/title>/i.exec(html)
+  if (titleMatch) folderName = decodeHtmlEntities(titleMatch[1]).replace(/\s*-\s*Google Drive$/i, '').trim()
+
+  const filesMap = new Map()
+
+  // 3. Scan for embeddedfolderview entries: <div class="flip-entry" ...>
+  // e.g. <a href="https://drive.google.com/file/d/<id>/view"...> or /file/d/<id>/
+  const ENTRY_RE = /<div\b[^>]*\bclass=["'][^"']*flip-entry[^"']*["'][^>]*>([\s\S]*?)<\/div>\s*<\/div>/gi
+  let entryMatch
+  while ((entryMatch = ENTRY_RE.exec(html)) !== null) {
+    const block = entryMatch[1]
+    const linkMatch = /href=["']([^"']*(?:\/file\/d\/|\/document\/d\/|[\?&]id=)([A-Za-z0-9_-]{10,200})[^"']*)["']/i.exec(block)
+    if (!linkMatch) continue
+
+    const href = linkMatch[1]
+    const id = linkMatch[2]
+    if (id === folderId) continue
+
+    let name = ''
+    const titleAttr = /title=["']([^"']+)["']/i.exec(block) || /aria-label=["']([^"']+)["']/i.exec(block)
+    if (titleAttr) {
+      name = decodeHtmlEntities(titleAttr[1])
+    } else {
+      const titleDiv = /<div\b[^>]*\bclass=["'][^"']*flip-entry-title[^"']*["'][^>]*>([\s\S]*?)<\/div>/i.exec(block)
+      if (titleDiv) name = decodeHtmlEntities(titleDiv[1].replace(/<[^>]+>/g, ''))
+    }
+
+    if (!name) {
+      const textMatch = />([^<]+)<\/a>/i.exec(block)
+      if (textMatch) name = decodeHtmlEntities(textMatch[1])
+    }
+
+    name = sanitizeSourceName(name)
+    if (UNSUPPORTED_EXT_RE.test(name)) continue
+
+    const isDoc = /\/document\/d\//.test(href) || (!/\.pdf$/i.test(name) && !/\.(txt|md)$/i.test(name) && /Google Doc/i.test(block))
+    const kind = isDoc ? 'doc' : 'drive'
+    const url = isDoc ? `https://docs.google.com/document/d/${id}/edit` : `https://drive.google.com/file/d/${id}/view`
+
+    filesMap.set(id, { id, name: name || (isDoc ? 'Google Doc' : 'Fichier Drive'), kind, url, dedupeKey: `google:${id}` })
+  }
+
+  // 4. Fallback: Scan general <a> links in HTML if flip-entry was not present
+  if (filesMap.size === 0) {
+    const ANCHOR_RE = /<a\b[^>]*\bhref=["']([^"']*(?:\/file\/d\/|\/document\/d\/)[A-Za-z0-9_-]{10,200}[^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi
+    let aMatch
+    while ((aMatch = ANCHOR_RE.exec(html)) !== null) {
+      const href = aMatch[1]
+      const inner = aMatch[2]
+      const idMatch = /(?:\/file\/d\/|\/document\/d\/)([A-Za-z0-9_-]{10,200})/.exec(href)
+      if (!idMatch) continue
+      const id = idMatch[1]
+      if (id === folderId || filesMap.has(id)) continue
+
+      let name = decodeHtmlEntities(inner.replace(/<[^>]+>/g, '').trim())
+      name = sanitizeSourceName(name)
+      if (UNSUPPORTED_EXT_RE.test(name)) continue
+
+      const isDoc = /\/document\/d\//.test(href)
+      const kind = isDoc ? 'doc' : 'drive'
+      const url = isDoc ? `https://docs.google.com/document/d/${id}/edit` : `https://drive.google.com/file/d/${id}/view`
+
+      filesMap.set(id, { id, name: name || (isDoc ? 'Google Doc' : 'Fichier Drive'), kind, url, dedupeKey: `google:${id}` })
+    }
+  }
+
+  // 5. Fallback: JSON / Script scanning (_DRIVE_ivd or raw file IDs)
+  if (filesMap.size === 0) {
+    const JSON_ITEM_RE = /\["([A-Za-z0-9_-]{20,200})",\s*"([^"\\]*(?:\\.[^"\\]*)*)",\s*"([^"]+)"/g
+    let jsonMatch
+    while ((jsonMatch = JSON_ITEM_RE.exec(html)) !== null) {
+      const id = jsonMatch[1]
+      let name = sanitizeSourceName(jsonMatch[2].replace(/\\"/g, '"'))
+      const mime = jsonMatch[3]
+      if (id === folderId || filesMap.has(id)) continue
+      if (mime.includes('folder') || UNSUPPORTED_EXT_RE.test(name)) continue
+
+      const isDoc = mime.includes('document') || mime.includes('google-apps.document')
+      const isPdfOrText = mime.includes('pdf') || mime.includes('text') || /\.pdf$/i.test(name) || /\.(txt|md)$/i.test(name)
+      if (!isDoc && !isPdfOrText) continue
+
+      const kind = isDoc ? 'doc' : 'drive'
+      const url = isDoc ? `https://docs.google.com/document/d/${id}/edit` : `https://drive.google.com/file/d/${id}/view`
+      filesMap.set(id, { id, name: name || (isDoc ? 'Google Doc' : 'Fichier Drive'), kind, url, dedupeKey: `google:${id}` })
+    }
+  }
+
+  if (filesMap.size === 0) {
+    throw new ImportError(MESSAGES.folderEmpty)
+  }
+
+  return {
+    folderId,
+    folderName: folderName || 'Dossier Drive',
+    files: Array.from(filesMap.values()),
+  }
+}
+
+/**
+ * Resolves a public Google Drive folder and returns the list of supported files.
+ * @param {string} input  folder link pasted by the teacher
+ * @param {{ fetchImpl?: typeof fetch, timeoutMs?: number }} [deps]
+ * @returns {Promise<{ folderId: string, folderName: string, files: Array<object> }>}
+ */
+export async function resolveGoogleFolder(
+  input,
+  { fetchImpl = fetch, timeoutMs = FETCH_TIMEOUT_MS } = {}
+) {
+  const link = parseLink(input)
+  if (link.kind !== 'folder') throw new ImportError(LINK_MESSAGES.invalid)
+
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  const ctx = { fetchImpl, signal: controller.signal, controller, maxBytes: IMPORT_LIMITS.maxDownloadBytes }
+
+  try {
+    // Try embeddedfolderview first (cleaner server-rendered list)
+    const viewUrl = `https://drive.google.com/embeddedfolderview?id=${encodeURIComponent(link.id)}#list`
+    let response
+    try {
+      response = await fetchFromGoogle(viewUrl, ctx)
+    } catch {
+      // Fallback to standard folder URL
+      const folderUrl = `https://drive.google.com/drive/folders/${encodeURIComponent(link.id)}`
+      response = await fetchFromGoogle(folderUrl, ctx)
+    }
+
+    if (!response.ok) {
+      discard(response)
+      throw statusError(response.status)
+    }
+
+    const buffer = await readCapped(response, ctx.maxBytes, ctx.controller)
+    const html = decodeText(buffer)
+    return parseFolderHtml(html, link.id)
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
