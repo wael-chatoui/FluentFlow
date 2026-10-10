@@ -34,5 +34,10 @@ route, a response shape or a table changes.
 - **Design**: tokens in `styles/tokens.css` (`--st-*`, AA-contrast variants for text and buttons),
   primitives in `components/ui/ui.module.css`, one CSS module per component. Onboarding keeps its own look
   (`--ob-*`).
+- **Lesson document naming (Google Drive / imports)**:
+  When naming or renaming lesson documents (PDF, Google Docs) for bulk import, strictly follow the format:
+  `L{XX}_{Titre de la leçon}_{YYYY-MM-DD}` (e.g. `L01_Reactivation et Bilan_2026-10-10.pdf` or `L01_Conversation et Present_2026-10-08.pdf`).
+  If no lesson number applies: `{Titre de la leçon}_{YYYY-MM-DD}`.
+  This allows the parser (`utils/import/detect.js`) to automatically extract the lesson date in ISO format, the lesson number, and a clean lesson title without manual entry.
 - **Checks**: `pnpm test` (Vitest, `tests/`), `pnpm build`. Local database: `pnpm db:start` (Supabase CLI +
   Docker/Colima), migrations in `supabase/migrations/` are applied automatically there.
